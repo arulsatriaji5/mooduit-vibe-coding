@@ -1,0 +1,10 @@
+{
+  "name": "MOODUIT - Gen Z Financial Advisor",
+  "description": "A clean, modern financial app for Gen Z with Ambient AI suggestions, smart scanning, and gamified emergency fund tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

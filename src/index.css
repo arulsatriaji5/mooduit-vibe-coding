@@ -1,0 +1,475 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #112F58;
+  --color-accent-cream: #B9AB8C;
+  --color-accent-brown: #382718;
+  --color-bg-light: #F8F9FA;
+  --color-white: #FFFFFF;
+  --color-text-muted: #6C757D;
+  
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-mooduit: 24px;
+  --shadow-mooduit: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+:root {
+  --bs-primary: #112F58;
+  --bs-primary-rgb: 17, 47, 88;
+  --bs-font-sans-serif: "Inter", "Plus Jakarta Sans", sans-serif;
+  --bg-light: #F8F9FA;
+  --primary-dark: #112F58;
+  --accent-cream: #B9AB8C;
+  --accent-brown: #382718;
+}
+
+/* Custom CSS Dark Mode definitions */
+.dark {
+  --color-primary: #F1F5F9;
+  --color-accent-cream: #475569;
+  --color-accent-brown: #F1F5F9;
+  --color-bg-light: #0B1329;
+  --color-white: #1C2541;
+  --color-text-muted: #94A3B8;
+
+  --bg-light: #0B1329;
+  
+  background-color: #0B1329 !important;
+  color: #F1F5F9 !important;
+}
+
+.dark body {
+  background-color: #0B1329 !important;
+  color: #F1F5F9 !important;
+}
+
+.dark .card-mooduit {
+  background: #1C2541 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+}
+
+.dark .bg-white {
+  background-color: #1C2541 !important;
+}
+
+/* Base text overrides inside elements on dark mode */
+.dark .text-primary-mooduit,
+.dark .text-\[\#112F58\],
+.dark .text-\[\#1E293B\],
+.dark .text-\[\#382718\],
+.dark .text-brown-mooduit,
+.dark .text-slate-800,
+.dark .text-gray-800,
+.dark .text-slate-900,
+.dark .text-gray-900,
+.dark .text-black,
+.dark .text-dark {
+  color: #F8FAFC !important;
+}
+
+.dark .text-muted,
+.dark .text-slate-400,
+.dark .text-gray-400,
+.dark .text-slate-500,
+.dark .text-gray-500,
+.dark .text-slate-600,
+.dark .text-gray-600,
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: #CBD5E1 !important;
+}
+
+/* Specific overrides for status text in Smart Budget & analysis */
+.dark .text-amber-800,
+.dark .text-amber-600,
+.dark .text-yellow-700 {
+  color: #FCD34D !important; /* bright amber */
+}
+
+.dark .text-emerald-800,
+.dark .text-green-700 {
+  color: #34D399 !important; /* bright emerald */
+}
+
+/* Prevent layout backgrounds from staying bright white or gray */
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-slate-100,
+.dark .bg-light {
+  background-color: #242F50 !important;
+}
+
+/* Fix mobile header and other ambient background panels */
+.dark .bg-primary-mooduit {
+  background-color: #1C2541 !important;
+  color: #F1F5F9 !important;
+}
+
+/* In empty states and wishlists, borders must look elegant */
+.dark .border,
+.dark .border-dashed,
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Level details in Dana Darurat */
+.dark .locked-level {
+  background-color: #12192C !important;
+  border-color: rgba(255,255,255,0.05) !important;
+  opacity: 0.65;
+}
+
+/* Make list items seamless in theme */
+.dark .list-group-item {
+  background-color: #1C2541 !important;
+  color: #F1F5F9 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .list-group-item:hover {
+  background-color: #242F50 !important;
+  color: #FFFFFF !important;
+}
+
+/* Buttons outline configuration */
+.dark .btn-mooduit-outline {
+  border-color: #F1F5F9 !important;
+  color: #F1F5F9 !important;
+}
+
+.dark .btn-mooduit-outline:hover {
+  background-color: #F1F5F9 !important;
+  color: #0B1329 !important;
+}
+
+/* Overriding inputs, dropdowns, and textareas */
+.dark input, .dark select, .dark textarea {
+  background-color: #242F50 !important;
+  color: #F1F5F9 !important;
+  border-color: #3B4B74 !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+.dark .card {
+  background-color: #1C2541 !important;
+  color: #F1F5F9 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .form-label, 
+.dark label {
+  color: #F1F5F9 !important;
+}
+
+.dark .input-group-text {
+  background-color: #1C2541 !important;
+  color: #F1F5F9 !important;
+  border-color: #3B4B74 !important;
+}
+
+.dark .input-group-text svg {
+  color: #CBD5E1 !important;
+}
+
+.dark option {
+  background-color: #1C2541 !important;
+  color: #F1F5F9 !important;
+}
+
+/* Floating AI and specific chat component overrides */
+.dark .bg-blue-50 {
+  background-color: #242F50 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg-light);
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.bg-primary-mooduit {
+  background-color: var(--color-primary);
+}
+
+.text-primary-mooduit {
+  color: var(--color-primary);
+}
+
+.bg-cream-mooduit {
+  background-color: var(--color-accent-cream);
+}
+
+.text-brown-mooduit {
+  color: var(--color-accent-brown);
+}
+
+.rounded-xl {
+  border-radius: 20px;
+}
+
+.rounded-mooduit {
+  border-radius: 24px;
+}
+
+.card-mooduit {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.btn-mooduit-primary {
+  background-color: #112F58 !important;
+  color: white !important;
+  border-radius: 16px;
+  padding: 14px 25px;
+  font-weight: 600;
+  border: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-mooduit-primary:hover, .btn-mooduit-primary:focus, .btn-mooduit-primary:active {
+  background-color: #1c457a !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(17, 47, 88, 0.15) !important;
+}
+
+.dark .btn-mooduit-primary {
+  background-color: #3B82F6 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-mooduit-primary:hover, .dark .btn-mooduit-primary:focus, .dark .btn-mooduit-primary:active {
+  background-color: #60A5FA !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Floating AI toggle button specifically in dark mode */
+.dark .floating-ai-btn {
+  background-color: #FFFFFF !important;
+  color: #112F58 !important;
+  border-color: #FFFFFF !important;
+}
+
+.dark .floating-ai-btn:hover {
+  background-color: #E2E8F0 !important;
+  color: #112F58 !important;
+}
+
+.btn-download-laporan {
+  background-color: #FFFFFF !important;
+  color: #112F58 !important;
+  border: none !important;
+}
+
+.btn-download-laporan:hover {
+  background-color: #E2E8F0 !important;
+  color: #112F58 !important;
+}
+
+.dark .btn-download-laporan {
+  background-color: #FFFFFF !important;
+  color: #112F58 !important;
+  border: none !important;
+}
+
+.dark .btn-download-laporan:hover {
+  background-color: #E2E8F0 !important;
+  color: #112F58 !important;
+}
+
+.btn-mooduit-outline {
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  border-radius: 16px;
+  padding: 14px 25px;
+  font-weight: 600;
+  background: transparent;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-mooduit-outline:hover, .btn-mooduit-outline:focus, .btn-mooduit-outline:active {
+  background-color: var(--color-primary);
+  color: white !important;
+}
+
+.ambient-ai-box {
+  background-color: var(--color-accent-cream);
+  color: var(--color-accent-brown);
+  padding: 20px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 600;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.progress-container-mooduit {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill-mooduit {
+  height: 100%;
+  background: var(--color-accent-brown);
+  transition: width 1s ease-out;
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.logo-img {
+  max-width: 48px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.brand-moo {
+  color: #112F58;
+}
+
+.brand-duit {
+  color: #B9AB8C;
+}
+
+.brand-white-moo .brand-moo {
+  color: #FFFFFF;
+}
+
+.brand-white-moo .brand-duit {
+  color: #B9AB8C;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+.floating-asset {
+  animation: floating 3s ease-in-out infinite;
+}
+
+.skeleton-loader {
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.locked-level {
+  opacity: 0.5;
+  background: var(--color-bg-light);
+}
+
+.sidebar-mooduit {
+  background-color: var(--color-primary);
+  color: white;
+  min-height: 100vh;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item-sidebar {
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-item-sidebar:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.nav-item-sidebar.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
