@@ -8,8 +8,13 @@ import fs from "fs/promises";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const resolvedFilename = typeof import.meta !== "undefined" && import.meta.url
+  ? fileURLToPath(import.meta.url)
+  : (typeof __filename !== "undefined" ? __filename : "");
+
+const resolvedDirname = typeof __dirname !== "undefined"
+  ? __dirname
+  : (resolvedFilename ? path.dirname(resolvedFilename) : process.cwd());
 
 const DB_FILE = path.join(process.cwd(), "db.json");
 

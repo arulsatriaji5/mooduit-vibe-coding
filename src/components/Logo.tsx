@@ -12,7 +12,7 @@ export default function Logo({ size = 60, showText = false, className = "", imgC
   return (
     <div className={`d-flex align-items-center gap-2 ${className}`}>
       <img 
-        src="Logo_mooduit.png" 
+        src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/Logo_mooduit.png" 
         alt="Logo MOODUIT" 
         className={`logo-img ${imgClassName}`}
         style={{ width: size }}

@@ -1041,7 +1041,7 @@ export default function Dashboard({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.9, y: 50 }}
             transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            className="fixed inset-0 md:fixed md:inset-auto md:bottom-20 md:right-8 md:w-[400px] md:h-[600px] bg-white dark:bg-slate-900 md:rounded-3xl shadow-2xl md:border border-slate-200 dark:border-slate-800 z-[99999] flex flex-col overflow-hidden"
+            className="fixed inset-0 md:fixed md:inset-auto md:bottom-20 md:right-8 md:w-[400px] md:h-[600px] bg-white dark:bg-slate-900 md:rounded-3xl shadow-2xl md:border border-slate-200 dark:border-slate-800 z-[99999] flex flex-col resize overflow-hidden min-w-[320px] min-h-[400px] max-w-[600px] max-h-[800px]"
           >
             {/* HEADER CHAT */}
             <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0">
