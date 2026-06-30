@@ -1,0 +1,85 @@
+/* Dashboard Stylesheet */
+
+.mooduit-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-eye-toggle {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  margin: 0;
+  color: #94a3b8; /* text-slate-400 */
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+/* Hover & Active Effects */
+.btn-eye-toggle:hover {
+  color: #334155; /* text-slate-700 */
+  background-color: #f1f5f9; /* bg-slate-100/bg-gray-100 */
+}
+
+.dark .btn-eye-toggle:hover {
+  color: #f8fafc; /* text-slate-100 */
+  background-color: #334155; /* bg-slate-700 in dark mode */
+}
+
+.btn-eye-toggle:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Elegant CSS Tooltip */
+.mooduit-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background-color: #0f172a; /* deep slate */
+  color: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.dark .mooduit-tooltip {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Triangle indicator for the tooltip */
+.mooduit-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.dark .mooduit-tooltip::after {
+  border-color: #f8fafc transparent transparent transparent;
+}
+
+/* Hover trigger to show tooltip */
+.mooduit-tooltip-wrapper:hover .mooduit-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}

@@ -1,0 +1,405 @@
+/* Settings Stylesheet */
+
+/* Row container for notification settings */
+.notif-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.notif-row:hover {
+  background-color: #f8fafc;
+}
+
+.dark .notif-row:hover {
+  background-color: rgba(51, 65, 85, 0.5); /* slate-700/50 */
+}
+
+/* Left side of notification row: Icon & Text */
+.notif-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Perfect circle wrapper for bell icon (Anti-Gepeng) */
+.bell-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f1f5f9; /* slate-100 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #112F58;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark .bell-wrapper {
+  background-color: #334155; /* slate-700 */
+  color: #cbd5e1; /* slate-300 */
+}
+
+/* Prevent bell icon itself from being squished */
+.bell-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Title text for Notification */
+.notif-label {
+  color: #112F58;
+  font-weight: 700;
+  font-size: 15px;
+  transition: color 0.3s ease;
+}
+
+.dark .notif-label {
+  color: #ffffff;
+}
+
+/* Minimalist capsule toggle matching the uploaded image */
+.notif-toggle {
+  position: relative;
+  width: 84px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 4px;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Active State: Notification Enabled (Navy blue capsule) */
+.notif-toggle.enabled {
+  background-color: #112F58;
+}
+
+/* Inactive State: Notification Disabled (Soft light grayish-blue capsule) */
+.notif-toggle.disabled {
+  background-color: #e9eef5;
+}
+
+.dark .notif-toggle.disabled {
+  background-color: #334155; /* slate-700 in dark mode */
+}
+
+/* Internal sliding knob/handle (White circle in the image) */
+.notif-toggle-handle {
+  width: 36px;
+  height: 36px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.06);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Sliding animation (Moving exactly 40px to the right) */
+.notif-toggle.enabled .notif-toggle-handle {
+  transform: translateX(40px);
+}
+
+.notif-toggle.disabled .notif-toggle-handle {
+  transform: translateX(0);
+}
+
+/* Bell SVG icon inside the knob (Anti-Gepeng, centered, and crisp) */
+.notif-knob-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: block;
+  transition: all 0.3s ease;
+}
+
+.notif-toggle.enabled .notif-knob-icon {
+  color: #112F58;
+}
+
+.notif-toggle.disabled .notif-knob-icon {
+  color: #112F58; /* Keeps high-contrast navy outlines on white knob as in the image */
+}
+
+/* Interactive Privacy & Security Row Button */
+.privacy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  outline: none;
+}
+
+.privacy-btn:hover {
+  background-color: #f8fafc;
+}
+
+.dark .privacy-btn:hover {
+  background-color: rgba(51, 65, 85, 0.5); /* slate-700/50 */
+}
+
+.privacy-btn:focus {
+  outline: none;
+}
+
+.privacy-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Rounded square wrapper for shield icon */
+.privacy-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: #f1f5f9; /* slate-100 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #112F58;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark .privacy-icon-wrapper {
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+.privacy-text {
+  color: #112F58;
+  font-weight: 500;
+  font-size: 15px;
+  transition: color 0.3s ease;
+}
+
+.dark .privacy-text {
+  color: #ffffff;
+}
+
+.privacy-chevron {
+  color: #94a3b8; /* slate-400 */
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.privacy-btn:hover .privacy-chevron {
+  transform: translateX(3px);
+  color: #64748b;
+}
+
+.dark .privacy-btn:hover .privacy-chevron {
+  color: #f8fafc;
+}
+
+/* Elegant Privacy & Security Modal Styles */
+.security-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.security-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.security-modal-content {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark .security-modal-content {
+  background-color: #1e293b; /* slate-800 */
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.security-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dark .security-modal-header {
+  border-bottom: 1px solid #334155;
+}
+
+.security-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #112F58;
+  margin: 0;
+}
+
+.dark .security-modal-title {
+  color: #ffffff;
+}
+
+.security-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.security-modal-close:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.dark .security-modal-close {
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+.dark .security-modal-close:hover {
+  background-color: #475569;
+  color: #ffffff;
+}
+
+.security-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.dark .security-modal-body {
+  color: #cbd5e1;
+}
+
+.security-section {
+  margin-bottom: 1.5rem;
+}
+
+.security-section:last-child {
+  margin-bottom: 0;
+}
+
+.security-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #112F58;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dark .security-section-title {
+  color: #38bdf8; /* sky-400 */
+}
+
+.security-section-text {
+  margin: 0 0 0.75rem 0;
+  text-align: justify;
+}
+
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: #e0f2fe; /* sky-100 */
+  color: #0369a1; /* sky-700 */
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dark .security-badge {
+  background-color: rgba(3, 105, 161, 0.3);
+  color: #38bdf8;
+}
+
+.security-modal-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dark .security-modal-footer {
+  border-top: 1px solid #334155;
+}
+
+.security-modal-btn {
+  background-color: #112F58;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.security-modal-btn:hover {
+  opacity: 0.9;
+}
+

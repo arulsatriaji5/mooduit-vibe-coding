@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronRight, 
@@ -20,13 +20,26 @@ import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 
 interface LandingPageProps {
-  onStart: () => void;
+  onStart: (mode: 'login' | 'register') => void;
 }
 
 export default function LandingPage({ onStart }: LandingPageProps) {
   const { language, t, theme } = useThemeLanguage();
   const darkMode = theme === 'dark';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="w-full min-h-screen scroll-smooth font-sans" style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', display: 'flex', flexDirection: 'column', transition: 'background-color 0.3s ease' }}>
@@ -42,7 +55,22 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       `}</style>
       
       {/* --- 1. HEADER (RESPONSIF DENGAN HAMBURGER MENU) --- */}
-      <header className="relative sticky top-0 z-[999] w-full transition-colors duration-300" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', boxShadow: '0 10px 15px -3px rgba(17, 47, 88, 0.05), 0 4px 6px -2px rgba(17, 47, 88, 0.03)' }}>
+      <header 
+        className="relative sticky top-0 z-[999] w-full transition-all duration-300" 
+        style={{ 
+          backgroundColor: isScrolled 
+            ? (darkMode ? 'rgba(30, 41, 59, 0.75)' : 'rgba(255, 255, 255, 0.75)') 
+            : (darkMode ? '#1e293b' : '#ffffff'), 
+          backdropFilter: isScrolled ? 'blur(12px)' : 'none',
+          WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
+          boxShadow: isScrolled 
+            ? '0 4px 12px rgba(17, 47, 88, 0.08)' 
+            : '0 10px 15px -3px rgba(17, 47, 88, 0.05), 0 4px 6px -2px rgba(17, 47, 88, 0.03)',
+          borderBottom: isScrolled 
+            ? (darkMode ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(17, 47, 88, 0.06)') 
+            : 'none'
+        }}
+      >
         <div className="flex justify-between items-center px-4 py-4 md:px-[6%] box-border">
           <div className="flex items-center gap-2 md:gap-3">
             <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/Logo_mooduit.png" alt="MOODUIT Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
@@ -80,13 +108,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <div className="hidden md:flex items-center gap-[12px]">
             <button 
               style={{ backgroundColor: 'transparent', border: darkMode ? '1px solid #cbd5e1' : '1px solid #112F58', color: darkMode ? '#cbd5e1' : '#112F58', padding: '8px 16px', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' }}
-              onClick={onStart}
+              onClick={() => onStart('login')}
             >
               {language === 'id' ? 'Masuk' : 'Login'}
             </button>
             <button 
               style={{ backgroundColor: darkMode ? '#f8fafc' : '#112F58', color: darkMode ? '#0f172a' : '#ffffff', padding: '8px 16px', borderRadius: '10px', fontWeight: 'bold', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
-              onClick={onStart}
+              onClick={() => onStart('register')}
             >
               {language === 'id' ? 'Daftar' : 'Register'}
             </button>
@@ -96,7 +124,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <div className="flex md:hidden items-center gap-2">
             <button 
               style={{ backgroundColor: darkMode ? '#f8fafc' : '#112F58', color: darkMode ? '#0f172a' : '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '13px' }}
-              onClick={onStart}
+              onClick={() => onStart('login')}
             >
               {language === 'id' ? 'Masuk' : 'Login'}
             </button>
@@ -159,7 +187,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             {/* Tombol Auth di dalam menu mobile */}
             <div className="flex flex-col gap-3 mt-4 mb-3">
               <button 
-                onClick={() => { setIsMobileMenuOpen(false); onStart(); }} 
+                onClick={() => { setIsMobileMenuOpen(false); onStart('login'); }} 
                 style={{ 
                   border: darkMode ? '1px solid #cbd5e1' : '1px solid #112F58', 
                   color: darkMode ? '#cbd5e1' : '#112F58', 
@@ -173,7 +201,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 {language === 'id' ? 'Masuk ke Akun' : 'Sign In'}
               </button>
               <button 
-                onClick={() => { setIsMobileMenuOpen(false); onStart(); }} 
+                onClick={() => { setIsMobileMenuOpen(false); onStart('register'); }} 
                 style={{ 
                   backgroundColor: darkMode ? '#f8fafc' : '#112F58', 
                   color: darkMode ? '#0f172a' : '#ffffff', 
@@ -206,7 +234,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button 
             style={{ backgroundColor: '#112F58', color: '#ffffff', padding: '14px 32px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', border: 'none', cursor: 'pointer' }}
-            onClick={onStart}
+            onClick={() => onStart('register')}
           >
             {language === 'id' ? 'Daftar / Masuk Sekarang' : 'Sign Up / Login Now'}
           </button>
@@ -290,7 +318,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       </section>
 
       {/* --- SEKSI MANFAAT (BENEFITS) --- */}
-      <section id="manfaat" className="py-20 px-6 md:px-12 bg-slate-50 dark:bg-slate-900/50 w-full flex flex-col items-center">
+      <section id="manfaat" className="py-20 px-6 md:px-12 bg-white dark:bg-slate-900/40 w-full flex flex-col items-center">
         <div className="max-w-6xl w-full">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#112F58] dark:text-white mb-4">
@@ -303,7 +331,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Manfaat 1 */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:-translate-y-2 transition-transform duration-300 text-center flex flex-col items-center">
+            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🧘‍♂️
               </div>
@@ -314,7 +342,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
 
             {/* Manfaat 2 */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:-translate-y-2 transition-transform duration-300 text-center flex flex-col items-center">
+            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🚀
               </div>
@@ -325,7 +353,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
 
             {/* Manfaat 3 */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:-translate-y-2 transition-transform duration-300 text-center flex flex-col items-center">
+            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 ⚖️
               </div>
@@ -339,7 +367,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       </section>
 
       {/* --- 4.5. SECURITY & EXCELLENCE (KEAMANAN & KEUNGGULAN) SECTION --- */}
-      <section id="keamanan" style={{ padding: '80px 6%', backgroundColor: darkMode ? '#112F58' : '#e2e8f0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background-color 0.3s' }}>
+      <section id="keamanan" style={{ padding: '80px 6%', backgroundColor: darkMode ? '#112F58' : '#ffffff', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background-color 0.3s' }}>
         <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center' }}>
           <div style={{ flex: '1 1 400px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#B9AB8C', color: '#112F58', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', marginBottom: '16px' }}>
@@ -369,7 +397,18 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
           </div>
           <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '30px', backgroundColor: darkMode ? '#0f172a' : '#ffffff', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <div 
+              className="border border-slate-100 dark:border-slate-800"
+              style={{ 
+                position: 'relative', 
+                width: '100%', 
+                maxWidth: '400px', 
+                padding: '30px', 
+                backgroundColor: darkMode ? '#0f172a' : '#ffffff', 
+                borderRadius: '24px', 
+                boxShadow: darkMode ? 'none' : '0 25px 50px -12px rgba(17, 47, 88, 0.15), 0 12px 24px -8px rgba(17, 47, 88, 0.1)' 
+              }}
+            >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e2f0fd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🛡️</div>

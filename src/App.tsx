@@ -23,6 +23,7 @@ type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [user, setUser] = useState<any>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
@@ -53,7 +54,8 @@ export default function App() {
     initDB();
   }, []);
 
-  const handleStart = () => {
+  const handleStart = (mode: 'login' | 'register' = 'login') => {
+    setAuthMode(mode);
     setCurrentPage('auth');
   };
 
@@ -74,7 +76,7 @@ export default function App() {
       case 'landing':
         return <LandingPage onStart={handleStart} />;
       case 'auth':
-        return <Auth onAuth={handleAuth} onClose={() => setCurrentPage('landing')} />;
+        return <Auth onAuth={handleAuth} onClose={() => setCurrentPage('landing')} initialMode={authMode} />;
       case 'dashboard':
         return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} />;
       case 'scanner':

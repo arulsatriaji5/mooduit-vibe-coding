@@ -170,14 +170,41 @@ async function startServer() {
     }
   });
 
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
+  // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
+  function getGeminiApiKey(): string {
+    if (typeof process !== "undefined" && process.env) {
+      if (process.env.VITE_GEMINI_API_KEY) return process.env.VITE_GEMINI_API_KEY;
+      if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
     }
-  });
+    try {
+      const metaEnv = (import.meta as any).env;
+      if (metaEnv && metaEnv.VITE_GEMINI_API_KEY) {
+        return metaEnv.VITE_GEMINI_API_KEY;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return "";
+  }
+
+  let aiInstance: GoogleGenAI | null = null;
+
+  function getAiClient(): GoogleGenAI {
+    if (aiInstance) return aiInstance;
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured.");
+    }
+    aiInstance = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+    return aiInstance;
+  }
 
   // API Scan Receipt
   app.post("/api/scan-receipt", async (req, res) => {
@@ -190,6 +217,7 @@ async function startServer() {
 
       const prompt = `Ekstrak data dari gambar struk ini secara akurat. Ambil: 1. Nama Merchant/Toko (Jika tidak terdeteksi atau tidak ada, WAJIB tulis 'Merchant Tidak Diketahui'), 2. Total Belanja Asli (Bukan uang tunai yang dibayar), 3. Nominal Tunai/Bayar, 4. Kembalian, 5. Tanggal Transaksi, 6. Kategori yang paling cocok.`;
 
+      const ai = getAiClient();
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: {
@@ -283,6 +311,7 @@ async function startServer() {
       });
 
       // Generate response from gemini-3.5-flash
+      const ai = getAiClient();
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
         contents: contents,
@@ -295,7 +324,11 @@ async function startServer() {
       res.json({ text: response.text });
     } catch (error: any) {
       console.error("Chat AI Error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate AI response" });
+      const isIndonesian = req.body?.language === "id";
+      const fallbackMsg = isIndonesian
+        ? "Maaf, AI Advisor sedang beristirahat sejenak. Coba lagi nanti ya!"
+        : "Sorry, AI Advisor is taking a short break. Please try again later!";
+      res.json({ text: fallbackMsg });
     }
   });
 

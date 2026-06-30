@@ -12,6 +12,7 @@ import {
   Shield
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
+import './Settings.css';
 
 export default function Settings() {
   const { theme, toggleTheme, language, setLanguage, t } = useThemeLanguage();
@@ -22,6 +23,7 @@ export default function Settings() {
     return localStorage.getItem('userAvatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
   });
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   const avatarOptions = [
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul',
@@ -187,78 +189,40 @@ export default function Settings() {
                   <ChevronRight size={18} className="text-muted" />
                 </div>
               </div>
-              <div 
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px', backgroundColor: 'transparent' }} 
-                className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-              >
+              <div className="notif-row">
                 
                 {/* Bagian Kiri: Ikon & Teks */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="notif-left">
                   {/* Kiri: Ikon Lonceng */}
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58' }} className="dark:!bg-slate-700 dark:!text-slate-300">
-                    <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                  <div className="bell-wrapper">
+                    <svg className="bell-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
                   </div>
-                  <span 
-                    style={{ 
-                      color: darkMode ? '#ffffff' : '#112F58', 
-                      fontWeight: '700', 
-                      fontSize: '15px',
-                      transition: 'color 0.3s ease'
-                    }}
-                  >
+                  <span className="notif-label">
                     Notification
                   </span>
                 </div>
                 
-                {/* Bagian Kanan: Toggle Kapsul Navy/Slate (Sesuai Mandat) */}
+                {/* Bagian Kanan: Toggle Kapsul Minimalis (Sejalan dengan Mode Gelap) */}
                 <button 
                   onClick={() => setNotifEnabled(!notifEnabled)} 
-                  style={{ 
-                    position: 'relative', 
-                    width: '80px', 
-                    height: '36px', 
-                    borderRadius: '999px', 
-                    backgroundColor: '#ffffff', 
-                    border: notifEnabled ? '3px solid #112F58' : '3px solid #94a3b8', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    padding: '2px', 
-                    cursor: 'pointer', 
-                    overflow: 'hidden',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease-in-out'
-                  }}
+                  className={`notif-toggle ${notifEnabled ? 'enabled' : 'disabled'}`}
+                  aria-label="Toggle Notification"
                 >
-                  
-                  {/* Teks ON / OFF di background */}
-                  <div style={{ position: 'absolute', width: '100%', left: 0, display: 'flex', justifyContent: 'space-between', padding: '0 10px', boxSizing: 'border-box', fontSize: '13px', fontWeight: '900', color: notifEnabled ? '#112F58' : '#94a3b8', zIndex: 0, transition: 'color 0.2s ease-in-out' }}>
-                    <span style={{ opacity: notifEnabled ? 1 : 0, transition: 'opacity 0.2s ease-in-out' }}>ON</span>
-                    <span style={{ opacity: notifEnabled ? 0 : 1, transition: 'opacity 0.2s ease-in-out' }}>OFF</span>
-                  </div>
-
-                  {/* Bulatan Bergerak */}
-                  <div style={{ 
-                    position: 'relative', 
-                    width: '26px', 
-                    height: '26px', 
-                    backgroundColor: '#ffffff', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    border: notifEnabled ? '1px solid #112F58' : '1px solid #94a3b8', 
-                    transform: notifEnabled ? 'translateX(42px)' : 'translateX(0)', 
-                    transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)', 
-                    zIndex: 1, 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
-                  }}>
+                  <div className="notif-toggle-handle">
                     {notifEnabled ? (
-                      <svg style={{ width: '14px', height: '14px', color: '#112F58' }} fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6 6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path></svg>
+                      <svg className="notif-knob-icon" fill="currentColor" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
                     ) : (
-                      <svg style={{ width: '14px', height: '14px', color: '#94a3b8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9m-3-3l14 14"></path></svg>
+                      <svg className="notif-knob-icon" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
                     )}
                   </div>
-
                 </button>
                 
               </div>
@@ -268,13 +232,17 @@ export default function Settings() {
           <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h6>
           <div className="card-mooduit overflow-hidden mb-4 p-0">
             <div className="list-group list-group-flush border-0">
-              <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom cursor-pointer hover-bg-gray">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-2 bg-light rounded-lg"><Shield size={20} /></div>
-                  <span className="fw-500">{t("Privasi & Keamanan", "Privacy & Security")}</span>
+              <button 
+                onClick={() => setIsPrivacyModalOpen(true)}
+                className="privacy-btn"
+                type="button"
+              >
+                <div className="privacy-left">
+                  <div className="privacy-icon-wrapper"><Shield size={20} /></div>
+                  <span className="privacy-text">{t("Privasi & Keamanan", "Privacy & Security")}</span>
                 </div>
-                <ChevronRight size={18} className="text-muted" />
-              </div>
+                <ChevronRight size={18} className="privacy-chevron" />
+              </button>
             </div>
           </div>
 
@@ -382,6 +350,96 @@ export default function Settings() {
               >
                 {t("Simpan", "Save")}
               </button>
+            </motion.div>
+          </div>
+        )}
+
+        {isPrivacyModalOpen && (
+          <div className="security-modal-overlay">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="security-modal-backdrop"
+              onClick={() => setIsPrivacyModalOpen(false)}
+            />
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+              className="security-modal-content"
+            >
+              {/* Header */}
+              <div className="security-modal-header">
+                <h5 className="security-modal-title">
+                  {t("Kebijakan Privasi & Keamanan", "Privacy & Security Policy")}
+                </h5>
+                <button 
+                  onClick={() => setIsPrivacyModalOpen(false)}
+                  className="security-modal-close"
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="security-modal-body">
+                <div className="security-badge">
+                  <Shield size={14} />
+                  <span>AES-256 Secured</span>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    🛡️ {t("Enkripsi Standar Militer", "Military-Grade Encryption")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "MOODUIT melindungi seluruh data sensitif kamu menggunakan teknologi enkripsi AES-256 bit tingkat lanjut. Proses enkripsi dilakukan secara end-to-end, memastikan informasi keuangan, catatan, dan transaksi harian tidak dapat diakses oleh pihak luar.",
+                      "MOODUIT secures all your sensitive data using advanced AES-256 bit encryption. The encryption process is executed end-to-end, ensuring that your financial information, journals, and daily transactions remain completely inaccessible to external parties."
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    ☁️ {t("Penyimpanan Cloud & Firestore Aman", "Secure Cloud & Firestore Storage")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Infrastruktur backend kami berbasis Google Cloud Platform & Firebase Firestore dengan aturan keamanan (Security Rules) yang diperketat secara berlapis. Akses data diautentikasi dengan token aman dan didelegasikan secara ketat berdasarkan kepemilikan akun pengguna.",
+                      "Our backend infrastructure runs on Google Cloud Platform & Firebase Firestore, fortified by multi-layered Security Rules. Data access is authenticated via secure tokens and strictly delegated based on user account ownership."
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    🔒 {t("Jaminan Privasi Data 100%", "100% Data Privacy Guarantee")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Privasi kamu adalah prioritas mutlak bagi kami. Kami tidak pernah menjual, menyewakan, atau membagikan aktivitas finansial, catatan suasana hati, maupun informasi demografi kamu kepada platform iklan pihak ketiga atau perantara data.",
+                      "Your privacy is our absolute priority. We never sell, rent, or share your financial logs, mood tracking records, or demographic information with third-party advertising networks or data brokers."
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="security-modal-footer">
+                <button 
+                  onClick={() => setIsPrivacyModalOpen(false)}
+                  className="security-modal-btn"
+                  type="button"
+                >
+                  {t("Mengerti", "I Understand")}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
