@@ -1,0 +1,13 @@
+{
+  "transactions": [
+    {
+      "id": "1782876413287",
+      "amount": 400000,
+      "type": "income",
+      "category": "Lainnya",
+      "description": "Lainnya",
+      "created_at": "2026-07-01"
+    }
+  ],
+  "budgets": []
+}

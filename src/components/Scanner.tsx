@@ -257,11 +257,18 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       openManual: false
     });
 
+    // Trigger streak celebration globally after dashboard page has loaded
+    setTimeout(() => {
+      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+        (window as any).triggerTransactionSuccess();
+      }
+    }, 100);
+
     // Persistent save in database in background
     insertTransaction(newTransaction).then((inserted) => {
       if (setTransactions) {
         setTransactions(prev => {
-          const index = prev.findIndex(t => t.id === tempId);
+          const index = prev.findIndex(t => String(t.id) === String(tempId));
           if (index !== -1) {
             const next = [...prev];
             next[index] = inserted;

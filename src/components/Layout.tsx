@@ -428,18 +428,25 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     if (setTransactions) {
                       setTransactions(updated);
                     }
-                    
+
                     setIsManualModalOpen(false);
                     setManualNominal("");
                     setManualCatatan("");
                     onNavigate('dashboard');
 
+                    // Trigger streak celebration globally after dashboard page has loaded
+                    setTimeout(() => {
+                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                        (window as any).triggerTransactionSuccess();
+                      }
+                    }, 100);
+                    
                     // Database insertion
                     try {
                       const inserted = await insertTransaction(newTransaction);
                       if (setTransactions) {
                         setTransactions(prev => {
-                          const index = prev.findIndex(t => t.id === tempId);
+                          const index = prev.findIndex(t => String(t.id) === String(tempId));
                           if (index !== -1) {
                             const next = [...prev];
                             next[index] = inserted;

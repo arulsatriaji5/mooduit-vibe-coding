@@ -42,6 +42,117 @@ export default function Dashboard({
     return false;
   });
   const [userName, setUserName] = React.useState("Sobat Cuan");
+
+  // Daily Streak and Celebration Pop-up States
+  const [streakCount, setStreakCount] = React.useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const hasReset = localStorage.getItem("mooduit_streak_reset_v4");
+      if (!hasReset) {
+        localStorage.setItem("mooduit_streak_count", "0");
+        localStorage.setItem("mooduit_streak_active", "false");
+        localStorage.removeItem("mooduit_last_streak_date");
+        localStorage.setItem("mooduit_streak_reset_v4", "true");
+        return 0;
+      }
+      const saved = localStorage.getItem("mooduit_streak_count");
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+  const [streakActive, setStreakActive] = React.useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const lastDate = localStorage.getItem("mooduit_last_streak_date");
+      const today = new Date().toDateString();
+      const isActive = lastDate === today;
+      localStorage.setItem("mooduit_streak_active", isActive ? "true" : "false");
+      return isActive;
+    }
+    return false;
+  });
+  const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
+
+  // Expose triggerTransactionSuccess and showStreakCelebration murni ke global window object
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const triggerFn = () => {
+        const todayStr = new Date().toDateString();
+        const lastStreakDate = localStorage.getItem("mooduit_last_streak_date");
+        
+        // Tampilkan modal selebrasi animasi (On Action)
+        setShowCelebration(true);
+
+        if (lastStreakDate === todayStr) {
+          // Jika last_streak_date SAMA DENGAN tanggal hari ini: Jangan tambahkan angka streak.
+          // Pastikan saja ikon api di header berstatus "Menyala" (oranye/merah terang).
+          setStreakActive(true);
+          localStorage.setItem("mooduit_streak_active", "true");
+        } else {
+          // Jika last_streak_date TIDAK SAMA (atau kosong): Munculkan modal selebrasi animasi,
+          // tambahkan angka streak +1, ubah warna ikon api menjadi oranye,
+          // dan perbarui nilai last_streak_date di localStorage menjadi tanggal hari ini.
+          const nextStreak = streakCount + 1;
+          setStreakCount(nextStreak);
+          localStorage.setItem("mooduit_streak_count", String(nextStreak));
+          
+          setStreakActive(true);
+          localStorage.setItem("mooduit_streak_active", "true");
+          
+          localStorage.setItem("mooduit_last_streak_date", todayStr);
+        }
+      };
+
+      (window as any).triggerTransactionSuccess = triggerFn;
+      (window as any).showStreakCelebration = () => setShowCelebration(true);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).triggerTransactionSuccess;
+        delete (window as any).showStreakCelebration;
+      }
+    };
+  }, [streakCount, streakActive]);
+
+  const handleCloseCelebration = () => {
+    setShowCelebration(false);
+  };
+
+  // Dynamic Daily Financial Motivation quotes (Indonesian & English translation support)
+  const dailyQuotes = React.useMemo(() => [
+    {
+      id: "Setiap koin yang kamu simpan hari ini adalah pondasi kebebasan finansialmu di masa depan. Selangkah demi selangkah menuju impian!",
+      en: "Every coin you save today is the foundation of your financial freedom in the future. Step by step toward your dreams!"
+    },
+    {
+      id: "Jangan habiskan sisa uang setelah belanja, tapi belanjakan sisa uang setelah menabung. Kebiasaan kecil melahirkan hasil besar!",
+      en: "Do not save what is left after spending, but spend what is left after saving. Small habits breed great results!"
+    },
+    {
+      id: "Investasi terbaik adalah investasi pada diri sendiri dan masa depan finansialmu. Tetap bijak dalam setiap keputusan belanja!",
+      en: "The best investment is in yourself and your financial future. Stay wise in every spending decision!"
+    },
+    {
+      id: "Kedisiplinan finansial mengalahkan impulsivitas sesaat. Mari kendalikan anggaranmu dan jadilah tuan atas keuanganmu sendiri!",
+      en: "Financial discipline beats momentary impulsiveness. Let's control your budget and be the master of your own money!"
+    },
+    {
+      id: "Ingat, kemakmuran tidak diukur dari seberapa banyak kamu membelanjakan, melainkan seberapa banyak kamu mengamankan.",
+      en: "Remember, prosperity is not measured by how much you spend, but by how much you secure."
+    },
+    {
+      id: "Mulailah hari ini dengan komitmen baru: kurangi pengeluaran yang tak perlu dan tingkatkan kantong tabunganmu!",
+      en: "Start today with a new commitment: cut unnecessary expenses and boost your savings pockets!"
+    },
+    {
+      id: "Uang adalah alat yang luar biasa jika kamu yang mengendalikannya. Rencanakan pengeluaranmu dan capai tujuan hidupmu!",
+      en: "Money is an incredible tool if you control it. Plan your spending and achieve your life goals!"
+    }
+  ], []);
+
+  const currentDailyQuote = React.useMemo(() => {
+    const day = new Date().getDate();
+    const index = day % dailyQuotes.length;
+    return dailyQuotes[index];
+  }, [dailyQuotes]);
   const [aiInsight, setAiInsight] = React.useState<string>(
     "Menganalisa dompetmu...",
   );
@@ -451,6 +562,24 @@ export default function Dashboard({
     }
   }, [propsTransactions]);
 
+  // Effect to load current streak and trigger celebration modal
+  React.useEffect(() => {
+    // Sync streak from localStorage
+    const savedStreak = localStorage.getItem("mooduit_streak_count");
+    if (savedStreak) {
+      setStreakCount(parseInt(savedStreak, 10));
+    } else {
+      setStreakCount(0);
+      localStorage.setItem("mooduit_streak_count", "0");
+    }
+
+    const todayStr = new Date().toDateString();
+    const lastStreakDate = localStorage.getItem("mooduit_last_streak_date");
+    const isActive = lastStreakDate === todayStr;
+    setStreakActive(isActive);
+    localStorage.setItem("mooduit_streak_active", isActive ? "true" : "false");
+  }, []);
+
   React.useEffect(() => {
     if (userName) {
       setMessages([
@@ -646,10 +775,22 @@ export default function Dashboard({
   return (
     <div className="container py-4 pb-5 mb-5">
       <header className="mb-4">
-        <h3 className="fw-800 text-primary-mooduit">
-          {t(`Selamat Pagi, ${userName}! 👋`, `Good Morning, ${userName}! 👋`)}
-        </h3>
-        <p className="text-muted">
+        <div className="d-flex align-items-center flex-wrap gap-3 mb-1">
+          <h3 className="fw-800 text-primary-mooduit mb-0">
+            {t(`Selamat Pagi, ${userName}! 👋`, `Good Morning, ${userName}! 👋`)}
+          </h3>
+          <div className="streak-badge-container">
+            <div 
+              className={`streak-badge ${streakActive ? 'streak-badge-menyala' : 'streak-badge-padam'}`}
+            >
+              <span className="streak-badge-fire">🔥</span>
+              <span className="streak-badge-text">
+                {streakCount}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p className="text-muted mb-0">
           {t(
             "Status dompetmu lagi terpantau sehat hari ini.",
             "Your wallet status is looking healthy today.",
@@ -675,19 +816,10 @@ export default function Dashboard({
             Ambient AI Advisor
           </div>
           <p
-            className="mb-0 fw-bold text-brown-mooduit"
-            style={{ fontSize: "15px" }}
+            className="mb-0 fw-bold text-brown-mooduit text-justify"
+            style={{ fontSize: "15px", lineHeight: "1.5" }}
           >
-            {totalSaldo > 0 
-              ? t(
-                  `Halo! Aku AI Advisor-mu. Kondisi saldomu saat ini Rp ${totalSaldo.toLocaleString('id-ID')}. Yuk pantau terus pengeluaranmu agar tetap sesuai target Smart Budget!`,
-                  `Hello! I am your AI Advisor. Your current balance is Rp ${totalSaldo.toLocaleString('id-ID')}. Let's keep monitoring your spending to stay within your Smart Budget target!`
-                )
-              : t(
-                  "Halo! Aku AI Advisor-mu. Saldomu masih kosong nih, yuk atur Smart Budget pertamamu!",
-                  "Hello! I am your AI Advisor. Your balance is looking empty, let's configure your first Smart Budget!"
-                )
-            }
+            {t(currentDailyQuote.id, currentDailyQuote.en)}
           </p>
         </div>
       </motion.div>
@@ -1363,6 +1495,64 @@ export default function Dashboard({
                   {t("Tambah Target", "Add Target")}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Daily Streak Celebration Pop-up Modal */}
+        {showCelebration && (
+          <div className="celebration-modal-overlay">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="celebration-modal-backdrop"
+              onClick={handleCloseCelebration}
+            />
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.25 }}
+              className="celebration-modal-content"
+            >
+              {/* 10% Bright Orange Accent specifically highlighting the large flame icon with ignition animation */}
+              <div className="celebration-orange-accent-wrapper">
+                <span className="celebration-modal-fire">🔥</span>
+                <span className="streak-celebration-sparkle streak-celebration-sparkle-1">✨</span>
+                <span className="streak-celebration-sparkle streak-celebration-sparkle-2">✨</span>
+              </div>
+ 
+              {/* 30% Navy/Dark Blue branding for main text */}
+              <h4 className="celebration-modal-title">
+                {t("Streak Menyala!", "Streak Lit!")}
+              </h4>
+ 
+              <p className="celebration-modal-text">
+                {t(
+                  "Kerja bagus mencatat keuanganmu hari ini.",
+                  "Great job logging your finances today."
+                )}
+              </p>
+ 
+              {/* Info Stats Card inside white canvas container */}
+              <div className="celebration-modal-stats-card">
+                <span className="celebration-modal-stats-val">🔥 {streakCount}</span>
+                <span className="celebration-modal-stats-label">
+                  {t("Hari Beruntun", "Days Streak")}
+                </span>
+              </div>
+ 
+              {/* 30% Navy/Dark Blue main action button */}
+              <button
+                onClick={handleCloseCelebration}
+                className="celebration-modal-btn-navy"
+                type="button"
+              >
+                {t("Mantap, Lanjutkan! 🔥", "Awesome, Continue! 🔥")}
+              </button>
             </motion.div>
           </div>
         )}
