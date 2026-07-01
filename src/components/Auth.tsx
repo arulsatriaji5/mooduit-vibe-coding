@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, Chrome, User, Eye, EyeOff, X, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Chrome, User, Eye, EyeOff, X, CheckCircle, ArrowLeft, ShieldAlert } from 'lucide-react';
 import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import './Auth.css';
@@ -17,6 +17,13 @@ interface AuthProps {
 export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthProps) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  // Custom Toast states
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | null>(null);
+
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -114,13 +121,95 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
     }
   };
 
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 1. Validasi Kolom Wajib Diisi
+    if (!name.trim()) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Nama Lengkap wajib diisi!' : 'Full Name is required!');
+      return;
+    }
+    if (!email.trim()) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Email wajib diisi!' : 'Email is required!');
+      return;
+    }
+    if (!password.trim()) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Kata sandi wajib diisi!' : 'Password is required!');
+      return;
+    }
+
+    // 2. Validasi Format Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Format email tidak valid!' : 'Invalid email format!');
+      return;
+    }
+
+    // Simulasi pengiriman data pendaftaran berhasil
+    setToastType('success');
+    setToastMessage(
+      language === 'id'
+        ? "Akun berhasil dibuat! Silakan masuk."
+        : "Account successfully created! Please log in."
+    );
+
+    // Simpan ke localStorage untuk kebutuhan autentikasi dinamis (simulasi persistensi)
+    localStorage.setItem('userName', name);
+    localStorage.setItem('registeredEmail', email);
+    localStorage.setItem('registeredPassword', password); // Plain-text hanya untuk demo di localStorage frontend
+
+    // Secara otomatis alihkan (redirect / switch state) tampilan Modal dari "Daftar" ke "Masuk"
+    setTimeout(() => {
+      setIsLogin(true);
+      // Bersihkan form register
+      setName('');
+      setEmail('');
+      setPassword('');
+      setToastMessage(null);
+      setToastType(null);
+    }, 2500); // Tampilkan pesan sukses sebentar agar pengguna dapat membacanya
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLogin && name) {
-      localStorage.setItem('userName', name);
+    if (!isLogin) {
+      handleRegisterSubmit(e);
+      return;
     }
-    const finalName = !isLogin ? name : (localStorage.getItem('userName') || 'Sobat Cuan');
-    onAuth({ name: finalName, email: 'user@mooduit.com' });
+
+    // Validasi Login Dasar
+    if (!email.trim() || !password.trim()) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Email dan kata sandi wajib diisi!' : 'Email and password are required!');
+      return;
+    }
+
+    const savedEmail = localStorage.getItem('registeredEmail') || 'user@mooduit.com';
+    const savedName = localStorage.getItem('userName') || 'Sobat Cuan';
+    const savedPassword = localStorage.getItem('registeredPassword');
+
+    // Jika ada password yang disimpan (pendaftaran kustom), cek kecocokannya
+    if (savedPassword && password !== savedPassword) {
+      setToastType('error');
+      setToastMessage(language === 'id' ? 'Kata sandi salah!' : 'Incorrect password!');
+      return;
+    }
+
+    // Berhasil Login
+    setToastType('success');
+    setToastMessage(
+      language === 'id'
+        ? `Selamat datang kembali, ${savedName}!`
+        : `Welcome back, ${savedName}!`
+    );
+
+    setTimeout(() => {
+      onAuth({ name: savedName, email: savedEmail });
+    }, 1200);
   };
 
   return (
@@ -199,24 +288,41 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
           )}
         </div>
 
+        {/* TOAST ALERT BANNER */}
+        {toastMessage && (
+          <div className="auth-toast-container mb-3">
+            <div className={`auth-toast ${toastType === 'success' ? 'success' : 'error'}`}>
+              {toastType === 'success' ? (
+                <CheckCircle size={18} className="flex-shrink-0" />
+              ) : (
+                <ShieldAlert size={18} className="flex-shrink-0" />
+              )}
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           {!isLogin && (
-            <div className="mb-3">
-              <label className="auth-input-label">{t("Nama Lengkap", "Full Name")}</label>
-              <div className="auth-input-group">
-                <span className="auth-input-addon">
-                  <User size={18} className="text-slate-400 dark:text-slate-500" />
-                </span>
-                <input 
-                  type="text" 
-                  className="auth-input-field" 
-                  placeholder={t("Ketik nama panggilan kerenmu...", "Type your cool nickname here...")} 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required 
-                />
+            <>
+              {/* Nama Lengkap */}
+              <div className="mb-3 animate-fade-in">
+                <label className="auth-input-label">{t("Nama Lengkap", "Full Name")}</label>
+                <div className="auth-input-group">
+                  <span className="auth-input-addon">
+                    <User size={18} className="text-slate-400 dark:text-slate-500" />
+                  </span>
+                  <input 
+                    type="text" 
+                    className="auth-input-field" 
+                    placeholder={t("Ketik nama lengkapmu...", "Type your full name here...")} 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required 
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
           <div className="mb-3">
             <label className="auth-input-label">{t("Email", "Email")}</label>
@@ -228,6 +334,8 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                 type="email" 
                 className="auth-input-field" 
                 placeholder="nama@email.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required 
               />
             </div>
@@ -244,6 +352,8 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                 type={showPassword ? 'text' : 'password'} 
                 className="auth-input-field" 
                 placeholder={language === 'id' ? 'Masukkan kata sandi...' : 'Enter your password...'} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required 
               />
               <button
