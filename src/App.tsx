@@ -64,6 +64,34 @@ export default function App() {
     setCurrentPage('dashboard');
   };
 
+  const handleLogout = () => {
+    // Simpan preferensi tema dan bahasa agar tidak ikut terhapus
+    const savedTheme = localStorage.getItem('theme');
+    const savedLanguage = localStorage.getItem('language');
+    
+    // Bersihkan seluruh data sesi (termasuk userName, profil, dll)
+    localStorage.clear();
+    
+    // Kembalikan preferensi tema dan bahasa
+    if (savedTheme) localStorage.setItem('theme', savedTheme);
+    if (savedLanguage) localStorage.setItem('language', savedLanguage);
+
+    // Hapus status user di state React
+    setUser(null);
+
+    // Redirect ke Landing Page
+    setCurrentPage('landing');
+  };
+
+  // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login
+  useEffect(() => {
+    const isPublicPage = ['landing', 'auth'].includes(currentPage);
+    const hasSession = localStorage.getItem('userName') !== null;
+    if (!isPublicPage && !user && !hasSession) {
+      setCurrentPage('landing');
+    }
+  }, [currentPage, user]);
+
   const handleNavigate = (page: string, data?: any) => {
     if (data) {
       setPendingOcrData(data);
@@ -86,7 +114,7 @@ export default function App() {
       case 'wishlist':
         return <Wishlist />;
       case 'settings':
-        return <Settings />;
+        return <Settings onLogout={handleLogout} />;
       case 'smart-budget':
         return <SmartBudget onNavigate={handleNavigate} />; 
       case 'analisa':

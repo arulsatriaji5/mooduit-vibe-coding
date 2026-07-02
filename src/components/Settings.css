@@ -403,3 +403,42 @@
   opacity: 0.9;
 }
 
+/* MOODUIT CUSTOM LOGOUT BUTTON */
+.mooduit-logout-btn {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border: 2px solid #ef4444;
+  background-color: transparent;
+  color: #ef4444;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.mooduit-logout-btn:hover {
+  background-color: #fef2f2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.mooduit-logout-btn:active {
+  transform: scale(0.98);
+}
+
+.dark .mooduit-logout-btn {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.dark .mooduit-logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.15);
+}
+
+

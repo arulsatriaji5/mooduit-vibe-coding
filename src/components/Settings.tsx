@@ -14,7 +14,11 @@ import {
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import './Settings.css';
 
-export default function Settings() {
+interface SettingsProps {
+  onLogout?: () => void;
+}
+
+export default function Settings({ onLogout }: SettingsProps) {
   const { theme, toggleTheme, language, setLanguage, t } = useThemeLanguage();
   const [notifEnabled, setNotifEnabled] = useState(true);
   const darkMode = theme === 'dark';
@@ -24,6 +28,12 @@ export default function Settings() {
   });
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
 
   const avatarOptions = [
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul',
@@ -246,9 +256,12 @@ export default function Settings() {
             </div>
           </div>
 
-          <button className="btn btn-outline-danger w-100 rounded-pill py-3 fw-bold d-flex align-items-center justify-center gap-2 cursor-pointer">
+          <button 
+            onClick={handleLogout}
+            className="mooduit-logout-btn"
+          >
             <LogOut size={20} />
-            {t("Logout", "Logout")}
+            {t("Keluar Akun", "Logout")}
           </button>
 
           <div className="text-center mt-4">
