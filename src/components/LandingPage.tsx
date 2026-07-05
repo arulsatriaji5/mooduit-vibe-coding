@@ -42,7 +42,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   }, []);
 
   return (
-    <div className="w-full min-h-screen scroll-smooth font-sans" style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', display: 'flex', flexDirection: 'column', transition: 'background-color 0.3s ease' }}>
+    <div className="w-full min-h-screen scroll-smooth font-sans mooduit-landing-page" style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', display: 'flex', flexDirection: 'column', transition: 'background-color 0.3s ease' }}>
       <style>{`
         @keyframes floatSmooth {
           0% { transform: translateY(0px); }
@@ -56,7 +56,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       
       {/* --- 1. HEADER (RESPONSIF DENGAN HAMBURGER MENU) --- */}
       <header 
-        className="relative sticky top-0 z-[999] w-full transition-all duration-300" 
+        className="relative sticky top-0 z-[999] w-full transition-all duration-300 mooduit-landing-navbar" 
         style={{ 
           backgroundColor: isScrolled 
             ? (darkMode ? 'rgba(30, 41, 59, 0.75)' : 'rgba(255, 255, 255, 0.75)') 
@@ -282,7 +282,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       </section>
 
       {/* --- 4. FEATURES SECTION --- */}
-      <section id="fitur" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', padding: '80px 6%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      <section id="fitur" className="mooduit-landing-section-features" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', padding: '80px 6%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <h2 style={{ color: darkMode ? '#ffffff' : '#112F58', fontSize: '32px', fontWeight: 'bold', marginBottom: '16px' }}>
           {language === 'id' ? 'Waktunya Slay Finansial Bersama MOODUIT' : 'Time to Slay Your Finances with MOODUIT'}
         </h2>
@@ -318,7 +318,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       </section>
 
       {/* --- SEKSI MANFAAT (BENEFITS) --- */}
-      <section id="manfaat" className="py-20 px-6 md:px-12 bg-white dark:bg-slate-900/40 w-full flex flex-col items-center">
+      <section id="manfaat" className="py-20 px-6 md:px-12 bg-white dark:bg-slate-900/40 w-full flex flex-col items-center mooduit-landing-section-benefits">
         <div className="max-w-6xl w-full">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#112F58] dark:text-white mb-4">
@@ -367,7 +367,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       </section>
 
       {/* --- 4.5. SECURITY & EXCELLENCE (KEAMANAN & KEUNGGULAN) SECTION --- */}
-      <section id="keamanan" style={{ padding: '80px 6%', backgroundColor: darkMode ? '#112F58' : '#ffffff', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background-color 0.3s' }}>
+      <section id="keamanan" className="mooduit-landing-section-security" style={{ padding: '80px 6%', backgroundColor: darkMode ? '#112F58' : '#ffffff', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background-color 0.3s' }}>
         <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center' }}>
           <div style={{ flex: '1 1 400px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#B9AB8C', color: '#112F58', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', marginBottom: '16px' }}>

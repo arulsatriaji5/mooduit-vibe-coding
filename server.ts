@@ -173,8 +173,12 @@ async function startServer() {
   // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
   function getGeminiApiKey(): string {
     if (typeof process !== "undefined" && process.env) {
-      if (process.env.VITE_GEMINI_API_KEY) return process.env.VITE_GEMINI_API_KEY;
-      if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY") {
+        return process.env.GEMINI_API_KEY;
+      }
+      if (process.env.VITE_GEMINI_API_KEY) {
+        return process.env.VITE_GEMINI_API_KEY;
+      }
     }
     try {
       const metaEnv = (import.meta as any).env;
@@ -193,7 +197,7 @@ async function startServer() {
     if (aiInstance) return aiInstance;
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured.");
+      throw new Error("Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.");
     }
     aiInstance = new GoogleGenAI({
       apiKey: apiKey,
@@ -219,7 +223,7 @@ async function startServer() {
 
       const ai = getAiClient();
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         contents: {
           parts: [
             {
@@ -310,10 +314,10 @@ async function startServer() {
         };
       });
 
-      // Generate response from gemini-3.5-flash
+      // Generate response from gemini-2.5-flash
       const ai = getAiClient();
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
@@ -323,12 +327,12 @@ async function startServer() {
 
       res.json({ text: response.text });
     } catch (error: any) {
-      console.error("Chat AI Error:", error);
+      console.error("Gemini API Error Detail:", error);
       const isIndonesian = req.body?.language === "id";
       const fallbackMsg = isIndonesian
         ? "Maaf, AI Advisor sedang beristirahat sejenak. Coba lagi nanti ya!"
         : "Sorry, AI Advisor is taking a short break. Please try again later!";
-      res.json({ text: fallbackMsg });
+      res.status(500).json({ error: error.message || String(error), text: fallbackMsg });
     }
   });
 

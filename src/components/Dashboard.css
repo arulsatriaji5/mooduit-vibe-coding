@@ -363,3 +363,67 @@
   0% { transform: rotate(-5deg) scale(1); }
   100% { transform: rotate(5deg) scale(1.1); }
 }
+
+/* AI Advisor Chat UX Refinement */
+.mooduit-chat-header {
+  border-bottom: none !important;
+}
+
+.mooduit-chat-close {
+  text-decoration: none !important;
+  outline: none !important;
+  transition: opacity 0.2s ease-in-out !important;
+}
+
+.mooduit-chat-close:hover {
+  text-decoration: none !important;
+  opacity: 0.8;
+}
+
+.mooduit-chat-input-wrapper {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  padding: 8px 16px !important;
+  background-color: #f8fafc !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.dark .mooduit-chat-input-wrapper {
+  border-color: #334155 !important;
+  background-color: #1e293b !important;
+}
+
+.mooduit-chat-input-wrapper:focus-within {
+  border-color: #112F58 !important; /* Mooduit Navy Blue */
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(17, 47, 88, 0.15) !important;
+}
+
+.dark .mooduit-chat-input-wrapper:focus-within {
+  border-color: #38bdf8 !important; /* Sky Blue in Dark Mode */
+  background-color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+}
+
+/* Ambient AI Advisor Gold Theme in Dark Mode */
+.dark .mooduit-ambient-ai-banner {
+  background-color: rgba(218, 165, 32, 0.12) !important;
+  border: 1px solid rgba(218, 165, 32, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(218, 165, 32, 0.05) !important;
+}
+
+.dark .mooduit-ambient-ai-icon {
+  background-color: rgba(218, 165, 32, 0.2) !important;
+  color: #ffd700 !important;
+}
+
+.dark .mooduit-ambient-ai-title {
+  color: #fcd34d !important;
+  opacity: 0.95 !important;
+}
+
+.dark .mooduit-ambient-ai-desc {
+  color: #fef08a !important;
+}
+
+

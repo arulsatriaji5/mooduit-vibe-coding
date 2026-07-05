@@ -473,3 +473,44 @@ body {
   color: white;
 }
 
+
+/* --- Premium Landing Page Dark Mode Styling --- */
+
+/* Penyatuan Warna Background Konten */
+.dark .mooduit-landing-page {
+  background-color: #0f172a !important;
+}
+
+.dark .mooduit-landing-section-features {
+  background-color: #0f172a !important;
+}
+
+.dark .mooduit-landing-section-benefits {
+  background-color: #0f172a !important;
+}
+
+.dark .mooduit-landing-section-security {
+  background-color: #0f172a !important;
+}
+
+/* Feature Cards & Security Certificate Contrast styling in Dark Mode */
+.dark .mooduit-landing-section-features > div > div {
+  background-color: #121e36 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .mooduit-landing-section-security .border-slate-100 {
+  background-color: #121e36 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Navbar Premium Glassmorphism with Emas Transparan Border */
+.dark .mooduit-landing-navbar {
+  background-color: rgba(10, 15, 30, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(185, 171, 140, 0.18) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+

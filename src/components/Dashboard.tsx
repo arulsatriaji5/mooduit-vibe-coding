@@ -626,6 +626,19 @@ export default function Dashboard({
     setChatInput("");
     setIsTyping(true);
 
+    // Validasi Kunci Kosong Sebelum Fetch / Inisialisasi
+    const metaEnv = (import.meta as any).env;
+    if (!metaEnv || !metaEnv.VITE_GEMINI_API_KEY) {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          { text: "Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.", isAi: true }
+        ]);
+        setIsTyping(false);
+      }, 600);
+      return;
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -637,7 +650,8 @@ export default function Dashboard({
         }),
       });
       if (!res.ok) {
-        throw new Error("Server error");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server returned status ${res.status}`);
       }
       const data = await res.json();
       if (data.text) {
@@ -645,12 +659,9 @@ export default function Dashboard({
         setIsTyping(false);
         return;
       }
-    } catch (e) {
-      console.warn("Real-time AI API failed:", e);
-      const isIndonesian = language === "id";
-      const fallbackMsg = isIndonesian
-        ? "Maaf, AI Advisor sedang beristirahat sejenak. Coba lagi nanti ya!"
-        : "Sorry, AI Advisor is taking a short break. Please try again later!";
+    } catch (error: any) {
+      console.error("Gemini API Error Detail:", error);
+      const fallbackMsg = "Waduh, sepertinya kunci akses API saya tidak valid atau belum dipasang dengan benar, nih. Tolong cek API Key-nya lagi ya!";
       setMessages((prev) => [...prev, { text: fallbackMsg, isAi: true }]);
       setIsTyping(false);
       return;
@@ -800,23 +811,23 @@ export default function Dashboard({
 
       {/* Ambient AI Advisor Component (Moved to Top) */}
       <motion.div
-        className="p-4 bg-cream-mooduit rounded-2xl shadow-sm border-0 d-flex gap-4 align-items-center mb-4"
+        className="p-4 bg-cream-mooduit rounded-2xl shadow-sm border-0 d-flex gap-4 align-items-center mb-4 mooduit-ambient-ai-banner"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="bg-white p-3 rounded-xl text-brown-mooduit shadow-sm shrink-0">
+        <div className="bg-white p-3 rounded-xl text-brown-mooduit shadow-sm shrink-0 mooduit-ambient-ai-icon">
           <MessageSquareText size={24} />
         </div>
         <div>
           <div
-            className="small fw-800 text-brown-mooduit opacity-75 text-uppercase tracking-wider mb-1"
+            className="small fw-800 text-brown-mooduit opacity-75 text-uppercase tracking-wider mb-1 mooduit-ambient-ai-title"
             style={{ fontSize: "10px" }}
           >
             Ambient AI Advisor
           </div>
           <p
-            className="mb-0 fw-bold text-brown-mooduit text-justify"
+            className="mb-0 fw-bold text-brown-mooduit text-justify mooduit-ambient-ai-desc"
             style={{ fontSize: "15px", lineHeight: "1.5" }}
           >
             {t(currentDailyQuote.id, currentDailyQuote.en)}
@@ -1198,11 +1209,11 @@ export default function Dashboard({
             className="fixed inset-0 md:fixed md:inset-auto md:bottom-20 md:right-8 md:w-[400px] md:h-[600px] bg-white dark:bg-slate-900 md:rounded-3xl shadow-2xl md:border border-slate-200 dark:border-slate-800 z-[99999] flex flex-col resize overflow-hidden min-w-[320px] min-h-[400px] max-w-[600px] max-h-[800px]"
           >
             {/* HEADER CHAT */}
-            <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0">
+            <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0 mooduit-chat-header">
               <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
               <button 
                 onClick={() => setIsChatOpen(false)} 
-                className="btn btn-link text-white text-xl p-2 cursor-pointer border-0 shadow-none leading-none d-flex align-items-center justify-content-center"
+                className="btn btn-link text-white text-xl p-2 cursor-pointer border-0 shadow-none leading-none d-flex align-items-center justify-content-center mooduit-chat-close"
                 style={{ padding: '8px', background: 'transparent', outline: 'none' }}
               >
                 ✕
@@ -1243,7 +1254,7 @@ export default function Dashboard({
 
             {/* INPUT AREA */}
             <div className={`p-3 border-top shrink-0 ${darkMode ? "bg-slate-800 border-slate-700" : "bg-white"}`}>
-              <div className={`d-flex align-items-start gap-2 rounded-2xl px-3 py-2 ${darkMode ? "bg-slate-800" : "bg-light"}`}>
+              <div className="d-flex align-items-start gap-2 mooduit-chat-input-wrapper">
                 <textarea
                   rows={3}
                   value={chatInput}

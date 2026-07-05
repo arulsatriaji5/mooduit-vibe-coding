@@ -73,21 +73,27 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
     { id: 'settings', icon: <SettingsIcon size={18} />, label: t('Pengaturan', 'Settings') },
   ];
 
-  const userName = localStorage.getItem('userName') || 'Sobat Cuan';
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('userName') || 'Arul Satriaji';
+  });
 
   const [userAvatar, setUserAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`;
+    return localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`;
   });
 
   React.useEffect(() => {
-    const handleAvatarChange = () => {
-      setUserAvatar(localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`);
+    const handleProfileChange = () => {
+      const updatedName = localStorage.getItem('userName') || 'Arul Satriaji';
+      setUserName(updatedName);
+      setUserAvatar(localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`);
     };
-    window.addEventListener('avatarChanged', handleAvatarChange);
+    window.addEventListener('avatarChanged', handleProfileChange);
+    window.addEventListener('profileUpdated', handleProfileChange);
     return () => {
-      window.removeEventListener('avatarChanged', handleAvatarChange);
+      window.removeEventListener('avatarChanged', handleProfileChange);
+      window.removeEventListener('profileUpdated', handleProfileChange);
     };
-  }, [userName]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-bg-light">
