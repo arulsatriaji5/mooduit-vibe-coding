@@ -513,4 +513,27 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
 }
 
+/* Security Feature Card Styling inside Dark Mode */
+.dark .mooduit-landing-security-card {
+  background-color: #121e36 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .mooduit-landing-security-item {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .mooduit-landing-security-title {
+  color: #ffffff !important;
+}
+
+.dark .mooduit-landing-security-desc {
+  color: #cbd5e1 !important;
+}
+
+.dark .mooduit-landing-security-icon {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
 

@@ -261,13 +261,15 @@
 }
 
 .dark .btn-auth-submit {
-  background-color: #3b82f6;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1) !important;
 }
 
 .dark .btn-auth-submit:hover {
-  background-color: #2563eb;
-  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.35);
+  background-color: #f1f5f9 !important;
+  box-shadow: 0 10px 20px rgba(255, 255, 255, 0.15) !important;
+  color: #0f172a !important;
 }
 
 .btn-auth-google {

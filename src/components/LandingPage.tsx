@@ -398,7 +398,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           </div>
           <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}>
             <div 
-              className="border border-slate-100 dark:border-slate-800"
+              className="border border-slate-100 dark:border-slate-800 mooduit-landing-security-card"
               style={{ 
                 position: 'relative', 
                 width: '100%', 
@@ -410,25 +410,25 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e2f0fd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🛡️</div>
+                <div className="mooduit-landing-security-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
+                  <div className="mooduit-landing-security-icon" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e2f0fd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🛡️</div>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#112F58' }}>Sertifikat SSL</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Aktif • Terenkripsi</div>
+                    <div className="mooduit-landing-security-title" style={{ fontWeight: 'bold', color: '#112F58' }}>Sertifikat SSL</div>
+                    <div className="mooduit-landing-security-desc" style={{ fontSize: '12px', color: '#64748b' }}>Aktif • Terenkripsi</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eefcf3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🔐</div>
+                <div className="mooduit-landing-security-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
+                  <div className="mooduit-landing-security-icon" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eefcf3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🔐</div>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#112F58' }}>Otentikasi Dua Faktor</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Melindungi akun dari akses ilegal</div>
+                    <div className="mooduit-landing-security-title" style={{ fontWeight: 'bold', color: '#112F58' }}>Otentikasi Dua Faktor</div>
+                    <div className="mooduit-landing-security-desc" style={{ fontSize: '12px', color: '#64748b' }}>Melindungi akun dari akses ilegal</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#fff9e6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🤖</div>
+                <div className="mooduit-landing-security-item" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="mooduit-landing-security-icon" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#fff9e6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#112F58', fontSize: '20px' }}>🤖</div>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#112F58' }}>AI Security Guard</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Mendeteksi aksi mencurigakan otomatis</div>
+                    <div className="mooduit-landing-security-title" style={{ fontWeight: 'bold', color: '#112F58' }}>AI Security Guard</div>
+                    <div className="mooduit-landing-security-desc" style={{ fontSize: '12px', color: '#64748b' }}>Mendeteksi aksi mencurigakan otomatis</div>
                   </div>
                 </div>
               </div>
