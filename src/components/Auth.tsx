@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, Chrome, User, Eye, EyeOff, X, CheckCircle, ArrowLeft, ShieldAlert } from 'lucide-react';
 import Logo from './Logo';
@@ -31,8 +31,76 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
   const { t, language, theme } = useThemeLanguage();
   const darkMode = theme === 'dark';
 
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+        return;
+      }
+
+      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+        const userInfo = event.data.userInfo;
+        try {
+          const syncRes = await fetch('/api/google-login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: userInfo.email,
+              name: userInfo.name || 'Sobat Cuan',
+              picture: userInfo.picture || ''
+            })
+          });
+
+          if (!syncRes.ok) {
+            throw new Error(language === 'id' 
+              ? "Gagal menyinkronkan akun Google dengan backend"
+              : "Failed to sync Google account with backend"
+            );
+          }
+
+          const backendUser = await syncRes.json();
+
+          localStorage.setItem('userName', backendUser.name);
+          localStorage.setItem('userEmail', backendUser.email);
+          if (backendUser.picture) {
+            localStorage.setItem('userAvatar', backendUser.picture);
+          }
+
+          onAuth({
+            name: backendUser.name,
+            email: backendUser.email,
+            picture: backendUser.picture,
+          });
+
+          alert(
+            language === 'id'
+              ? `Selamat datang kembali, ${backendUser.name}! Login berhasil.`
+              : `Welcome back, ${backendUser.name}! Logged in successfully.`
+          );
+        } catch (error: any) {
+          console.error("Error retrieving Google user info:", error);
+          alert(error.message || (
+            language === 'id'
+              ? "Gagal mengambil data profil Google Anda. Silakan coba lagi."
+              : "Failed to retrieve your Google profile data. Please try again."
+          ));
+        }
+      } else if (event.data?.type === 'GOOGLE_AUTH_FAILURE') {
+        console.error("Google auth failure from popup:", event.data.error);
+        alert(language === 'id'
+          ? `Gagal masuk dengan Google: ${event.data.error}`
+          : `Google sign-in failed: ${event.data.error}`
+        );
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [language, onAuth]);
+
   const handleGoogleLogin = () => {
-    // 1. Get Google Client ID from environment variables dynamically
     const clientId = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
 
     if (!clientId) {
@@ -45,83 +113,34 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       return;
     }
 
-    // 2. Check if the Google Identity Services library is loaded
-    if (typeof google === 'undefined' || !google.accounts?.oauth2) {
+    const redirectUri = `${window.location.origin}/api/auth/google/callback`;
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'token',
+      scope: 'openid email profile',
+      prompt: 'select_account'
+    });
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+    const authWindow = window.open(
+      googleAuthUrl,
+      'google_oauth_popup',
+      'width=600,height=700,status=no,resizable=yes,scrollbars=yes'
+    );
+
+    if (!authWindow) {
       alert(
         language === 'id'
-          ? "Pustaka Google Identity Services gagal dimuat. Silakan muat ulang halaman atau periksa koneksi internet Anda."
-          : "Google Identity Services library failed to load. Please refresh the page or check your internet connection."
+          ? "Popup terblokir! Silakan aktifkan popup untuk situs ini agar dapat masuk menggunakan Google."
+          : "Popup blocked! Please enable popups for this site to sign in with Google."
       );
-      return;
-    }
-
-    try {
-      // 3. Initialize GSI Token Client for programmatic OAuth popup
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'openid email profile',
-        callback: async (tokenResponse: any) => {
-          if (tokenResponse && tokenResponse.access_token) {
-            try {
-              // 4. Fetch user profile from Google UserInfo endpoint securely using the access token
-              const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: {
-                  Authorization: `Bearer ${tokenResponse.access_token}`,
-                }
-              });
-
-              if (!userInfoResponse.ok) {
-                throw new Error("Failed to fetch user info from Google");
-              }
-
-              const userInfo = await userInfoResponse.json();
-              
-              // 5. Store user details in local storage for persistence
-              if (userInfo.name) {
-                localStorage.setItem('userName', userInfo.name);
-              }
-              if (userInfo.picture) {
-                localStorage.setItem('userAvatar', userInfo.picture);
-              }
-
-              // 6. Complete authentication and trigger the state callback
-              onAuth({
-                name: userInfo.name || 'Sobat Cuan',
-                email: userInfo.email || 'user@mooduit.com',
-                picture: userInfo.picture,
-              });
-
-              // Success announcement
-              alert(
-                language === 'id'
-                  ? `Selamat datang kembali, ${userInfo.name}! Login berhasil.`
-                  : `Welcome back, ${userInfo.name}! Logged in successfully.`
-              );
-
-            } catch (error) {
-              console.error("Error retrieving Google user info:", error);
-              alert(
-                language === 'id'
-                  ? "Gagal mengambil data profil Google Anda. Silakan coba lagi."
-                  : "Failed to retrieve your Google profile data. Please try again."
-              );
-            }
-          }
-        },
-        error_callback: (error: any) => {
-          console.error("Google authentication error:", error);
-        }
-      });
-
-      // 4. Trigger the standard, secure Google Account Chooser pop-up
-      tokenClient.requestAccessToken();
-
-    } catch (err) {
-      console.error("Error initializing Google Token Client:", err);
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 1. Validasi Kolom Wajib Diisi
@@ -149,32 +168,51 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       return;
     }
 
-    // Simulasi pengiriman data pendaftaran berhasil
-    setToastType('success');
-    setToastMessage(
-      language === 'id'
-        ? "Akun berhasil dibuat! Silakan masuk."
-        : "Account successfully created! Please log in."
-    );
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      });
 
-    // Simpan ke localStorage untuk kebutuhan autentikasi dinamis (simulasi persistensi)
-    localStorage.setItem('userName', name);
-    localStorage.setItem('registeredEmail', email);
-    localStorage.setItem('registeredPassword', password); // Plain-text hanya untuk demo di localStorage frontend
+      const data = await res.json();
 
-    // Secara otomatis alihkan (redirect / switch state) tampilan Modal dari "Daftar" ke "Masuk"
-    setTimeout(() => {
-      setIsLogin(true);
-      // Bersihkan form register
-      setName('');
-      setEmail('');
-      setPassword('');
-      setToastMessage(null);
-      setToastType(null);
-    }, 2500); // Tampilkan pesan sukses sebentar agar pengguna dapat membacanya
+      if (!res.ok) {
+        setToastType('error');
+        setToastMessage(data.error || (language === 'id' ? 'Pendaftaran gagal!' : 'Registration failed!'));
+        return;
+      }
+
+      setToastType('success');
+      setToastMessage(
+        language === 'id'
+          ? "Akun berhasil dibuat! Silakan masuk."
+          : "Account successfully created! Please log in."
+      );
+
+      // Simpan ke localStorage
+      localStorage.setItem('userName', name);
+      localStorage.setItem('userEmail', email);
+
+      // Secara otomatis alihkan (redirect / switch state) tampilan Modal dari "Daftar" ke "Masuk"
+      setTimeout(() => {
+        setIsLogin(true);
+        // Bersihkan form register
+        setName('');
+        setEmail('');
+        setPassword('');
+        setToastMessage(null);
+        setToastType(null);
+      }, 2500); // Tampilkan pesan sukses sebentar agar pengguna dapat membacanya
+    } catch (err: any) {
+      setToastType('error');
+      setToastMessage(err.message || 'Error occurred');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLogin) {
       handleRegisterSubmit(e);
@@ -188,28 +226,45 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       return;
     }
 
-    const savedEmail = localStorage.getItem('registeredEmail') || 'user@mooduit.com';
-    const savedName = localStorage.getItem('userName') || 'Sobat Cuan';
-    const savedPassword = localStorage.getItem('registeredPassword');
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    // Jika ada password yang disimpan (pendaftaran kustom), cek kecocokannya
-    if (savedPassword && password !== savedPassword) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        setToastType('error');
+        setToastMessage(data.error || (language === 'id' ? 'Login gagal!' : 'Login failed!'));
+        return;
+      }
+
+      // Berhasil Login
+      setToastType('success');
+      setToastMessage(
+        language === 'id'
+          ? `Selamat datang kembali, ${data.name}!`
+          : `Welcome back, ${data.name}!`
+      );
+
+      // Simpan detail ke localStorage
+      localStorage.setItem('userName', data.name);
+      localStorage.setItem('userEmail', data.email);
+      if (data.picture) {
+        localStorage.setItem('userAvatar', data.picture);
+      }
+
+      setTimeout(() => {
+        onAuth({ name: data.name, email: data.email, picture: data.picture });
+      }, 1200);
+    } catch (err: any) {
       setToastType('error');
-      setToastMessage(language === 'id' ? 'Kata sandi salah!' : 'Incorrect password!');
-      return;
+      setToastMessage(err.message || 'Error occurred');
     }
-
-    // Berhasil Login
-    setToastType('success');
-    setToastMessage(
-      language === 'id'
-        ? `Selamat datang kembali, ${savedName}!`
-        : `Welcome back, ${savedName}!`
-    );
-
-    setTimeout(() => {
-      onAuth({ name: savedName, email: savedEmail });
-    }, 1200);
   };
 
   return (
@@ -461,12 +516,31 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                 </button>
               </div>
             ) : (
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
                 setForgotStatus('submitting');
-                setTimeout(() => {
+                try {
+                  const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: forgotEmail })
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    alert(data.error || (language === 'id' ? 'Gagal mengirim email reset!' : 'Failed to send reset email!'));
+                    setForgotStatus('idle');
+                    return;
+                  }
+                  
+                  if (data.debugResetUrl) {
+                    console.log("DEBUG ONLY - Reset link:", data.debugResetUrl);
+                  }
+                  
                   setForgotStatus('success');
-                }, 1200);
+                } catch (err: any) {
+                  alert(err.message || 'Error occurred');
+                  setForgotStatus('idle');
+                }
               }}>
                 <p className="small text-slate-500 dark:text-slate-400 mb-4">
                   {language === 'id' 

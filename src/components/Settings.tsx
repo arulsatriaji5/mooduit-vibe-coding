@@ -40,7 +40,9 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [userName, setUserName] = useState(() => {
     return localStorage.getItem('userName') || 'Arul Satriaji';
   });
-  const [userEmail] = useState('arulsatriaji5@gmail.com');
+  const [userEmail] = useState(() => {
+    return localStorage.getItem('userEmail') || 'arulsatriaji5@gmail.com';
+  });
 
   // CHANGE PASSWORD FIELDS
   const [oldPassword, setOldPassword] = useState('');
@@ -472,7 +474,61 @@ export default function Settings({ onLogout }: SettingsProps) {
               {/* SAVE BUTTON */}
               <button 
                 onClick={() => {
-                  // Save user profile info to localStorage
+                  // If any password fields are typed, validate and call change-password API
+                  if (oldPassword || newPassword || confirmPassword) {
+                    if (!oldPassword) {
+                      alert(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
+                      return;
+                    }
+                    if (!newPassword) {
+                      alert(language === 'id' ? 'Kata sandi baru wajib diisi!' : 'New password is required!');
+                      return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                      alert(language === 'id' ? 'Konfirmasi kata sandi baru tidak cocok!' : 'New password confirmation does not match!');
+                      return;
+                    }
+
+                    // Call backend api
+                    fetch('/api/change-password', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        email: userEmail,
+                        oldPassword,
+                        newPassword
+                      })
+                    })
+                    .then(async (res) => {
+                      const data = await res.json();
+                      if (!res.ok) {
+                        alert(data.error || (language === 'id' ? 'Gagal mengubah kata sandi' : 'Failed to change password'));
+                        return;
+                      }
+                      alert(language === 'id' ? 'Kata sandi berhasil diubah!' : 'Password successfully updated!');
+                      
+                      // Save profile details as well
+                      localStorage.setItem('userName', userName);
+                      localStorage.setItem('userAvatar', currentAvatar);
+                      
+                      window.dispatchEvent(new Event('avatarChanged'));
+                      window.dispatchEvent(new Event('profileUpdated'));
+                      
+                      setOldPassword('');
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      setActiveView('main');
+                    })
+                    .catch((err) => {
+                      alert(err.message || 'Error occurred');
+                    });
+                    
+                    return;
+                  }
+
+                  // If no password fields are filled, just save profile details
                   localStorage.setItem('userName', userName);
                   localStorage.setItem('userAvatar', currentAvatar);
                   

@@ -15,6 +15,7 @@ import Settings from './components/Settings';
 import SmartBudget from './components/SmartBudget';
 import Layout from './components/Layout';
 import { fetchAllTransactions } from './utils/api';
+import ResetPassword from './components/ResetPassword';
 
 import Analysis from './components/Analysis';
 
@@ -22,14 +23,38 @@ type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    const savedName = localStorage.getItem('userName');
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedName && savedEmail) {
+      return { name: savedName, email: savedEmail, picture: localStorage.getItem('userAvatar') };
+    }
+    return null;
+  });
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [resetToken, setResetToken] = useState<string | null>(null);
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
 
   const [pendingOcrData, setPendingOcrData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      setResetToken(token);
+    }
+  }, []);
+
+  const handleCloseResetPassword = () => {
+    setResetToken(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('token');
+    window.history.replaceState({}, document.title, url.pathname + url.search);
+    handleStart('login');
+  };
 
   useEffect(() => {
     async function initDB() {
@@ -125,6 +150,14 @@ export default function App() {
   };
 
   const needsLayout = !['landing', 'auth', 'scanner'].includes(currentPage);
+
+  if (resetToken) {
+    return (
+      <div className="mooduit-app">
+        <ResetPassword token={resetToken} onClose={handleCloseResetPassword} />
+      </div>
+    );
+  }
 
   return (
     <div className="mooduit-app">
