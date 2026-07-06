@@ -627,8 +627,7 @@ export default function Dashboard({
     setIsTyping(true);
 
     // Validasi Kunci Kosong Sebelum Fetch / Inisialisasi
-    const metaEnv = (import.meta as any).env;
-    if (!metaEnv || !metaEnv.VITE_GEMINI_API_KEY) {
+    if (!(import.meta as any).env.VITE_GEMINI_API_KEY) {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
@@ -656,79 +655,16 @@ export default function Dashboard({
       const data = await res.json();
       if (data.text) {
         setMessages((prev) => [...prev, { text: data.text, isAi: true }]);
-        setIsTyping(false);
-        return;
+      } else {
+        throw new Error("No response text received from server");
       }
     } catch (error: any) {
-      console.error("Gemini API Error Detail:", error);
-      const fallbackMsg = "Waduh, sepertinya kunci akses API saya tidak valid atau belum dipasang dengan benar, nih. Tolong cek API Key-nya lagi ya!";
-      setMessages((prev) => [...prev, { text: fallbackMsg, isAi: true }]);
+      console.error("Chat connection failed:", error);
+      const errMsg = "Sistem gagal terhubung: " + (error.message || String(error));
+      setMessages((prev) => [...prev, { text: errMsg, isAi: true }]);
+    } finally {
       setIsTyping(false);
-      return;
     }
-
-    // FALLBACK SIMULATION (In case API/Key is unavailable)
-    setTimeout(() => {
-      let aiResponse = "";
-      const teksUser = userMessage.toLowerCase();
-
-      const regexPencatatan = /(catat|catet|transaksi|trandaksi|manfaat|harus|penting)/i;
-      const regexBudget = /(budget|alokasi|uang|gaji|pendapatan|50|30|20)/i;
-
-      // Check if user is asking about "target impian", "beli impian", or specific wishlist items
-      if (teksUser.includes("target impian") || teksUser.includes("beli impian") || teksUser.includes("beli target") || teksUser.includes("wishlist") || teksUser.includes("impian")) {
-        const wishlistItems = (targetImpian && targetImpian.length > 0) ? targetImpian : (wishlist || []);
-        if (wishlistItems.length > 0) {
-          const targetPertama = wishlistItems[0];
-          const namaBarang = targetPertama.nama || targetPertama.name || "Barang Impian";
-          const hargaBarang = Number(targetPertama.harga) || Number(targetPertama.price) || 0;
-          const sisaSaldoSetelahBeli = totalSaldo - hargaBarang;
-
-          if (totalSaldo >= hargaBarang) {
-            aiResponse = language === "id"
-              ? `Wah, ngomongin soal **${namaBarang}** seharga **Rp ${hargaBarang.toLocaleString('id-ID')}** ya? 😍\n\nMelihat saldomu yang saat ini ada **Rp ${totalSaldo.toLocaleString('id-ID')}**, kalau kamu beli sekarang, sisa saldomu akan menjadi **Rp ${sisaSaldoSetelahBeli.toLocaleString('id-ID')}**.\n\nSecara hitungan aman kok untuk di-checkout! Tapi pastikan jatah Kebutuhan Pokok bulan ini sudah aman semua ya sebelum klik beli.`
-              : `Wow, talking about **${namaBarang}** for **Rp ${hargaBarang.toLocaleString('id-ID')}**? 😍\n\nLooking at your balance of **Rp ${totalSaldo.toLocaleString('id-ID')}**, if you buy it now, your remaining balance will be **Rp ${sisaSaldoSetelahBeli.toLocaleString('id-ID')}**.\n\nMathematically, it's safe to checkout! But please make sure your primary Needs allocation is perfectly safe before buying.`;
-          } else {
-            const kurangBerapa = hargaBarang - totalSaldo;
-            aiResponse = language === "id"
-              ? `Eits, tahan dulu kawan! 🛑 Target impianmu **${namaBarang}** itu harganya **Rp ${hargaBarang.toLocaleString('id-ID')}**.\n\nSaldomu sekarang baru **Rp ${totalSaldo.toLocaleString('id-ID')}**, jadi masih kurang **Rp ${kurangBerapa.toLocaleString('id-ID')}** lagi nih. Yuk kita sabar sedikit dan kumpulin lagi biar tabungan Kebutuhan Pokok nggak jebol!`
-              : `Hold your horses! 🛑 Your dream target **${namaBarang}** costs **Rp ${hargaBarang.toLocaleString('id-ID')}**.\n\nYour balance is currently **Rp ${totalSaldo.toLocaleString('id-ID')}**, so we are still short by **Rp ${kurangBerapa.toLocaleString('id-ID')}**. Let's stay patient and save a bit more so your essential needs budget doesn't get broken!`;
-          }
-        } else {
-          aiResponse = language === "id"
-            ? "Hmm, aku cek di daftar Target Impianmu masih kosong nih. Yuk tambah impian baru dulu di dashboard biar kita bisa hitung strateginya!"
-            : "Hmm, your Dream Target list looks empty. Try adding a new target on the dashboard first so we can calculate the strategy!";
-        }
-      } else if (teksUser.match(regexPencatatan)) {
-        aiResponse =
-          language === "id"
-            ? `Tentu saja wajib, ${userName}! 📝 Manfaat mencatat transaksi itu agar cashflow kamu tetap sehat, uang gak bocor halus, dan AI bisa ngasih saran penghematan yang akurat. Yuk, mulai catat sekarang pakai fitur Scan Struk di sebelah kiri!`
-            : `Of course it's necessary, ${userName}! 📝 The benefit of tracking transactions is to keep your cash flow healthy, prevent hidden leaks, and enable AI to give accurate savings tips. Let's start recording now using Scan Receipt on the left!`;
-      } else if (teksUser.match(regexBudget)) {
-        aiResponse =
-          language === "id"
-            ? "Tentu, saya sudah merekam data Smart Budget kamu! Berdasarkan rumus 50/30/20, pastikan pengeluaran harianmu tidak melebihi alokasi 'Kebutuhan Pokok'. Yuk, terus kontrol nafsu belanjamu!"
-            : "Sure, I have recorded your Smart Budget data! Based on the 50/30/20 rule, make sure your daily spending doesn't exceed your 'Needs' allocation. Continue controlling those purchase impulses!";
-      } else if (teksUser.includes("kopi") || teksUser.includes("boros")) {
-        aiResponse =
-          language === "id"
-            ? `Waduh ${userName}, kalau ngomongin kopi 50 ribu tiap hari emang berasa sih. Tapi tenang, catat dengan sabar pengeluaranmu agar tetap terpantau!`
-            : `Oh my, ${userName}, buying a 50k cup of coffee daily definitely adds up. Keep tracking your expenses to manage it beautifully!`;
-      } else if (teksUser.includes("sisa") || teksUser.includes("saldo")) {
-        aiResponse =
-          language === "id"
-            ? `Sisa saldo kamu bisa dicek langsung di Dashboard utama ya, ${userName}. Atur pengeluaranmu agar tetap seimbang!`
-            : `Your remaining balance can be checked directly on the main Dashboard, ${userName}. Balance your expenses well!`;
-      } else {
-        aiResponse =
-          language === "id"
-            ? `Terima kasih atas pertanyaannya mengenai "${userMessage}", ${userName}! Mari diskusikan bagaimana kita bisa menghemat lebih banyak lewat pembagian 50/30/20.`
-            : `Thanks for the question about "${userMessage}", ${userName}! Let's optimize your 50/30/20 allocations.`;
-      }
-
-      setMessages((prev) => [...prev, { text: aiResponse, isAi: true }]);
-      setIsTyping(false);
-    }, 1200);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

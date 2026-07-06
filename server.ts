@@ -6,7 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const resolvedFilename = typeof import.meta !== "undefined" && import.meta.url
   ? fileURLToPath(import.meta.url)
@@ -173,11 +173,11 @@ async function startServer() {
   // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
   function getGeminiApiKey(): string {
     if (typeof process !== "undefined" && process.env) {
-      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY") {
-        return process.env.GEMINI_API_KEY;
-      }
       if (process.env.VITE_GEMINI_API_KEY) {
         return process.env.VITE_GEMINI_API_KEY;
+      }
+      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY") {
+        return process.env.GEMINI_API_KEY;
       }
     }
     try {
@@ -192,13 +192,17 @@ async function startServer() {
   }
 
   let aiInstance: GoogleGenAI | null = null;
+  let cachedApiKey: string = "";
 
   function getAiClient(): GoogleGenAI {
-    if (aiInstance) return aiInstance;
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
       throw new Error("Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.");
     }
+    if (aiInstance && cachedApiKey === apiKey) {
+      return aiInstance;
+    }
+    cachedApiKey = apiKey;
     aiInstance = new GoogleGenAI({
       apiKey: apiKey,
       httpOptions: {
@@ -265,19 +269,30 @@ async function startServer() {
 
   // API Chat Advisor
   app.post("/api/chat", async (req, res) => {
+    let messages: any[] = [];
+    let language = "id";
+    let targetImpian: any[] = [];
+    let db: any = { transactions: [], budgets: [], wishlist: [] };
+    let totalSaldo = 0;
+    let budget = { total_income: 0, limit_50: 0, limit_30: 0, limit_20: 0 };
+
     try {
-      const { messages, language, targetImpian } = req.body;
+      const body = req.body || {};
+      messages = body.messages || [];
+      language = body.language || "id";
+      targetImpian = body.targetImpian || [];
+
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: "Messages array is required" });
       }
 
       // Read context from DB for personalized advice
-      const db = await readDB();
+      db = await readDB();
       const txCount = db.transactions.length;
-      const totalIncome = db.transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-      const totalExpense = db.transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-      const totalSaldo = totalIncome - totalExpense;
-      const budget = db.budgets[0] || { total_income: 0, limit_50: 0, limit_30: 0, limit_20: 0 };
+      const totalIncome = db.transactions.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0);
+      const totalExpense = db.transactions.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0);
+      totalSaldo = totalIncome - totalExpense;
+      budget = db.budgets[0] || { total_income: 0, limit_50: 0, limit_30: 0, limit_20: 0 };
 
       let targetImpianContext = "";
       if (targetImpian && Array.isArray(targetImpian) && targetImpian.length > 0) {
@@ -328,10 +343,10 @@ async function startServer() {
       res.json({ text: response.text });
     } catch (error: any) {
       console.error("Gemini API Error Detail:", error);
-      const isIndonesian = req.body?.language === "id";
+      const isIndonesian = language !== "en";
       const fallbackMsg = isIndonesian
-        ? "Maaf, AI Advisor sedang beristirahat sejenak. Coba lagi nanti ya!"
-        : "Sorry, AI Advisor is taking a short break. Please try again later!";
+        ? `Sistem gagal terhubung: ${error.message || String(error)}`
+        : `System failed to connect: ${error.message || String(error)}`;
       res.status(500).json({ error: error.message || String(error), text: fallbackMsg });
     }
   });
