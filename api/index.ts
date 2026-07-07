@@ -346,7 +346,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/auth/google/callback', async (req, res) => {
+  app.get(['/api/auth/google/callback', '/auth/google/callback'], async (req, res) => {
     try {
       const { code, access_token, error } = req.query;
 
