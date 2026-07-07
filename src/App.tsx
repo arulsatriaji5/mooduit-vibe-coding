@@ -33,6 +33,7 @@ export default function App() {
   });
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
@@ -43,36 +44,45 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-    if (token) {
-      setResetToken(token);
-    }
-
-    const oauthEmail = params.get('oauth_email');
+    const oauthEmail = params.get('oauth_email') || params.get('email');
     const oauthName = params.get('oauth_name');
     const oauthPicture = params.get('oauth_picture');
 
-    if (oauthEmail && oauthName) {
-      localStorage.setItem('userName', oauthName);
+    if (token && !oauthEmail) {
+      setResetToken(token);
+    }
+
+    if (oauthEmail) {
+      const nameToUse = oauthName || oauthEmail.split('@')[0];
+      localStorage.setItem('userName', nameToUse);
       localStorage.setItem('userEmail', oauthEmail);
+      if (token) {
+        localStorage.setItem('userToken', token);
+      }
       if (oauthPicture) {
         localStorage.setItem('userAvatar', oauthPicture);
       }
       
       setUser({
-        name: oauthName,
+        name: nameToUse,
         email: oauthEmail,
-        picture: oauthPicture || null
+        picture: oauthPicture || null,
+        token: token || null
       });
       
       setCurrentPage('dashboard');
       
       // Clean up parameters from the URL
       const url = new URL(window.location.href);
+      url.searchParams.delete('token');
+      url.searchParams.delete('email');
       url.searchParams.delete('oauth_email');
       url.searchParams.delete('oauth_name');
       url.searchParams.delete('oauth_picture');
       window.history.replaceState({}, document.title, url.pathname + url.search);
     }
+    
+    setIsCheckingAuth(false);
   }, []);
 
   const handleCloseResetPassword = () => {
@@ -137,12 +147,14 @@ export default function App() {
 
   // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login
   useEffect(() => {
+    if (isCheckingAuth) return;
+    
     const isPublicPage = ['landing', 'auth'].includes(currentPage);
     const hasSession = localStorage.getItem('userName') !== null;
     if (!isPublicPage && !user && !hasSession) {
       setCurrentPage('landing');
     }
-  }, [currentPage, user]);
+  }, [currentPage, user, isCheckingAuth]);
 
   const handleNavigate = (page: string, data?: any) => {
     if (data) {

@@ -447,8 +447,11 @@ app.get('/api/auth/google/callback', async (req, res) => {
         });
       }
 
-      // Lakukan redirect ke dashboard dengan menyertakan informasi user sebagai query parameter
-      const redirectUrl = `/dashboard?oauth_email=${encodeURIComponent(email)}&oauth_name=${encodeURIComponent(name)}&oauth_picture=${encodeURIComponent(picture)}`;
+      // Generate a session token
+      const sessionToken = crypto.randomBytes(32).toString("hex");
+
+      // Lakukan redirect ke dashboard dengan menyertakan informasi user dan token sebagai query parameter sesuai instruksi
+      const redirectUrl = `/dashboard?token=${sessionToken}&email=${encodeURIComponent(email)}&oauth_email=${encodeURIComponent(email)}&oauth_name=${encodeURIComponent(name)}&oauth_picture=${encodeURIComponent(picture)}`;
       return res.redirect(redirectUrl);
     }
 
@@ -492,11 +495,22 @@ app.get('/api/auth/google/callback', async (req, res) => {
                 return r.json();
               })
               .then(userInfo => {
+                const sessionToken = 'google_' + Math.random().toString(36).substring(2) + Date.now();
+                const redirectUrl = '/dashboard?token=' + sessionToken + '&email=' + encodeURIComponent(userInfo.email) + '&oauth_email=' + encodeURIComponent(userInfo.email) + '&oauth_name=' + encodeURIComponent(userInfo.name || '') + '&oauth_picture=' + encodeURIComponent(userInfo.picture || '');
                 if (window.opener) {
-                  window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', userInfo }, '*');
+                  try {
+                    window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', userInfo, token: sessionToken }, '*');
+                  } catch (e) {
+                    console.error("postMessage failed", e);
+                  }
+                  try {
+                    window.opener.location.href = redirectUrl;
+                  } catch (e) {
+                    console.error("Redirecting opener failed", e);
+                  }
                   window.close();
                 } else {
-                  window.location.href = '/dashboard?oauth_email=' + encodeURIComponent(userInfo.email) + '&oauth_name=' + encodeURIComponent(userInfo.name || '') + '&oauth_picture=' + encodeURIComponent(userInfo.picture || '');
+                  window.location.href = redirectUrl;
                 }
               })
               .catch(err => {
