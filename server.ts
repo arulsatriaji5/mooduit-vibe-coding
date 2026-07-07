@@ -158,12 +158,13 @@ async function initDB() {
   }
 }
 
+const app = express();
+const PORT = 3000;
+
+app.use(express.json({ limit: '10mb' }));
+
 async function startServer() {
   await initDB();
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json({ limit: '10mb' }));
 
   // API Tables
   app.get("/api/transactions", async (req, res) => {
@@ -802,24 +803,31 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  // Vite middleware for development (disabled when on Vercel as Vercel handles frontend)
+  if (process.env.VERCEL !== "1") {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } else {
+    // On Vercel, we still need to initialize the DB on start
+    initDB().catch(err => console.error("Async DB initialization failed on Vercel:", err));
+  }
 }
 
 startServer();
+
+export default app;
