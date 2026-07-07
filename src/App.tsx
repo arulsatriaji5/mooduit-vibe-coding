@@ -46,6 +46,33 @@ export default function App() {
     if (token) {
       setResetToken(token);
     }
+
+    const oauthEmail = params.get('oauth_email');
+    const oauthName = params.get('oauth_name');
+    const oauthPicture = params.get('oauth_picture');
+
+    if (oauthEmail && oauthName) {
+      localStorage.setItem('userName', oauthName);
+      localStorage.setItem('userEmail', oauthEmail);
+      if (oauthPicture) {
+        localStorage.setItem('userAvatar', oauthPicture);
+      }
+      
+      setUser({
+        name: oauthName,
+        email: oauthEmail,
+        picture: oauthPicture || null
+      });
+      
+      setCurrentPage('dashboard');
+      
+      // Clean up parameters from the URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('oauth_email');
+      url.searchParams.delete('oauth_name');
+      url.searchParams.delete('oauth_picture');
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+    }
   }, []);
 
   const handleCloseResetPassword = () => {
