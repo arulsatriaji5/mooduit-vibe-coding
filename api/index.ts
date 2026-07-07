@@ -166,6 +166,8 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/api/ping', (req, res) => { res.status(200).send('PONG! Backend MOODUIT Menyala!'); });
+
 async function startServer() {
   await initDB();
 
@@ -346,7 +348,7 @@ async function startServer() {
     }
   });
 
-  app.get(['/api/auth/google/callback', '/auth/google/callback'], async (req, res) => {
+  app.get('/api/auth/google/callback', async (req, res) => {
     try {
       const { code, access_token, error } = req.query;
 
