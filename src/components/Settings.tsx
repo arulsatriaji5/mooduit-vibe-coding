@@ -95,10 +95,10 @@ export default function Settings({ onLogout }: SettingsProps) {
   ];
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden flex flex-col items-center pb-32 md:pb-12 !bg-transparent dark:bg-slate-900">
+    <div className="w-full max-w-full px-4 mx-auto box-border min-h-screen overflow-x-hidden flex flex-col items-center pb-32 md:pb-12 !bg-transparent dark:bg-slate-900">
       
       {/* CONTAINER KONTEN - BEBAS DARI WARNA ABU-ABU */}
-      <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-4 md:px-0 flex flex-col gap-5 pt-6 md:pt-10 !bg-transparent">
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto flex flex-col gap-5 pt-6 md:pt-10 !bg-transparent box-border">
         
         <AnimatePresence mode="wait">
           {activeView === 'main' ? (

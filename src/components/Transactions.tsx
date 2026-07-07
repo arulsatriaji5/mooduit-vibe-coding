@@ -410,7 +410,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 overflow-x-hidden flex flex-col gap-4 md:gap-6 pb-72 relative riwayat-kunci-mati">
+    <div className="w-full max-w-full px-4 mx-auto box-border overflow-x-hidden flex flex-col gap-4 md:gap-6 pb-72 relative riwayat-kunci-mati">
       <style>
         {`
           /* KUNCI GLOBAL HALAMAN RIWAYAT */

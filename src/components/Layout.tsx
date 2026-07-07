@@ -96,8 +96,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   }, []);
 
   return (
-    <div className="min-h-screen bg-bg-light">
-      <div className="d-flex h-100 overflow-hidden">
+    <div className="min-h-screen bg-bg-light overflow-x-hidden w-full max-w-full box-border">
+      <div className="d-flex h-100 overflow-hidden w-full max-w-full box-border">
         {/* Desktop Sidebar */}
         <aside className="sidebar-mooduit d-none d-lg-flex flex-column position-fixed h-100" style={{ width: '260px', zIndex: 1100, backgroundColor: '#112F58' }}>
           <div className="p-4">
@@ -161,7 +161,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-grow-1" style={{ marginLeft: 'var(--sidebar-offset, 0)' }}>
+        <div className="flex-grow-1 w-full lg:w-auto overflow-x-hidden max-w-full box-border" style={{ marginLeft: 'var(--sidebar-offset, 0)' }}>
           {/* Mobile Header */}
           <div className="d-lg-none py-3 px-4 bg-primary-mooduit position-sticky top-0 w-100 d-flex justify-content-between align-items-center shadow-sm" style={{ zIndex: 1000 }}>
             <Logo size={32} showText={true} variant="light" />
@@ -176,17 +176,16 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
             </div>
           </div>
           
-          <main className="container-fluid py-4 py-lg-5 px-3 px-lg-5">
-            <div className="row justify-content-center">
-              <div className="col-12 col-xl-11">
-                {/* Adjust margin for desktop sidebar */}
-                <style dangerouslySetInnerHTML={{ __html: `
-                  @media (min-width: 992px) {
-                    :root { --sidebar-offset: 260px; }
-                  }
-                ` }} />
-                {children}
-              </div>
+          <main className="w-full max-w-full px-4 md:px-8 py-4 py-lg-5 overflow-x-hidden box-border">
+            <div className="w-full max-w-7xl mx-auto">
+              {/* Adjust margin for desktop sidebar */}
+              <style dangerouslySetInnerHTML={{ __html: `
+                :root { --sidebar-offset: 0px; }
+                @media (min-width: 992px) {
+                  :root { --sidebar-offset: 260px; }
+                }
+              ` }} />
+              {children}
             </div>
           </main>
         </div>
