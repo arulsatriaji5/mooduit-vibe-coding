@@ -98,7 +98,7 @@ export default function Settings({ onLogout }: SettingsProps) {
     <div className="w-full min-h-screen overflow-x-hidden flex flex-col items-center pb-32 md:pb-12 !bg-transparent dark:bg-slate-900">
       
       {/* CONTAINER KONTEN - BEBAS DARI WARNA ABU-ABU */}
-      <div className="w-[92%] sm:w-[95%] md:max-w-2xl lg:max-w-3xl mx-auto flex flex-col gap-5 pt-6 md:pt-10 !bg-transparent">
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-4 md:px-0 flex flex-col gap-5 pt-6 md:pt-10 !bg-transparent">
         
         <AnimatePresence mode="wait">
           {activeView === 'main' ? (
@@ -119,7 +119,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               <div className="w-full flex flex-col gap-4">
                 <div 
                   onClick={() => setActiveView('profile')}
-                  className="card-mooduit overflow-hidden mb-4 p-0 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all duration-200"
+                  className="w-full card-mooduit overflow-hidden mb-4 p-0 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all duration-200"
                 >
                   <div className="p-4 d-flex align-items-center justify-content-between bg-light bg-opacity-50">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -239,7 +239,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   </button>
                 </div>
 
-                <div className="card-mooduit overflow-hidden mb-4 p-0">
+                <div className="w-full card-mooduit overflow-hidden mb-4 p-0">
                   <div className="list-group list-group-flush border-0">
                     <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom">
                       <div className="d-flex align-items-center gap-3">
@@ -300,7 +300,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h6>
-                <div className="card-mooduit overflow-hidden mb-4 p-0">
+                <div className="w-full card-mooduit overflow-hidden mb-4 p-0">
                   <div className="list-group list-group-flush border-0">
                     <button 
                       onClick={() => setIsPrivacyModalOpen(true)}
@@ -318,7 +318,7 @@ export default function Settings({ onLogout }: SettingsProps) {
 
                 <button 
                   onClick={handleLogout}
-                  className="mooduit-logout-btn"
+                  className="w-full mooduit-logout-btn"
                 >
                   <LogOut size={20} />
                   {t("Keluar Akun", "Logout")}
@@ -380,7 +380,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               </div>
 
               {/* PERSONAL INFO FORM */}
-              <div className="card-mooduit p-4 md:p-5 flex flex-col gap-4">
+              <div className="w-full card-mooduit p-4 md:p-5 flex flex-col gap-4">
                 <h3 className="mooduit-section-subtitle">{t("Data Diri", "Personal Info")}</h3>
                 
                 <div className="mooduit-form-group">
@@ -408,7 +408,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               </div>
 
               {/* CHANGE PASSWORD SECTION */}
-              <div className="card-mooduit p-4 md:p-5 flex flex-col gap-4">
+              <div className="w-full card-mooduit p-4 md:p-5 flex flex-col gap-4">
                 <h3 className="mooduit-section-subtitle">
                   {isGoogleUser 
                     ? t("Buat Kata Sandi (Untuk Login Manual)", "Create Password (For Manual Login)") 
@@ -554,7 +554,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   // Return back to main settings
                   setActiveView('main');
                 }}
-                className="mooduit-save-profile-btn"
+                className="w-full mooduit-save-profile-btn"
               >
                 {t("Simpan Perubahan", "Save Changes")}
               </button>

@@ -531,7 +531,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
       {/* TRANSACTIONS LIST CONTAINER */}
       <div className="flex flex-col w-full rounded-3xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 riwayat-card mb-4 p-4 md:p-5">
-        <div className="list-group list-group-flush border-0" style={{ overflow: 'hidden', paddingBottom: filteredTransactions.length > 0 ? '100px' : '0px' }}>
+        <div className="list-group list-group-flush border-0 pb-48 md:pb-24" style={{ overflow: 'hidden' }}>
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-5 px-4">
               <div className="text-amber-500 mb-3 inline-flex align-items-center justify-content-center p-3 bg-amber-50 rounded-full">
