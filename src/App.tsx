@@ -27,7 +27,12 @@ export default function App() {
     const savedName = localStorage.getItem('userName');
     const savedEmail = localStorage.getItem('userEmail');
     if (savedName && savedEmail) {
-      return { name: savedName, email: savedEmail, picture: localStorage.getItem('userAvatar') };
+      return { 
+        name: savedName, 
+        email: savedEmail, 
+        picture: localStorage.getItem('userAvatar'),
+        authProvider: localStorage.getItem('authProvider') || 'local'
+      };
     }
     return null;
   });
@@ -56,6 +61,7 @@ export default function App() {
       const nameToUse = oauthName || oauthEmail.split('@')[0];
       localStorage.setItem('userName', nameToUse);
       localStorage.setItem('userEmail', oauthEmail);
+      localStorage.setItem('authProvider', 'google');
       if (token) {
         localStorage.setItem('userToken', token);
       }
@@ -67,7 +73,8 @@ export default function App() {
         name: nameToUse,
         email: oauthEmail,
         picture: oauthPicture || null,
-        token: token || null
+        token: token || null,
+        authProvider: 'google'
       });
       
       setCurrentPage('dashboard');
@@ -123,6 +130,7 @@ export default function App() {
 
   const handleAuth = (userData: any) => {
     setUser(userData);
+    localStorage.setItem('authProvider', userData.authProvider || 'local');
     setCurrentPage('dashboard');
   };
 

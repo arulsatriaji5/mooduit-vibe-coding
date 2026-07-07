@@ -43,6 +43,10 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [userEmail] = useState(() => {
     return localStorage.getItem('userEmail') || 'arulsatriaji5@gmail.com';
   });
+  const [authProvider] = useState(() => {
+    return localStorage.getItem('authProvider') || 'local';
+  });
+  const isGoogleUser = authProvider === 'google';
 
   // CHANGE PASSWORD FIELDS
   const [oldPassword, setOldPassword] = useState('');
@@ -405,28 +409,34 @@ export default function Settings({ onLogout }: SettingsProps) {
 
               {/* CHANGE PASSWORD SECTION */}
               <div className="card-mooduit p-4 md:p-5 flex flex-col gap-4">
-                <h3 className="mooduit-section-subtitle">{t("Ganti Kata Sandi", "Change Password")}</h3>
+                <h3 className="mooduit-section-subtitle">
+                  {isGoogleUser 
+                    ? t("Buat Kata Sandi (Untuk Login Manual)", "Create Password (For Manual Login)") 
+                    : t("Ganti Kata Sandi", "Change Password")}
+                </h3>
 
                 {/* Password Lama */}
-                <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Kata Sandi Lama", "Old Password")}</label>
-                  <div className="position-relative w-100">
-                    <input 
-                      type={showOld ? "text" : "password"} 
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      className="mooduit-form-input pr-10"
-                      placeholder={t("Masukkan kata sandi lama", "Enter old password")}
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowOld(!showOld)}
-                      className="mooduit-password-toggle-btn"
-                    >
-                      {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
+                {!isGoogleUser && (
+                  <div className="mooduit-form-group">
+                    <label className="mooduit-form-label">{t("Kata Sandi Lama", "Old Password")}</label>
+                    <div className="position-relative w-100">
+                      <input 
+                        type={showOld ? "text" : "password"} 
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        className="mooduit-form-input pr-10"
+                        placeholder={t("Masukkan kata sandi lama", "Enter old password")}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowOld(!showOld)}
+                        className="mooduit-password-toggle-btn"
+                      >
+                        {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Password Baru */}
                 <div className="mooduit-form-group">
@@ -475,8 +485,8 @@ export default function Settings({ onLogout }: SettingsProps) {
               <button 
                 onClick={() => {
                   // If any password fields are typed, validate and call change-password API
-                  if (oldPassword || newPassword || confirmPassword) {
-                    if (!oldPassword) {
+                  if (oldPassword || newPassword || confirmPassword || (isGoogleUser && (newPassword || confirmPassword))) {
+                    if (!isGoogleUser && !oldPassword) {
                       alert(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
                       return;
                     }
@@ -497,7 +507,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                       },
                       body: JSON.stringify({
                         email: userEmail,
-                        oldPassword,
+                        oldPassword: isGoogleUser ? '' : oldPassword,
                         newPassword
                       })
                     })

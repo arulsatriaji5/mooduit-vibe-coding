@@ -593,7 +593,8 @@ app.post("/api/change-password", async (req, res) => {
     const db = getDb();
     const { email, oldPassword, newPassword } = req.body;
 
-    if (!email || !oldPassword || !newPassword) {
+    // Email and new password are required. Old password is required only if the user has an existing password in the database.
+    if (!email || !newPassword) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -606,12 +607,19 @@ app.post("/api/change-password", async (req, res) => {
     }
 
     const user = result.rows[0];
-    if (user.authProvider === 'google') {
-      return res.status(400).json({ error: "Akun Google tidak menggunakan kata sandi lokal" });
-    }
 
-    if (user.password !== oldPassword) {
-      return res.status(401).json({ error: "Kata sandi lama salah!" });
+    // Jika pengguna memiliki kata sandi lama di database, validasi "Kata Sandi Lama" tetap berjalan
+    if (user.password && user.password.trim() !== "") {
+      if (!oldPassword) {
+        return res.status(400).json({ error: "Kata sandi lama wajib diisi!" });
+      }
+      if (user.password !== oldPassword) {
+        return res.status(401).json({ error: "Kata sandi lama salah!" });
+      }
+    } else {
+      // Jika kata sandi lama di database kosong/null (karena dia user OAuth),
+      // lewati proses validasi perbandingan password lama (bcrypt.compare / plaintext comparison).
+      console.log(`Bypassing old password validation for OAuth user: ${email}`);
     }
 
     await db.execute({
@@ -619,7 +627,7 @@ app.post("/api/change-password", async (req, res) => {
       args: [newPassword, user.id]
     });
 
-    res.json({ success: true, message: "Kata sandi berhasil diubah" });
+    res.json({ success: true, message: "Kata sandi berhasil disimpan" });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
