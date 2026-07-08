@@ -121,8 +121,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                   onClick={() => setActiveView('profile')}
                   className="w-full card-mooduit overflow-hidden mb-4 p-0 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all duration-200"
                 >
-                  <div className="p-4 d-flex align-items-center justify-content-between bg-light bg-opacity-50">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div className="p-4 d-flex align-items-center justify-content-between bg-light bg-opacity-50 min-w-0 w-full overflow-hidden">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
                       {/* Kunci Bulat Sempurna (Anti-Melar) */}
                       <div style={{ width: '60px', height: '60px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', border: '2px solid #e2e8f0' }}>
                         <img 
@@ -131,31 +131,39 @@ export default function Settings({ onLogout }: SettingsProps) {
                           style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#ffffff' }} 
                         />
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, overflow: 'hidden' }}>
                         <h2 
+                          className="truncate"
                           style={{ 
                             fontSize: '18px', 
                             fontWeight: 'bold', 
                             color: darkMode ? '#ffffff' : '#112F58', 
                             margin: 0,
-                            transition: 'color 0.3s ease'
+                            transition: 'color 0.3s ease',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           {userName}
                         </h2>
                         <p 
+                          className="truncate"
                           style={{ 
                             fontSize: '14px', 
                             color: darkMode ? '#cbd5e1' : '#64748b', 
                             margin: 0,
-                            transition: 'color 0.3s ease'
+                            transition: 'color 0.3s ease',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           {userEmail}
                         </p>
                       </div>
                     </div>
-                    <button className="btn btn-light btn-sm rounded-circle p-2"><ChevronRight size={18} /></button>
+                    <button className="btn btn-light btn-sm rounded-circle p-2 flex-shrink-0"><ChevronRight size={18} /></button>
                   </div>
                 </div>
 
