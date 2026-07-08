@@ -559,22 +559,21 @@ export default function Transactions({ transactions: propsTransactions, setTrans
               return (
                 <motion.div 
                   key={tx.id} 
-                  className="transaction-item-row list-group-item flex flex-col md:flex-row md:items-center justify-between w-full p-4 md:p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 shadow-sm gap-4 hover:bg-slate-50 transition-all duration-300 mb-3"
+                  className="transaction-item-row list-group-item flex flex-col md:flex-row md:items-center justify-between w-full p-4 overflow-hidden box-border bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 shadow-sm gap-4 hover:bg-slate-50 transition-all duration-300 mb-3"
                   style={{ 
                     zIndex: (1000 - i),
                     position: 'relative',
-                    overflow: 'visible',
                   }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.4) }}
                 >
                   {/* --- BAGIAN KIRI: IKON & INFO TEKS --- */}
-                  <div className="flex items-center gap-4 w-full md:w-auto overflow-hidden">
+                  <div className="flex items-center gap-4 w-full md:w-auto flex-1 min-w-0 overflow-hidden">
                     <div className="w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
                       {transaction.icon || (transaction.type === 'income' ? '💼' : '🛒')}
                     </div>
-                    <div className="flex flex-col min-w-0 text-left">
+                    <div className="flex flex-col flex-1 min-w-0 text-left">
                       <h4 className="font-bold text-slate-800 dark:text-white text-base truncate m-0">
                         {transaction.description || 'Transaksi'}
                       </h4>
@@ -585,7 +584,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   </div>
 
                   {/* --- BAGIAN KANAN: NOMINAL & TOMBOL (TIDAK BOLEH HIDDEN) --- */}
-                  <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 md:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 md:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700 mt-2 md:mt-0">
                     
                     {/* Nominal & Badge */}
                     <div className="flex flex-col items-start md:items-end flex-shrink-0 text-left md:text-right">
@@ -598,14 +597,14 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                     </div>
 
                     {/* WRAPPER TOMBOL AKSI - DIJAMIN SELALU MUNCUL */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex gap-2 shrink-0 mr-1 md:mr-0">
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           platformNativeEditFunction(tx);
                         }} 
-                        className="flex items-center justify-center w-10 h-10 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer border-none p-0"
+                        className="flex items-center justify-center w-10 h-10 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer border-none p-0 flex-shrink-0"
                         title={t('Edit Transaksi', 'Edit Transaction')}
                       >
                         ✏️
@@ -616,7 +615,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                           e.stopPropagation();
                           platformNativeDeleteFunction(tx.id);
                         }} 
-                        className="flex items-center justify-center w-10 h-10 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer border-none p-0"
+                        className="flex items-center justify-center w-10 h-10 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer border-none p-0 flex-shrink-0"
                         title={t('Hapus Transaksi', 'Delete Transaction')}
                       >
                         🗑️

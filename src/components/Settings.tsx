@@ -180,11 +180,13 @@ export default function Settings({ onLogout }: SettingsProps) {
                   backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
                   borderRadius: '1rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9'
+                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9',
+                  overflow: 'hidden',
+                  boxSizing: 'border-box'
                 }}>
                   
                   {/* Bagian Kiri: Ikon dan Teks Dipaksa Muncul */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div className="flex-grow-1 min-w-0" style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{
                       width: '40px',
                       height: '40px',
@@ -193,16 +195,20 @@ export default function Settings({ onLogout }: SettingsProps) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: theme === 'dark' ? '#cbd5e1' : '#64748b'
+                      color: theme === 'dark' ? '#cbd5e1' : '#64748b',
+                      flexShrink: 0
                     }}>
                       <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                     </div>
                     
                     {/* INLINE STYLE MUTLAK UNTUK TEKS */}
-                    <span style={{ 
+                    <span className="truncate" style={{ 
                       color: theme === 'dark' ? '#ffffff' : '#112F58', 
                       fontWeight: 'bold', 
-                      fontSize: '15px' 
+                      fontSize: '15px',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap'
                     }}>
                       {t("Mode Gelap", "Dark Mode")}
                     </span>
@@ -211,6 +217,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   {/* Bagian Kanan: Toggle Kapsul Elegan */}
                   <button 
                     onClick={toggleTheme}
+                    className="flex-shrink-0"
                     style={{
                       position: 'relative',
                       width: '3.5rem',
@@ -223,7 +230,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                       transition: 'background-color 0.3s',
                       border: 'none',
                       cursor: 'pointer',
-                      outline: 'none'
+                      outline: 'none',
+                      flexShrink: 0
                     }}
                   >
                     <div style={{
@@ -247,37 +255,37 @@ export default function Settings({ onLogout }: SettingsProps) {
                   </button>
                 </div>
 
-                <div className="w-full card-mooduit overflow-hidden mb-4 p-0">
+                <div className="w-full card-mooduit overflow-hidden mb-4 p-0 box-border">
                   <div className="list-group list-group-flush border-0">
-                    <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom">
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="p-2 bg-light rounded-lg"><Languages size={20} /></div>
-                        <span className="fw-500">{t("Bahasa", "Language")}</span>
+                    <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom w-full overflow-hidden flex-nowrap" style={{ minWidth: 0 }}>
+                      <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="p-2 bg-light rounded-lg flex-shrink-0"><Languages size={20} /></div>
+                        <span className="fw-500 truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t("Bahasa", "Language")}</span>
                       </div>
-                      <div className="d-flex align-items-center gap-2">
+                      <div className="d-flex align-items-center gap-2 flex-shrink-0">
                         <select
                           value={language}
                           onChange={(e) => setLanguage(e.target.value as 'id' | 'en')}
-                          className="bg-transparent border-0 font-bold focus:outline-none cursor-pointer pr-1 text-sm text-[#112F58]"
+                          className="bg-transparent border-0 font-bold focus:outline-none cursor-pointer pr-1 text-sm text-[#112F58] max-w-[120px] md:max-w-none truncate"
                           id="language_select"
                         >
                           <option value="id">{t("Bahasa Indonesia", "Indonesian")}</option>
                           <option value="en">{t("Bahasa Inggris", "English")}</option>
                         </select>
-                        <ChevronRight size={18} className="text-muted" />
+                        <ChevronRight size={18} className="text-muted flex-shrink-0" />
                       </div>
                     </div>
-                    <div className="notif-row">
+                    <div className="notif-row d-flex align-items-center justify-content-between p-3 border-0 w-full overflow-hidden flex-nowrap" style={{ minWidth: 0 }}>
                       
                       {/* Bagian Kiri: Ikon & Teks */}
-                      <div className="notif-left">
+                      <div className="notif-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         {/* Kiri: Ikon Lonceng */}
-                        <div className="bell-wrapper">
+                        <div className="bell-wrapper flex-shrink-0">
                           <svg className="bell-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                           </svg>
                         </div>
-                        <span className="notif-label">
+                        <span className="notif-label truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                           Notification
                         </span>
                       </div>
@@ -285,8 +293,9 @@ export default function Settings({ onLogout }: SettingsProps) {
                       {/* Bagian Kanan: Toggle Kapsul Minimalis (Sejalan dengan Mode Gelap) */}
                       <button 
                         onClick={() => setNotifEnabled(!notifEnabled)} 
-                        className={`notif-toggle ${notifEnabled ? 'enabled' : 'disabled'}`}
+                        className={`notif-toggle ${notifEnabled ? 'enabled' : 'disabled'} flex-shrink-0`}
                         aria-label="Toggle Notification"
+                        style={{ flexShrink: 0 }}
                       >
                         <div className="notif-toggle-handle">
                           {notifEnabled ? (
@@ -308,18 +317,19 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h6>
-                <div className="w-full card-mooduit overflow-hidden mb-4 p-0">
+                <div className="w-full card-mooduit overflow-hidden mb-4 p-0 box-border">
                   <div className="list-group list-group-flush border-0">
                     <button 
                       onClick={() => setIsPrivacyModalOpen(true)}
-                      className="privacy-btn"
+                      className="privacy-btn d-flex align-items-center justify-content-between p-3 border-0 w-full overflow-hidden flex-nowrap"
                       type="button"
+                      style={{ minWidth: 0 }}
                     >
-                      <div className="privacy-left">
-                        <div className="privacy-icon-wrapper"><Shield size={20} /></div>
-                        <span className="privacy-text">{t("Privasi & Keamanan", "Privacy & Security")}</span>
+                      <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="privacy-icon-wrapper flex-shrink-0"><Shield size={20} /></div>
+                        <span className="privacy-text truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t("Privasi & Keamanan", "Privacy & Security")}</span>
                       </div>
-                      <ChevronRight size={18} className="privacy-chevron" />
+                      <ChevronRight size={18} className="privacy-chevron flex-shrink-0" />
                     </button>
                   </div>
                 </div>
