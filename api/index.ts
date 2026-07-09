@@ -591,6 +591,7 @@ app.post("/api/google-login", async (req, res) => {
 app.post("/api/change-password", async (req, res) => {
   try {
     const db = getDb();
+    console.log("Body diterima:", req.body);
     console.log("DEBUG: change-password request body:", req.body);
     const { email, userId, oldPassword, newPassword } = req.body;
 

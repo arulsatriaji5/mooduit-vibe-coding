@@ -521,6 +521,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                     }
 
                     // Call backend api
+                    console.log("Payload dikirim:", { 
+                      email: localStorage.getItem('userEmail') || userEmail, 
+                      userId: localStorage.getItem('userId') || userId 
+                    });
                     fetch('/api/change-password', {
                       method: 'POST',
                       headers: {
