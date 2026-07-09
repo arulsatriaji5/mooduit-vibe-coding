@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { 
   MoreVertical,
   Filter,
@@ -121,7 +122,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     
     const cleanNominal = Number(editNominal.replace(/\D/g, ""));
     if (isNaN(cleanNominal) || cleanNominal <= 0) {
-      alert(t("Masukkan nominal yang valid!", "Please enter a valid amount!"));
+      toast.error(t("Masukkan nominal yang valid!", "Please enter a valid amount!"));
       return;
     }
 
@@ -253,7 +254,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   // Trigger CSV content download for reporting
   const handleDownloadCSV = () => {
     if (!transactions || transactions.length === 0) {
-      alert(t("Tidak ada data transaksi untuk diunduh.", "No transaction data available to download."));
+      toast.error(t("Tidak ada data transaksi untuk diunduh.", "No transaction data available to download."));
       return;
     }
 

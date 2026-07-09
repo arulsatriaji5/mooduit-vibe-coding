@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { Mail, Lock, Chrome, User, Eye, EyeOff, X, CheckCircle, ArrowLeft, ShieldAlert } from 'lucide-react';
 import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
@@ -78,14 +79,14 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
             authProvider: backendUser.authProvider || 'google',
           });
 
-          alert(
+          toast.success(
             language === 'id'
-              ? `Selamat datang kembali, ${backendUser.name}! Login berhasil.`
-              : `Welcome back, ${backendUser.name}! Logged in successfully.`
+              ? `Selamat datang kembali, ${backendUser.name}! Login berhasil. 🎉`
+              : `Welcome back, ${backendUser.name}! Logged in successfully. 🎉`
           );
         } catch (error: any) {
           console.error("Error retrieving Google user info:", error);
-          alert(error.message || (
+          toast.error(error.message || (
             language === 'id'
               ? "Gagal mengambil data profil Google Anda. Silakan coba lagi."
               : "Failed to retrieve your Google profile data. Please try again."
@@ -93,7 +94,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         }
       } else if (event.data?.type === 'GOOGLE_AUTH_FAILURE') {
         console.error("Google auth failure from popup:", event.data.error);
-        alert(language === 'id'
+        toast.error(language === 'id'
           ? `Gagal masuk dengan Google: ${event.data.error}`
           : `Google sign-in failed: ${event.data.error}`
         );
@@ -109,7 +110,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
 
     if (!clientId) {
       console.warn("VITE_GOOGLE_CLIENT_ID is not configured in environment variables.");
-      alert(
+      toast.error(
         language === 'id'
           ? "Google Client ID belum dikonfigurasi di Pengaturan AI Studio. Silakan tambahkan VITE_GOOGLE_CLIENT_ID terlebih dahulu di panel Secrets."
           : "Google Client ID is not configured in AI Studio Secrets. Please add VITE_GOOGLE_CLIENT_ID first."
@@ -136,7 +137,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
     );
 
     if (!authWindow) {
-      alert(
+      toast.error(
         language === 'id'
           ? "Popup terblokir! Silakan aktifkan popup untuk situs ini agar dapat masuk menggunakan Google."
           : "Popup blocked! Please enable popups for this site to sign in with Google."
@@ -533,7 +534,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                   });
                   const data = await res.json();
                   if (!res.ok) {
-                    alert(data.error || (language === 'id' ? 'Gagal mengirim email reset!' : 'Failed to send reset email!'));
+                    toast.error(data.error || (language === 'id' ? 'Gagal mengirim email reset!' : 'Failed to send reset email!'));
                     setForgotStatus('idle');
                     return;
                   }
@@ -544,7 +545,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                   
                   setForgotStatus('success');
                 } catch (err: any) {
-                  alert(err.message || 'Error occurred');
+                  toast.error(err.message || 'Error occurred');
                   setForgotStatus('idle');
                 }
               }}>

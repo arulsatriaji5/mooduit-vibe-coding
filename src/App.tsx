@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/LandingPage';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
@@ -201,6 +202,7 @@ export default function App() {
   if (resetToken) {
     return (
       <div className="mooduit-app">
+        <Toaster position="top-center" reverseOrder={false} />
         <ResetPassword token={resetToken} onClose={handleCloseResetPassword} />
       </div>
     );
@@ -208,6 +210,7 @@ export default function App() {
 
   return (
     <div className="mooduit-app">
+      <Toaster position="top-center" reverseOrder={false} />
       <AnimatePresence mode="wait">
         {needsLayout ? (
           <Layout 

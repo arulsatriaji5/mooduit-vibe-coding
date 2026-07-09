@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { 
   User, 
   Bell, 
@@ -508,15 +509,15 @@ export default function Settings({ onLogout }: SettingsProps) {
                   // If any password fields are typed, validate and call change-password API
                   if (oldPassword || newPassword || confirmPassword || (isGoogleUser && (newPassword || confirmPassword))) {
                     if (!isGoogleUser && !oldPassword) {
-                      alert(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
+                      toast.error(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
                       return;
                     }
                     if (!newPassword) {
-                      alert(language === 'id' ? 'Kata sandi baru wajib diisi!' : 'New password is required!');
+                      toast.error(language === 'id' ? 'Kata sandi baru wajib diisi!' : 'New password is required!');
                       return;
                     }
                     if (newPassword !== confirmPassword) {
-                      alert(language === 'id' ? 'Konfirmasi kata sandi baru tidak cocok!' : 'New password confirmation does not match!');
+                      toast.error(language === 'id' ? 'Konfirmasi kata sandi baru tidak cocok!' : 'New password confirmation does not match!');
                       return;
                     }
 
@@ -526,7 +527,7 @@ export default function Settings({ onLogout }: SettingsProps) {
 
                     // Tambahkan Validasi
                     if (!targetEmail) {
-                      alert("Sesi tidak valid atau email tidak terdeteksi. Silakan login ulang.");
+                      toast.error(language === 'id' ? 'Sesi tidak valid atau email tidak terdeteksi. Silakan login ulang.' : 'Invalid session or email not detected. Please login again.');
                       return;
                     }
 
@@ -535,6 +536,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                       email: targetEmail, 
                       userId: targetUserId 
                     });
+                    const loadToast = toast.loading(language === 'id' ? 'Menyimpan kata sandi...' : 'Saving password...');
                     fetch('/api/change-password', {
                       method: 'POST',
                       headers: {
@@ -549,11 +551,12 @@ export default function Settings({ onLogout }: SettingsProps) {
                     })
                     .then(async (res) => {
                       const data = await res.json();
+                      toast.dismiss(loadToast);
                       if (!res.ok) {
-                        alert(data.error || (language === 'id' ? 'Gagal mengubah kata sandi' : 'Failed to change password'));
+                        toast.error(data.error || (language === 'id' ? 'Gagal mengubah kata sandi' : 'Failed to change password'));
                         return;
                       }
-                      alert(language === 'id' ? 'Kata sandi berhasil diubah!' : 'Password successfully updated!');
+                      toast.success(language === 'id' ? 'Kata sandi berhasil diubah! 🎉' : 'Password successfully updated! 🎉');
                       
                       // Save profile details as well
                       localStorage.setItem('userName', userName);
@@ -568,7 +571,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                       setActiveView('main');
                     })
                     .catch((err) => {
-                      alert(err.message || 'Error occurred');
+                      toast.dismiss(loadToast);
+                      toast.error(err.message || 'Error occurred');
                     });
                     
                     return;
@@ -582,6 +586,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                   window.dispatchEvent(new Event('avatarChanged'));
                   window.dispatchEvent(new Event('profileUpdated'));
                   
+                  toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
+
                   // Optionally clear password fields
                   setOldPassword('');
                   setNewPassword('');

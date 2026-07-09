@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { Calculator, Plus, Trash2, Sparkles, Loader2, Coins, TrendingUp, PiggyBank, Smile, BookOpen } from 'lucide-react';
 import { fetchBudgetPlan, saveBudgetPlanDB } from '../utils/api';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
@@ -541,7 +542,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                           console.error("Failed to persist budget calculation to DB:", err);
                         }
                         
-                        alert(activeLang.saved1);
+                        toast.success(activeLang.saved1);
                         if (onNavigate) onNavigate('dashboard');
                       }}
                     >
@@ -807,7 +808,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         };
                         localStorage.setItem('mooduit_budget_plan', JSON.stringify(budgetPlan));
                         localStorage.setItem('savedWishlist', JSON.stringify(wishlist));
-                        alert(activeLang.saved2);
+                        toast.success(activeLang.saved2);
                         if (onNavigate) onNavigate('dashboard');
                       }}
                      >

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-hot-toast";
 import {
   Scan,
   Plus,
@@ -247,11 +248,11 @@ export default function Dashboard({
   const handleAlokasiTabungan = async (jenisKantong: "darurat" | "investasi" | "tabungan", nominal: number) => {
     const isId = language === "id";
     if (nominal <= 0 || isNaN(nominal)) {
-      alert(isId ? "Masukkan nominal yang valid!" : "Enter a valid amount!");
+      toast.error(isId ? "Masukkan nominal yang valid!" : "Enter a valid amount!");
       return;
     }
     if (totalSaldo < nominal) {
-      alert(isId ? "Saldo kas tidak cukup untuk dialokasikan!" : "Insufficient cash balance for allocation!");
+      toast.error(isId ? "Saldo kas tidak cukup untuk dialokasikan!" : "Insufficient cash balance for allocation!");
       return;
     }
 
@@ -292,7 +293,7 @@ export default function Dashboard({
       });
     }
 
-    alert(isId
+    toast.success(isId
       ? `Berhasil mengalokasikan Rp ${nominal.toLocaleString('id-ID')} ke kantong ${deskripsi}!`
       : `Successfully allocated Rp ${nominal.toLocaleString('id-ID')} to ${jenisKantong} pocket!`
     );
@@ -310,7 +311,7 @@ export default function Dashboard({
       e.preventDefault();
       const cleanNum = Number(inputValue.replace(/\D/g, ""));
       if (!cleanNum || cleanNum <= 0) {
-        alert(language === "id" ? "Masukkan nominal yang valid!" : "Enter a valid amount!");
+        toast.error(language === "id" ? "Masukkan nominal yang valid!" : "Enter a valid amount!");
         return;
       }
       handleAlokasiTabungan(key, cleanNum);
