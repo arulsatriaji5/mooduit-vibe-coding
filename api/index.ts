@@ -591,8 +591,6 @@ app.post("/api/google-login", async (req, res) => {
 app.post("/api/change-password", async (req, res) => {
   try {
     const db = getDb();
-    console.log("Body diterima:", req.body);
-    console.log("DEBUG: change-password request body:", req.body);
     const { email, userId, oldPassword, newPassword } = req.body;
 
     // Email or userId, along with newPassword are required
@@ -625,8 +623,19 @@ app.post("/api/change-password", async (req, res) => {
     }
 
     if (!user) {
-      console.error("DEBUG: User not found for change-password. Email:", email, "userId:", userId);
-      return res.status(404).json({ error: "User not found" });
+      // Jika user TIDAK DITEMUKAN (kasus OAuth yang belum masuk DB):
+      // Lakukan query INSERT INTO users untuk langsung mendaftarkan user tersebut
+      if (email) {
+        const id = userId || String(Date.now());
+        const userName = email.split('@')[0] || "Sobat Cuan";
+        await db.execute({
+          sql: "INSERT INTO users (id, name, email, password, authProvider) VALUES (?, ?, ?, ?, 'google')",
+          args: [id, userName, String(email).trim(), newPassword]
+        });
+        return res.status(200).json({ success: true, message: "Sandi berhasil disimpan" });
+      } else {
+        return res.status(404).json({ error: "User tidak ditemukan dan email tidak valid" });
+      }
     }
 
     const isOldPasswordEmpty = !oldPassword || String(oldPassword).trim() === "";
@@ -653,7 +662,7 @@ app.post("/api/change-password", async (req, res) => {
       args: [newPassword, user.email]
     });
 
-    res.json({ success: true, message: "Kata sandi berhasil disimpan" });
+    res.status(200).json({ success: true, message: "Sandi berhasil disimpan" });
   } catch (err: any) {
     console.error("DEBUG: Error in change-password route:", err);
     res.status(500).json({ error: err.message });
