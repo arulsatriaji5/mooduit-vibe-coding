@@ -520,10 +520,20 @@ export default function Settings({ onLogout }: SettingsProps) {
                       return;
                     }
 
+                    // Tarik data email pengguna secara eksplisit
+                    const targetEmail = localStorage.getItem('userEmail') || userEmail;
+                    const targetUserId = localStorage.getItem('userId') || userId;
+
+                    // Tambahkan Validasi
+                    if (!targetEmail) {
+                      alert("Sesi tidak valid atau email tidak terdeteksi. Silakan login ulang.");
+                      return;
+                    }
+
                     // Call backend api
                     console.log("Payload dikirim:", { 
-                      email: localStorage.getItem('userEmail') || userEmail, 
-                      userId: localStorage.getItem('userId') || userId 
+                      email: targetEmail, 
+                      userId: targetUserId 
                     });
                     fetch('/api/change-password', {
                       method: 'POST',
@@ -531,8 +541,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
-                        email: localStorage.getItem('userEmail') || userEmail,
-                        userId: localStorage.getItem('userId') || userId,
+                        email: targetEmail,
+                        userId: targetUserId,
                         oldPassword: isGoogleUser ? '' : oldPassword,
                         newPassword
                       })
