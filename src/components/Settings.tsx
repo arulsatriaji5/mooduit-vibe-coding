@@ -43,10 +43,13 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [userEmail] = useState(() => {
     return localStorage.getItem('userEmail') || 'arulsatriaji5@gmail.com';
   });
+  const [userId] = useState(() => {
+    return localStorage.getItem('userId') || '';
+  });
   const [authProvider] = useState(() => {
     return localStorage.getItem('authProvider') || 'local';
   });
-  const isGoogleUser = authProvider === 'google';
+  const isGoogleUser = authProvider === 'google' || localStorage.getItem('authProvider') === 'google';
 
   // CHANGE PASSWORD FIELDS
   const [oldPassword, setOldPassword] = useState('');
@@ -524,7 +527,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
-                        email: userEmail,
+                        email: localStorage.getItem('userEmail') || userEmail,
+                        userId: localStorage.getItem('userId') || userId,
                         oldPassword: isGoogleUser ? '' : oldPassword,
                         newPassword
                       })

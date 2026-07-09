@@ -591,25 +591,42 @@ app.post("/api/google-login", async (req, res) => {
 app.post("/api/change-password", async (req, res) => {
   try {
     const db = getDb();
-    const { email, oldPassword, newPassword } = req.body;
+    console.log("DEBUG: change-password request body:", req.body);
+    const { email, userId, oldPassword, newPassword } = req.body;
 
-    // Email and new password are required. Old password is required only if the user has an existing password in the database.
-    if (!email || !newPassword) {
+    // Email or userId, along with newPassword are required
+    if ((!email && !userId) || !newPassword) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-      args: [email]
-    });
-    if (result.rows.length === 0) {
+    let user = null;
+    if (userId) {
+      const result = await db.execute({
+        sql: "SELECT * FROM users WHERE id = ?",
+        args: [userId]
+      });
+      if (result.rows.length > 0) {
+        user = result.rows[0];
+      }
+    }
+
+    if (!user && email) {
+      const result = await db.execute({
+        sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+        args: [String(email).trim()]
+      });
+      if (result.rows.length > 0) {
+        user = result.rows[0];
+      }
+    }
+
+    if (!user) {
+      console.error("DEBUG: User not found for change-password. Email:", email, "userId:", userId);
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = result.rows[0];
-
     // Jika pengguna memiliki kata sandi lama di database, validasi "Kata Sandi Lama" tetap berjalan
-    if (user.password && user.password.trim() !== "") {
+    if (user.password && String(user.password).trim() !== "") {
       if (!oldPassword) {
         return res.status(400).json({ error: "Kata sandi lama wajib diisi!" });
       }
@@ -619,7 +636,7 @@ app.post("/api/change-password", async (req, res) => {
     } else {
       // Jika kata sandi lama di database kosong/null (karena dia user OAuth),
       // lewati proses validasi perbandingan password lama (bcrypt.compare / plaintext comparison).
-      console.log(`Bypassing old password validation for OAuth user: ${email}`);
+      console.log(`Bypassing old password validation for OAuth user: ${user.email}`);
     }
 
     await db.execute({
@@ -629,6 +646,7 @@ app.post("/api/change-password", async (req, res) => {
 
     res.json({ success: true, message: "Kata sandi berhasil disimpan" });
   } catch (err: any) {
+    console.error("DEBUG: Error in change-password route:", err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -62,16 +62,20 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
 
           const backendUser = await syncRes.json();
 
+          localStorage.setItem('userId', backendUser.id);
           localStorage.setItem('userName', backendUser.name);
           localStorage.setItem('userEmail', backendUser.email);
+          localStorage.setItem('authProvider', backendUser.authProvider || 'google');
           if (backendUser.picture) {
             localStorage.setItem('userAvatar', backendUser.picture);
           }
 
           onAuth({
+            id: backendUser.id,
             name: backendUser.name,
             email: backendUser.email,
             picture: backendUser.picture,
+            authProvider: backendUser.authProvider || 'google',
           });
 
           alert(
@@ -252,14 +256,16 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       );
 
       // Simpan detail ke localStorage
+      localStorage.setItem('userId', data.id);
       localStorage.setItem('userName', data.name);
       localStorage.setItem('userEmail', data.email);
+      localStorage.setItem('authProvider', data.authProvider || 'local');
       if (data.picture) {
         localStorage.setItem('userAvatar', data.picture);
       }
 
       setTimeout(() => {
-        onAuth({ name: data.name, email: data.email, picture: data.picture });
+        onAuth({ id: data.id, name: data.name, email: data.email, picture: data.picture, authProvider: data.authProvider || 'local' });
       }, 1200);
     } catch (err: any) {
       setToastType('error');
