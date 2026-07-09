@@ -601,20 +601,23 @@ app.post("/api/change-password", async (req, res) => {
     }
 
     let user = null;
-    if (userId) {
+    
+    // Cari user berdasarkan email terlebih dahulu (atau LOWER(email))
+    if (email) {
       const result = await db.execute({
-        sql: "SELECT * FROM users WHERE id = ?",
-        args: [userId]
+        sql: "SELECT * FROM users WHERE email = ? OR LOWER(email) = LOWER(?)",
+        args: [String(email).trim(), String(email).trim()]
       });
       if (result.rows.length > 0) {
         user = result.rows[0];
       }
     }
 
-    if (!user && email) {
+    // Fallback ke userId jika belum ditemukan
+    if (!user && userId) {
       const result = await db.execute({
-        sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-        args: [String(email).trim()]
+        sql: "SELECT * FROM users WHERE id = ?",
+        args: [userId]
       });
       if (result.rows.length > 0) {
         user = result.rows[0];
@@ -626,23 +629,28 @@ app.post("/api/change-password", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Jika pengguna memiliki kata sandi lama di database, validasi "Kata Sandi Lama" tetap berjalan
-    if (user.password && String(user.password).trim() !== "") {
-      if (!oldPassword) {
-        return res.status(400).json({ error: "Kata sandi lama wajib diisi!" });
-      }
-      if (user.password !== oldPassword) {
-        return res.status(401).json({ error: "Kata sandi lama salah!" });
-      }
-    } else {
-      // Jika kata sandi lama di database kosong/null (karena dia user OAuth),
-      // lewati proses validasi perbandingan password lama (bcrypt.compare / plaintext comparison).
+    const isOldPasswordEmpty = !oldPassword || String(oldPassword).trim() === "";
+    const isOAuthUser = !user.password || String(user.password).trim() === "" || user.authProvider === 'google';
+
+    // Bypass Validasi Password Lama jika oldPassword kosong dan user adalah OAuth user
+    if (isOldPasswordEmpty && isOAuthUser) {
       console.log(`Bypassing old password validation for OAuth user: ${user.email}`);
+    } else {
+      // Jika pengguna memiliki kata sandi lama di database, validasi tetap berjalan
+      if (user.password && String(user.password).trim() !== "") {
+        if (!oldPassword) {
+          return res.status(400).json({ error: "Kata sandi lama wajib diisi!" });
+        }
+        if (user.password !== oldPassword) {
+          return res.status(401).json({ error: "Kata sandi lama salah!" });
+        }
+      }
     }
 
+    // Jalankan perintah UPDATE ke database Turso berdasarkan email
     await db.execute({
-      sql: "UPDATE users SET password = ? WHERE id = ?",
-      args: [newPassword, user.id]
+      sql: "UPDATE users SET password = ? WHERE email = ?",
+      args: [newPassword, user.email]
     });
 
     res.json({ success: true, message: "Kata sandi berhasil disimpan" });
