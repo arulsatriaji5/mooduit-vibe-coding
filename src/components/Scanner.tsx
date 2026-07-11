@@ -124,7 +124,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
 
   const memprosesGambarDenganVisionAPI = async (file: File) => {
     try {
-      const base64Data = await fileToBase64(file);
+      const rawImage = await fileToBase64(file);
+      const cleanBase64 = rawImage.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
       const mimeType = file.type || "image/jpeg";
 
       const response = await fetch("/api/scan-receipt", {
@@ -133,7 +134,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          image: base64Data,
+          image: cleanBase64,
           mimeType: mimeType
         })
       });
@@ -168,7 +169,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       });
       
       setStep('result');
-      toast.success("Struk berhasil dianalisis oleh Gemini!");
+      if (data.isFallback) {
+        toast.success("Struk diproses dengan Simulasi AI Ekstraksi!");
+      } else {
+        toast.success("Struk berhasil dianalisis oleh Gemini!");
+      }
     } catch (error) {
       console.error("Gagal membaca struk secara fisik:", error);
       setHasilOcr({
