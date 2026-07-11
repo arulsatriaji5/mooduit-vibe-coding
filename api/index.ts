@@ -801,11 +801,20 @@ app.post("/api/reset-password", async (req, res) => {
 // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
 function getGeminiApiKey(): string {
   if (typeof process !== "undefined" && process.env) {
-    if (process.env.VITE_GEMINI_API_KEY) {
+    // Standard Google Gemini API keys start with AIza. Prioritize these first.
+    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza")) {
+      return process.env.GEMINI_API_KEY;
+    }
+    if (process.env.VITE_GEMINI_API_KEY && process.env.VITE_GEMINI_API_KEY.startsWith("AIza")) {
       return process.env.VITE_GEMINI_API_KEY;
     }
+
+    // Fallbacks
     if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY") {
       return process.env.GEMINI_API_KEY;
+    }
+    if (process.env.VITE_GEMINI_API_KEY) {
+      return process.env.VITE_GEMINI_API_KEY;
     }
   }
   try {
