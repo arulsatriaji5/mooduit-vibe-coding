@@ -195,54 +195,38 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
   };
 
   React.useEffect(() => {
-    const savedPlan = localStorage.getItem('mooduit_budget_plan');
-    if (savedPlan) {
-      const data = JSON.parse(savedPlan);
-      setIncome(data.income || '');
-      setExpenses(data.expenses || '');
-      setEmergencyTarget(data.emergencyTarget || '');
-      setSavingsTarget(data.savingsTarget || '20');
-      const loadedWishlist = data.wishlist || [];
-      setWishlist(loadedWishlist);
-      setTargetImpian(loadedWishlist);
-      setShowResult(true);
-      setActiveTab('custom_budget');
-    } else {
-      setWishlist([]);
-      setTargetImpian([]);
-    }
+    const user_email = localStorage.getItem("userEmail") || "";
+    if (!user_email) return;
 
-    // Load from persistent SQL-like database budget tables
-    async function loadBudgetDB() {
-      try {
-        const dbBudget = await fetchBudgetPlan();
+    // Load custom budget plan from database
+    import('../utils/api').then(({ fetchBudgetPlanCustom, fetchGoals, fetchBudgetPlan }) => {
+      fetchBudgetPlanCustom(user_email).then((data) => {
+        if (data) {
+          setIncome(data.income || '');
+          setExpenses(data.expenses || '');
+          setEmergencyTarget(data.emergencyTarget || '');
+          setSavingsTarget(data.savingsTarget || '20');
+          setShowResult(true);
+          setActiveTab('custom_budget');
+        }
+      }).catch(console.error);
+
+      // Load goals from database
+      fetchGoals(user_email).then((loadedWishlist) => {
+        setWishlist(loadedWishlist || []);
+        setTargetImpian(loadedWishlist || []);
+      }).catch(console.error);
+
+      // Load 50/30/20 budget from database
+      fetchBudgetPlan(user_email).then((dbBudget) => {
         if (dbBudget) {
           setPendapatan(dbBudget.pendapatan || '');
           if (dbBudget.hasilBudget) {
             setHasilBudget(dbBudget.hasilBudget);
-            
-            // Sync forward into localStorage so existing widgets don't break
-            localStorage.setItem('mooduit_50_30_20_budget', JSON.stringify({
-              pendapatan: dbBudget.pendapatan,
-              hasilBudget: dbBudget.hasilBudget
-            }));
-          }
-        } else {
-          // Fallback to local storage if not in DB yet
-          const savedHasil = localStorage.getItem('mooduit_50_30_20_budget');
-          if (savedHasil) {
-            const parsedData = JSON.parse(savedHasil);
-            setPendapatan(parsedData.pendapatan || '');
-            if (parsedData.hasilBudget) {
-              setHasilBudget(parsedData.hasilBudget);
-            }
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch budgets from database:", err);
-      }
-    }
-    loadBudgetDB();
+      }).catch(console.error);
+    });
   }, []);
 
   // Helper to format string with dots
@@ -518,26 +502,16 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       className="btn py-3 px-4 text-sm fw-bold text-white rounded-xl shadow-sm transition-all border-0"
                       style={{ backgroundColor: '#112F58' }}
                       onClick={async () => {
-                        const valueToSave = {
-                          pendapatan,
-                          hasilBudget
-                        };
-                        localStorage.setItem('mooduit_50_30_20_budget', JSON.stringify(valueToSave));
+                        const user_email = localStorage.getItem("userEmail") || "";
+                        if (!user_email) {
+                          toast.error("Harap login terlebih dahulu.");
+                          return;
+                        }
                         
-                        // Also save variables for integration
-                        const budgetPlan = {
-                          income: pendapatan,
-                          expenses: formatInput(String(hasilBudget.kebutuhan)),
-                          emergencyTarget: '3',
-                          savingsTarget: '20',
-                          wishlist: wishlist
-                        };
-                        localStorage.setItem('mooduit_budget_plan', JSON.stringify(budgetPlan));
-
                         // Persist to budgets table in database
                         try {
                           const cleanIncomeNum = Number(pendapatan.replace(/\D/g, "")) || 0;
-                          await saveBudgetPlanDB(cleanIncomeNum);
+                          await saveBudgetPlanDB(cleanIncomeNum, user_email);
                         } catch (err) {
                           console.error("Failed to persist budget calculation to DB:", err);
                         }
@@ -798,16 +772,19 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                      <button 
                       className="btn w-100 py-3 rounded-lg fw-800 shadow-sm transition-all hover:scale-[1.02] text-white"
                       style={{ backgroundColor: '#112F58' }}
-                      onClick={() => {
-                        const budgetPlan = {
-                          income,
-                          expenses,
-                          emergencyTarget,
-                          savingsTarget,
-                          wishlist
-                        };
-                        localStorage.setItem('mooduit_budget_plan', JSON.stringify(budgetPlan));
-                        localStorage.setItem('savedWishlist', JSON.stringify(wishlist));
+                      onClick={async () => {
+                        const user_email = localStorage.getItem("userEmail") || "";
+                        if (!user_email) {
+                          toast.error("Harap login terlebih dahulu.");
+                          return;
+                        }
+                        try {
+                          const { saveBudgetPlanCustom, syncGoals } = await import('../utils/api');
+                          await saveBudgetPlanCustom(user_email, { income, expenses, emergencyTarget, savingsTarget });
+                          await syncGoals(user_email, wishlist);
+                        } catch (err) {
+                          console.error("Failed to save custom budget plan to DB:", err);
+                        }
                         toast.success(activeLang.saved2);
                         if (onNavigate) onNavigate('dashboard');
                       }}

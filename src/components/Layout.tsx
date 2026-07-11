@@ -427,11 +427,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     };
 
                     // Optimistic update
-                    const savedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-                    const updated = [newTransaction, ...savedTransactions];
-                    localStorage.setItem('transactions', JSON.stringify(updated));
+                    const user_email = localStorage.getItem("userEmail") || "";
                     if (setTransactions) {
-                      setTransactions(updated);
+                      setTransactions(prev => [newTransaction, ...prev]);
                     }
 
                     setIsManualModalOpen(false);
@@ -448,15 +446,13 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     
                     // Database insertion
                     try {
-                      const inserted = await insertTransaction(newTransaction);
+                      const inserted = await insertTransaction(newTransaction, user_email);
                       if (setTransactions) {
                         setTransactions(prev => {
                           const index = prev.findIndex(t => String(t.id) === String(tempId));
                           if (index !== -1) {
                             const next = [...prev];
                             next[index] = inserted;
-                            // Update local storage too to keep values synced
-                            localStorage.setItem('transactions', JSON.stringify(next));
                             return next;
                           }
                           return prev;

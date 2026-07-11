@@ -145,12 +145,12 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     });
 
     setTransactions(updated);
-    localStorage.setItem('transactions', JSON.stringify(updated));
     setIsEditModalOpen(false);
     setTransaksiDiedit(null);
 
     // Persist to DB
-    updateTransactionDB(transaksiDiedit.id, updatedPayload).catch(err => {
+    const user_email = localStorage.getItem("userEmail") || "";
+    updateTransactionDB(transaksiDiedit.id, updatedPayload, user_email).catch(err => {
       console.error("Failed to update transaction in database:", err);
     });
   };
@@ -323,7 +323,8 @@ export default function Transactions({ transactions: propsTransactions, setTrans
           await gDb.table('transactions').delete().where(transaction.id ? 'id' : '_id', targetId);
           console.log("Berhasil dihapus dari 'db' objek.");
         } else if (typeof deleteTransactionDB === 'function') {
-          await deleteTransactionDB(targetId);
+          const user_email = localStorage.getItem("userEmail") || "";
+          await deleteTransactionDB(targetId, user_email);
           console.log("Berhasil dihapus lewat deleteTransactionDB API.");
         }
       } catch (err) {
@@ -339,24 +340,11 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         console.error("State Mutation Error:", stateErr);
       }
 
-      // Sync LocalStorage
-      try {
-        const saved = localStorage.getItem('transactions');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            const updated = parsed.filter(item => item && String(item.id || item._id) !== String(targetId));
-            localStorage.setItem('transactions', JSON.stringify(updated));
-          }
-        }
-      } catch (lsErr) {
-        console.error("Local storage update failed:", lsErr);
-      }
-
       // 5. RE-FETCH ATAU RELOAD (HARGA MATI UNTUK UPDATE UI)
       if (typeof fetchAllTransactions === 'function') {
         try {
-          const freshData = await fetchAllTransactions();
+          const user_email = localStorage.getItem("userEmail") || "";
+          const freshData = await fetchAllTransactions(user_email);
           if (typeof setTransactions === 'function') {
             const cleaned = freshData.filter((t: any) => {
               if (!t || typeof t !== 'object') return false;
@@ -367,10 +355,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
           }
         } catch (fetchErr) {
           console.error("Fetch fresh data failed, falling back to reload:", fetchErr);
-          window.location.reload();
         }
-      } else {
-        window.location.reload();
       }
 
     } catch (error) {

@@ -274,23 +274,16 @@ export default function Dashboard({
     try {
       if (propsSetTransactions && typeof propsSetTransactions === "function") {
         const { insertTransaction } = await import("../utils/api");
-        const insertedTx = await insertTransaction(newTx);
+        const user_email = localStorage.getItem("userEmail") || "";
+        const insertedTx = await insertTransaction(newTx, user_email);
         propsSetTransactions(prev => [insertedTx, ...prev]);
       } else {
-        setLocalTransactions(prev => {
-          const updated = [newTx, ...prev];
-          localStorage.setItem("transactions", JSON.stringify(updated));
-          return updated;
-        });
+        setLocalTransactions(prev => [newTx, ...prev]);
       }
     } catch (err) {
       console.error("Failed to insert pocket transaction:", err);
       // Fallback local update
-      setLocalTransactions(prev => {
-        const updated = [newTx, ...prev];
-        localStorage.setItem("transactions", JSON.stringify(updated));
-        return updated;
-      });
+      setLocalTransactions(prev => [newTx, ...prev]);
     }
 
     toast.success(isId
@@ -429,13 +422,23 @@ export default function Dashboard({
     }
   };
 
+  const syncWishlistWithDb = async (updatedList: any[]) => {
+    const user_email = localStorage.getItem("userEmail") || "";
+    if (user_email) {
+      try {
+        const { syncGoals } = await import("../utils/api");
+        await syncGoals(user_email, updatedList);
+      } catch (err) {
+        console.error("Failed to sync wishlist with DB:", err);
+      }
+    }
+  };
+
   const handleHapusTarget = (idTarget: string) => {
-    setTargetImpian((prev) => prev.filter((target) => target.id !== idTarget));
-    setWishlist((prev) => prev.filter((target) => target.id !== idTarget));
-    localStorage.setItem(
-      "savedWishlist",
-      JSON.stringify(wishlist.filter((item) => item.id !== idTarget)),
-    );
+    const updated = wishlist.filter((target) => target.id !== idTarget);
+    setTargetImpian(updated);
+    setWishlist(updated);
+    syncWishlistWithDb(updated);
     setIsEditTargetModalOpen(false);
   };
 
@@ -463,7 +466,7 @@ export default function Dashboard({
     };
     setWishlist(updatedWishlist);
     setTargetImpian(updatedWishlist);
-    localStorage.setItem("savedWishlist", JSON.stringify(updatedWishlist));
+    syncWishlistWithDb(updatedWishlist);
     setIsEditModalOpen(false);
   };
 
@@ -480,7 +483,7 @@ export default function Dashboard({
     const updated = [...wishlist, newItem];
     setWishlist(updated);
     setTargetImpian(updated);
-    localStorage.setItem("savedWishlist", JSON.stringify(updated));
+    syncWishlistWithDb(updated);
     setNewTargetName("");
     setNewTargetPrice("");
     setIsTargetModalOpen(false);
@@ -494,9 +497,11 @@ export default function Dashboard({
       const updatedWishlist = wishlist.filter((_, i) => i !== index);
       setWishlist(updatedWishlist);
       setTargetImpian(updatedWishlist);
-      localStorage.setItem("savedWishlist", JSON.stringify(updatedWishlist));
+      syncWishlistWithDb(updatedWishlist);
     }
   };
+
+  const [isSyncing, setIsSyncing] = React.useState(false);
 
   React.useEffect(() => {
     const savedName = localStorage.getItem("userName");
@@ -506,20 +511,28 @@ export default function Dashboard({
 
     // Removed old local savingsPockets loader since it's computed dynamically from transactions ledger
 
-    // Load wishlist
-    const savedWishlist = localStorage.getItem("savedWishlist");
-    if (savedWishlist) {
-      const parsed = JSON.parse(savedWishlist);
-      const mapped = parsed.map((item: any) => ({
-        ...item,
-        id: item.id || Date.now().toString() + Math.random().toString(),
-        nama: item.nama || item.name,
-        harga: item.harga || item.price,
-        name: item.name || item.nama,
-        price: item.price || item.harga,
-      }));
-      setWishlist(mapped);
-      setTargetImpian(mapped);
+    // Load wishlist from database
+    const user_email = localStorage.getItem("userEmail") || "";
+    if (user_email) {
+      setIsSyncing(true);
+      import("../utils/api").then(({ fetchGoals }) => {
+        fetchGoals(user_email).then((goals) => {
+          const mapped = goals.map((item: any) => ({
+            ...item,
+            id: item.id || Date.now().toString() + Math.random().toString(),
+            nama: item.nama || item.name,
+            harga: item.harga || item.price,
+            name: item.name || item.nama,
+            price: item.price || item.harga,
+          }));
+          setWishlist(mapped);
+          setTargetImpian(mapped);
+          setIsSyncing(false);
+        }).catch((err) => {
+          console.error("Error loading goals:", err);
+          setIsSyncing(false);
+        });
+      });
     } else {
       setWishlist([]);
       setTargetImpian([]);
@@ -527,39 +540,8 @@ export default function Dashboard({
 
     // Load transactions
     if (propsTransactions === undefined) {
-      const savedTransactions = localStorage.getItem("transactions");
-      if (savedTransactions) {
-        try {
-          const parsed = JSON.parse(savedTransactions);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((t) => {
-              if (!t || typeof t !== "object") return false;
-              const isDummyId = [1, 2, 3, 4, 5].includes(Number(t.id));
-              const note = String(t.catatan || "").toLowerCase();
-              const cat = String(t.kategori || "").toLowerCase();
-              const hasDummyText =
-                note.includes("gaji") ||
-                note.includes("netflix") ||
-                note.includes("kopi") ||
-                note.includes("pertamax") ||
-                note.includes("bensin") ||
-                note.includes("supermarket") ||
-                note.includes("nasi padang") ||
-                note.includes("rendang") ||
-                note.includes("indihome") ||
-                note.includes("wifi") ||
-                note.includes("listrik") ||
-                note.includes("sabun & beras") ||
-                note.includes("kenangan") ||
-                cat.includes("dummy");
-              return !isDummyId && !hasDummyText;
-            });
-            setLocalTransactions(cleaned);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      // Return empty or wait for props to pass down
+      setLocalTransactions([]);
     }
   }, [propsTransactions]);
 

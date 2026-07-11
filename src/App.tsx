@@ -114,8 +114,12 @@ export default function App() {
 
   useEffect(() => {
     async function initDB() {
+      if (!user?.email) {
+        setTransactions([]);
+        return;
+      }
       try {
-        const data = await fetchAllTransactions();
+        const data = await fetchAllTransactions(user.email);
         // Strictly purge any legacy or dummy transactions with dummy-like IDs or content keywords
         const cleaned = data.filter(t => {
           if (!t || typeof t !== 'object') return false;
@@ -127,13 +131,12 @@ export default function App() {
         });
         
         setTransactions(cleaned);
-        localStorage.setItem('transactions', JSON.stringify(cleaned));
       } catch (e) {
         console.error("DB Initialization error:", e);
       }
     }
     initDB();
-  }, []);
+  }, [user?.email]);
 
   const handleStart = (mode: 'login' | 'register' = 'login') => {
     setAuthMode(mode);

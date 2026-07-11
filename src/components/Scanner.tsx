@@ -203,11 +203,9 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     };
 
     // Optimistic state sync
-    const savedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-    const updated = [newTransaction, ...savedTransactions];
-    localStorage.setItem('transactions', JSON.stringify(updated));
+    const user_email = localStorage.getItem("userEmail") || "";
     if (setTransactions) {
-      setTransactions(updated);
+      setTransactions(prev => [newTransaction, ...prev]);
     }
     
     onNavigate('dashboard', {
@@ -225,14 +223,13 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     }, 100);
 
     // Persistent save in database in background
-    insertTransaction(newTransaction).then((inserted) => {
+    insertTransaction(newTransaction, user_email).then((inserted) => {
       if (setTransactions) {
         setTransactions(prev => {
           const index = prev.findIndex(t => String(t.id) === String(tempId));
           if (index !== -1) {
             const next = [...prev];
             next[index] = inserted;
-            localStorage.setItem('transactions', JSON.stringify(next));
             return next;
           }
           return prev;

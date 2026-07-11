@@ -53,6 +53,7 @@ async function initDB() {
     await db.execute(`
       CREATE TABLE IF NOT EXISTS transactions (
         id TEXT PRIMARY KEY,
+        user_email TEXT,
         amount REAL,
         type TEXT,
         category TEXT,
@@ -64,12 +65,46 @@ async function initDB() {
     await db.execute(`
       CREATE TABLE IF NOT EXISTS budgets (
         id TEXT PRIMARY KEY,
+        user_email TEXT,
         total_income REAL,
         limit_50 REAL,
         limit_30 REAL,
         limit_20 REAL
       )
     `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS goals (
+        id TEXT PRIMARY KEY,
+        user_email TEXT,
+        name TEXT,
+        price REAL,
+        nama TEXT,
+        harga REAL,
+        created_at TEXT
+      )
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS budget_plans (
+        user_email TEXT PRIMARY KEY,
+        income TEXT,
+        expenses TEXT,
+        emergency_target TEXT,
+        savings_target TEXT
+      )
+    `);
+
+    // Gracefully add user_email column if tables already exist from previous sessions
+    const tablesToAlter = ["transactions", "budgets"];
+    for (const table of tablesToAlter) {
+      try {
+        await db.execute(`ALTER TABLE ${table} ADD COLUMN user_email TEXT`);
+        console.log(`Successfully added user_email column to ${table} table.`);
+      } catch (err) {
+        // Column probably already exists or table doesn't exist yet, safe to ignore
+      }
+    }
 
     // Try migrating existing db.json to Turso/SQLite if tables are empty
     try {
@@ -180,7 +215,14 @@ app.get('/api/ping', (req, res) => { res.status(200).send('PONG! Backend MOODUIT
 app.get("/api/transactions", async (req, res) => {
   try {
     const db = getDb();
-    const result = await db.execute("SELECT * FROM transactions ORDER BY created_at DESC, id DESC");
+    const user_email = req.query.user_email || req.headers["user-email"];
+    if (!user_email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+    const result = await db.execute({
+      sql: "SELECT * FROM transactions WHERE user_email = ? ORDER BY created_at DESC, id DESC",
+      args: [String(user_email)]
+    });
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -190,9 +232,14 @@ app.get("/api/transactions", async (req, res) => {
 app.post("/api/transactions", async (req, res) => {
   try {
     const db = getDb();
-    const { amount, type, category, description, created_at, id } = req.body;
+    const { amount, type, category, description, created_at, id, user_email } = req.body;
+    const email = user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
     const newTx = {
       id: id ? String(id) : String(Date.now()),
+      user_email: String(email),
       amount: Number(amount) || 0,
       type: type === 'income' ? 'income' : 'expense',
       category: category || 'Lainnya',
@@ -201,8 +248,8 @@ app.post("/api/transactions", async (req, res) => {
     };
     
     await db.execute({
-      sql: "INSERT INTO transactions (id, amount, type, category, description, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      args: [newTx.id, newTx.amount, newTx.type, newTx.category, newTx.description, newTx.created_at]
+      sql: "INSERT INTO transactions (id, user_email, amount, type, category, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [newTx.id, newTx.user_email, newTx.amount, newTx.type, newTx.category, newTx.description, newTx.created_at]
     });
 
     res.status(201).json(newTx);
@@ -215,19 +262,24 @@ app.put("/api/transactions/:id", async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
-    const { amount, type, category, description, created_at } = req.body;
+    const { amount, type, category, description, created_at, user_email } = req.body;
+    const email = user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
     
     const result = await db.execute({
-      sql: "SELECT * FROM transactions WHERE id = ?",
-      args: [id]
+      sql: "SELECT * FROM transactions WHERE id = ? AND user_email = ?",
+      args: [id, String(email)]
     });
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Transaction not found" });
+      return res.status(404).json({ error: "Transaction not found or unauthorized" });
     }
     
     const existing = result.rows[0];
     const updated = {
       id,
+      user_email: String(email),
       amount: amount !== undefined ? Number(amount) : Number(existing.amount),
       type: type !== undefined ? (type === 'income' ? 'income' : 'expense') : String(existing.type),
       category: category !== undefined ? category : String(existing.category),
@@ -236,8 +288,8 @@ app.put("/api/transactions/:id", async (req, res) => {
     };
     
     await db.execute({
-      sql: "UPDATE transactions SET amount = ?, type = ?, category = ?, description = ?, created_at = ? WHERE id = ?",
-      args: [updated.amount, updated.type, updated.category, updated.description, updated.created_at, id]
+      sql: "UPDATE transactions SET amount = ?, type = ?, category = ?, description = ?, created_at = ? WHERE id = ? AND user_email = ?",
+      args: [updated.amount, updated.type, updated.category, updated.description, updated.created_at, id, String(email)]
     });
 
     res.json(updated);
@@ -250,17 +302,22 @@ app.delete("/api/transactions/:id", async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
+    const user_email = req.query.user_email || req.headers["user-email"];
+    if (!user_email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+
     const check = await db.execute({
-      sql: "SELECT * FROM transactions WHERE id = ?",
-      args: [id]
+      sql: "SELECT * FROM transactions WHERE id = ? AND user_email = ?",
+      args: [id, String(user_email)]
     });
     if (check.rows.length === 0) {
-      return res.status(404).json({ error: "Transaction not found" });
+      return res.status(404).json({ error: "Transaction not found or unauthorized" });
     }
     
     await db.execute({
-      sql: "DELETE FROM transactions WHERE id = ?",
-      args: [id]
+      sql: "DELETE FROM transactions WHERE id = ? AND user_email = ?",
+      args: [id, String(user_email)]
     });
     res.json({ success: true });
   } catch (err: any) {
@@ -271,7 +328,14 @@ app.delete("/api/transactions/:id", async (req, res) => {
 app.get("/api/budgets", async (req, res) => {
   try {
     const db = getDb();
-    const result = await db.execute("SELECT * FROM budgets WHERE id = 'global'");
+    const user_email = req.query.user_email || req.headers["user-email"];
+    if (!user_email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+    const result = await db.execute({
+      sql: "SELECT * FROM budgets WHERE user_email = ?",
+      args: [String(user_email)]
+    });
     res.json(result.rows[0] || null);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -281,9 +345,15 @@ app.get("/api/budgets", async (req, res) => {
 app.post("/api/budgets", async (req, res) => {
   try {
     const db = getDb();
-    const { total_income, limit_50, limit_30, limit_20 } = req.body;
+    const { total_income, limit_50, limit_30, limit_20, user_email } = req.body;
+    const email = user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+
     const newBudget = {
-      id: 'global',
+      id: String(email),
+      user_email: String(email),
       total_income: Number(total_income) || 0,
       limit_50: Number(limit_50) || 0,
       limit_30: Number(limit_30) || 0,
@@ -291,13 +361,124 @@ app.post("/api/budgets", async (req, res) => {
     };
     
     await db.execute({
-      sql: `INSERT INTO budgets (id, total_income, limit_50, limit_30, limit_20) 
-            VALUES ('global', ?, ?, ?, ?) 
+      sql: `INSERT INTO budgets (id, user_email, total_income, limit_50, limit_30, limit_20) 
+            VALUES (?, ?, ?, ?, ?, ?) 
             ON CONFLICT(id) DO UPDATE SET total_income = excluded.total_income, limit_50 = excluded.limit_50, limit_30 = excluded.limit_30, limit_20 = excluded.limit_20`,
-      args: [newBudget.total_income, newBudget.limit_50, newBudget.limit_30, newBudget.limit_20]
+      args: [newBudget.id, newBudget.user_email, newBudget.total_income, newBudget.limit_50, newBudget.limit_30, newBudget.limit_20]
     });
 
     res.status(200).json(newBudget);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Goals (Wishlist) APIs
+app.get("/api/goals", async (req, res) => {
+  try {
+    const db = getDb();
+    const user_email = req.query.user_email || req.headers["user-email"];
+    if (!user_email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+    const result = await db.execute({
+      sql: "SELECT * FROM goals WHERE user_email = ?",
+      args: [String(user_email)]
+    });
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/goals/sync", async (req, res) => {
+  try {
+    const db = getDb();
+    const { user_email, wishlist } = req.body;
+    const email = user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+
+    // Delete existing goals for user
+    await db.execute({
+      sql: "DELETE FROM goals WHERE user_email = ?",
+      args: [String(email)]
+    });
+
+    // Bulk insert new goals
+    if (Array.isArray(wishlist)) {
+      for (const item of wishlist) {
+        const itemId = item.id || String(Date.now() + Math.random());
+        const itemName = item.name || item.nama || "";
+        const itemPrice = Number(item.price || item.harga) || 0;
+        await db.execute({
+          sql: "INSERT INTO goals (id, user_email, name, price, nama, harga) VALUES (?, ?, ?, ?, ?, ?)",
+          args: [itemId, String(email), itemName, itemPrice, itemName, itemPrice]
+        });
+      }
+    }
+
+    res.json({ success: true, message: "Wishlist synchronized successfully." });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Budget Plans APIs
+app.get("/api/budget-plans", async (req, res) => {
+  try {
+    const db = getDb();
+    const user_email = req.query.user_email || req.headers["user-email"];
+    if (!user_email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+    const result = await db.execute({
+      sql: "SELECT * FROM budget_plans WHERE user_email = ?",
+      args: [String(user_email)]
+    });
+    if (result.rows.length === 0) {
+      return res.json(null);
+    }
+    const row = result.rows[0];
+    res.json({
+      income: row.income,
+      expenses: row.expenses,
+      emergencyTarget: row.emergency_target,
+      savingsTarget: row.savings_target
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/budget-plans", async (req, res) => {
+  try {
+    const db = getDb();
+    const { user_email, income, expenses, emergencyTarget, savingsTarget } = req.body;
+    const email = user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email pengguna wajib disertakan" });
+    }
+
+    await db.execute({
+      sql: `INSERT INTO budget_plans (user_email, income, expenses, emergency_target, savings_target)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_email) DO UPDATE SET 
+              income = excluded.income, 
+              expenses = excluded.expenses, 
+              emergency_target = excluded.emergency_target, 
+              savings_target = excluded.savings_target`,
+      args: [
+        String(email), 
+        income ? String(income) : "", 
+        expenses ? String(expenses) : "", 
+        emergencyTarget ? String(emergencyTarget) : "", 
+        savingsTarget ? String(savingsTarget) : "20"
+      ]
+    });
+
+    res.json({ success: true, message: "Budget plan saved successfully." });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
