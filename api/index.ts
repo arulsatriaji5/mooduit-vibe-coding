@@ -1207,8 +1207,6 @@ app.post("/api/chat", async (req, res) => {
   let messages: any[] = [];
   let language = "id";
   let targetImpian: any[] = [];
-  let totalSaldo = 0;
-  let budget = { total_income: 0, limit_50: 0, limit_30: 0, limit_20: 0 };
 
   try {
     const db = getDb();
@@ -1221,55 +1219,92 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
-    // Read context from DB for personalized advice
-    const txResult = await db.execute("SELECT * FROM transactions");
-    const dbTransactions = txResult.rows;
-    const txCount = dbTransactions.length;
-    const totalIncome = dbTransactions.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    const totalExpense = dbTransactions.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    totalSaldo = totalIncome - totalExpense;
+    let financialContext = body.financialContext;
+    if (!financialContext) {
+      // Build server-side fallback
+      const user_email = body.user_email || req.headers["user-email"] || "";
+      let dbTransactions = [];
+      if (user_email) {
+        const txResult = await db.execute({
+          sql: "SELECT * FROM transactions WHERE user_email = ? ORDER BY created_at DESC",
+          args: [String(user_email)]
+        });
+        dbTransactions = txResult.rows;
+      } else {
+        const txResult = await db.execute("SELECT * FROM transactions");
+        dbTransactions = txResult.rows;
+      }
+      
+      const totalIncome = dbTransactions.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+      const totalExpense = dbTransactions.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+      const totalSaldo = totalIncome - totalExpense;
 
-    const budgetResult = await db.execute("SELECT * FROM budgets WHERE id = 'global'");
-    const rawBudget = budgetResult.rows[0];
-    budget = {
-      total_income: rawBudget ? Number(rawBudget.total_income || 0) : 0,
-      limit_50: rawBudget ? Number(rawBudget.limit_50 || 0) : 0,
-      limit_30: rawBudget ? Number(rawBudget.limit_30 || 0) : 0,
-      limit_20: rawBudget ? Number(rawBudget.limit_20 || 0) : 0,
-    };
+      // Get budget
+      let budgets: any[] = [];
+      if (user_email) {
+        const budgetResult = await db.execute({
+          sql: "SELECT * FROM budgets WHERE user_email = ?",
+          args: [String(user_email)]
+        });
+        const rawBudget = budgetResult.rows[0];
+        if (rawBudget) {
+          budgets = [
+            { kategori: "Kebutuhan Pokok (50%)", limit: rawBudget.limit_50, deskripsi: "Untuk makanan, tagihan, transportasi, dan kebutuhan esensial lainnya." },
+            { kategori: "Jajan / Keinginan (30%)", limit: rawBudget.limit_30, deskripsi: "Untuk hiburan, belanja non-primer, kopi, dan rekreasi." },
+            { kategori: "Tabungan / Investasi (20%)", limit: rawBudget.limit_20, deskripsi: "Untuk kantong dana darurat, investasi masa depan, dan impian." }
+          ];
+        }
+      }
 
-    let targetImpianContext = "";
-    if (targetImpian && Array.isArray(targetImpian) && targetImpian.length > 0) {
-      targetImpianContext = `- Daftar Target Impian (Wishlist) pengguna saat ini:\n` +
-        targetImpian.map((item, idx) => `  ${idx + 1}. ${item.nama || item.name || "Impian"} - Rp ${(Number(item.harga) || Number(item.price) || 0).toLocaleString('id-ID')}`).join("\n") + "\n" +
-        `Jika pengguna bertanya tentang "target impian", "beli impian", "beli target", atau barang impian tertentu, analisislah sisa saldo kas saat ini (Rp ${totalSaldo.toLocaleString('id-ID')}) apakah cukup untuk membeli impian paling pertama atau impian yang disebutkan. Hitung sisa saldo setelah pembelian atau hitung berapa kekurangannya secara jelas dan ajak pengguna untuk bersabar atau merealisasikannya secara bijak sesuai anjuran 50/30/20.`;
-    } else {
-      targetImpianContext = `- Daftar Target Impian (Wishlist) pengguna saat ini: Kosong. (Minta pengguna untuk menambahkan impian baru di Dashboard jika ia bertanya tentang rencana impiannya)`;
+      // Get goals
+      let goals: any[] = [];
+      if (user_email) {
+        const goalsResult = await db.execute({
+          sql: "SELECT * FROM goals WHERE user_email = ?",
+          args: [String(user_email)]
+        });
+        goals = goalsResult.rows.map((item: any) => ({
+          id: item.id,
+          name: item.nama || item.name || "Impian",
+          price: Number(item.harga || item.price) || 0
+        }));
+      }
+
+      financialContext = {
+        summary: { balance: totalSaldo, totalIncome, totalExpense },
+        smartBudget: budgets,
+        recentTransactions: dbTransactions.slice(0, 10).map((t: any) => ({
+          id: t.id,
+          amount: Number(t.amount) || 0,
+          type: t.type === 'income' ? 'pemasukan' : 'pengeluaran',
+          category: t.category,
+          description: t.description,
+          date: t.created_at
+        })),
+        savingsGoals: goals
+      };
     }
 
     const systemInstruction = 
-      `Kamu adalah MOODUIT AI Advisor, penasihat keuangan cerdas yang ramah, seru dan solutif. ` +
-      `Pengguna saat ini bernama Arul Satriaji (atau Sobat Cuan). ` +
+      `Kamu adalah MOODUIT AI Advisor, penasihat keuangan pribadi yang empatik, cerdas, dan jujur. ` +
       `Gaya bicaramu suportif, sedikit jenaka, dan sangat mengedukasi tentang keuangan sehat. ` +
       `Gunakan alokasi anggaran 50/30/20 (50% Kebutuhan, 30% Keinginan, 20% Tabungan/Investasi) sebagai landasan saranmu. ` +
-      `Berikut data keuangan asli real-time pengguna saat ini untuk bahan referensimu (gunakan angka ini jika user menanyakan saldo, anggaran, atau transaksi): ` +
-      `- Total Saldo kas saat ini: Rp ${totalSaldo.toLocaleString('id-ID')} ` +
-      `- Total Pemasukan: Rp ${totalIncome.toLocaleString('id-ID')} ` +
-      `- Total Pengeluaran: Rp ${totalExpense.toLocaleString('id-ID')} ` +
-      `- Rencana Anggaran (Smart Budget) Pendapatan: Rp ${budget.total_income.toLocaleString('id-ID')} ` +
-      `- Aturan 50% (Kebutuhan pokok): Limit Rp ${budget.limit_50.toLocaleString('id-ID')} ` +
-      `- Aturan 30% (Keinginan): Limit Rp ${budget.limit_30.toLocaleString('id-ID')} ` +
-      `- Aturan 20% (Tabungan): Limit Rp ${budget.limit_20.toLocaleString('id-ID')} ` +
-      `- Jumlah transaksi yang tercatat dalam riwayat: ${txCount} ` +
-      `\n${targetImpianContext}\n\n` +
-      `Selalulah menjawab sesuai bahasa yang dipilih pengguna (Bahasa Indonesia atau English). Default: Bahasa Indonesia. ` +
-      `Jika ditanya nominal saldo atau transaksi, jawablah dengan menggunakan data asli di atas secara akurat. Jangan mengarang data fiktif!`;
+      `Selalu analisa pertanyaan user secara mendalam berdasarkan data financialContext yang diberikan. ` +
+      `Jika user bertanya "bagaimana kondisi keuangan saya?" (atau pertanyaan serupa tentang kesehatan keuangan mereka), kamu WAJIB menganalisa data asli tersebut secara konkret dan menyebutkan sisa alokasi budget asli mereka (Kebutuhan Pokok, Jajan, Dana Darurat), pengeluaran terbesar dari daftar transaksi terakhir (recentTransactions), dan progres tabungan/wishlist mereka (savingsGoals), BUKAN sekadar teori umum. ` +
+      `Selalulah menjawab sesuai bahasa yang dipilih pengguna (Bahasa Indonesia atau English). Default: Bahasa Indonesia.`;
+
+    const userMessage = messages[messages.length - 1]?.text || "";
+    const prompt = "Kamu adalah MOODUIT AI Advisor, penasihat keuangan pribadi yang empatik, cerdas, dan jujur. " +
+"BERIKUT ADALAH DATA KEUANGAN ASLI USER SAAT INI (Gunakan HANYA data ini untuk menjawab, JANGAN halusinasi/mengarang angka lain): \n" +
+JSON.stringify(financialContext, null, 2) + "\n\n" +
+"Pertanyaan User: " + userMessage;
 
     // Convert front-end messages { text: string, isAi: boolean } to Gemini { role: 'user'|'model', parts: [{ text: string }] }
-    const contents = messages.map(m => {
+    const contents = messages.map((m, idx) => {
+      const isLast = idx === messages.length - 1;
       return {
         role: m.isAi ? "model" : "user",
-        parts: [{ text: m.text }]
+        parts: [{ text: (isLast && !m.isAi) ? prompt : m.text }]
       };
     });
 

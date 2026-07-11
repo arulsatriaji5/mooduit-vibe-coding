@@ -43,6 +43,7 @@ export default function Dashboard({
     return false;
   });
   const [userName, setUserName] = React.useState("Sobat Cuan");
+  const [budgetsData, setBudgetsData] = React.useState<any[]>([]);
 
   // Daily Streak and Celebration Pop-up States
   const [streakCount, setStreakCount] = React.useState<number>(() => {
@@ -511,11 +512,11 @@ export default function Dashboard({
 
     // Removed old local savingsPockets loader since it's computed dynamically from transactions ledger
 
-    // Load wishlist from database
+    // Load wishlist and budgets from database
     const user_email = localStorage.getItem("userEmail") || "";
     if (user_email) {
       setIsSyncing(true);
-      import("../utils/api").then(({ fetchGoals }) => {
+      import("../utils/api").then(({ fetchGoals, fetchBudgetPlan, fetchBudgetPlanCustom }) => {
         fetchGoals(user_email).then((goals) => {
           const mapped = goals.map((item: any) => ({
             ...item,
@@ -532,10 +533,55 @@ export default function Dashboard({
           console.error("Error loading goals:", err);
           setIsSyncing(false);
         });
+
+        // Load budget plans
+        Promise.all([
+          fetchBudgetPlan(user_email),
+          fetchBudgetPlanCustom(user_email)
+        ]).then(([dbBudget, customBudget]) => {
+          const list: any[] = [];
+          if (dbBudget && dbBudget.hasilBudget) {
+            list.push({
+              kategori: "Kebutuhan Pokok (50%)",
+              limit: dbBudget.hasilBudget.kebutuhan,
+              deskripsi: "Untuk makanan, tagihan, transportasi, dan kebutuhan esensial lainnya."
+            });
+            list.push({
+              kategori: "Jajan / Keinginan (30%)",
+              limit: dbBudget.hasilBudget.keinginan,
+              deskripsi: "Untuk hiburan, belanja non-primer, kopi, dan rekreasi."
+            });
+            list.push({
+              kategori: "Tabungan / Investasi (20%)",
+              limit: dbBudget.hasilBudget.tabungan,
+              deskripsi: "Untuk kantong dana darurat, investasi masa depan, dan impian."
+            });
+          } else if (customBudget) {
+            list.push({
+              kategori: "Kebutuhan Pokok",
+              limit: customBudget.expenses,
+              deskripsi: "Anggaran kebutuhan pokok bulanan kustom."
+            });
+            list.push({
+              kategori: "Dana Darurat Target",
+              limit: customBudget.emergencyTarget,
+              deskripsi: "Target dana darurat kustom (dalam bulan pengeluaran)."
+            });
+            list.push({
+              kategori: "Tabungan Target",
+              limit: customBudget.savingsTarget,
+              deskripsi: "Target persentase tabungan kustom."
+            });
+          }
+          setBudgetsData(list);
+        }).catch((err) => {
+          console.error("Error loading budgets for AI:", err);
+        });
       });
     } else {
       setWishlist([]);
       setTargetImpian([]);
+      setBudgetsData([]);
     }
 
     // Load transactions
@@ -609,17 +655,30 @@ export default function Dashboard({
     setChatInput("");
     setIsTyping(true);
 
-    // Validasi Kunci Kosong Sebelum Fetch / Inisialisasi
-    if (!(import.meta as any).env.VITE_GEMINI_API_KEY) {
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { text: "Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.", isAi: true }
-        ]);
-        setIsTyping(false);
-      }, 600);
-      return;
-    }
+    const user_email = localStorage.getItem("userEmail") || "";
+
+    // Build the rich financial context payload from real-time frontend states
+    const financialContext = {
+      summary: { 
+        balance: totalSaldo, 
+        totalIncome: totalPemasukan, 
+        totalExpense: totalPengeluaran 
+      },
+      smartBudget: budgetsData || [],
+      recentTransactions: transactions.slice(0, 10).map((t: any) => ({
+        id: t.id,
+        amount: Number(t.nominal || t.amount) || 0,
+        type: t.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran',
+        category: t.kategori,
+        description: t.catatan || t.description,
+        date: t.tanggal
+      })),
+      savingsGoals: wishlist.map((g: any) => ({
+        id: g.id,
+        name: g.nama || g.name || "Impian",
+        price: Number(g.harga || g.price) || 0
+      }))
+    };
 
     try {
       const res = await fetch("/api/chat", {
@@ -628,6 +687,8 @@ export default function Dashboard({
         body: JSON.stringify({ 
           messages: updatedMessages, 
           language, 
+          user_email,
+          financialContext,
           targetImpian: targetImpian && targetImpian.length > 0 ? targetImpian : wishlist 
         }),
       });
