@@ -23,7 +23,18 @@ import Analysis from './components/Analysis';
 type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist' | 'settings' | 'smart-budget' | 'analisa';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const savedName = localStorage.getItem('userName');
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedName && savedEmail) {
+      const lastPage = localStorage.getItem('mooduit_current_page');
+      if (lastPage && ['dashboard', 'scanner', 'history', 'wishlist', 'settings', 'smart-budget', 'analisa'].includes(lastPage)) {
+        return lastPage as Page;
+      }
+      return 'dashboard';
+    }
+    return 'landing';
+  });
   const [user, setUser] = useState<any>(() => {
     const savedName = localStorage.getItem('userName');
     const savedEmail = localStorage.getItem('userEmail');
@@ -133,6 +144,7 @@ export default function App() {
     setUser(userData);
     localStorage.setItem('authProvider', userData.authProvider || 'local');
     setCurrentPage('dashboard');
+    localStorage.setItem('mooduit_current_page', 'dashboard');
   };
 
   const handleLogout = () => {
@@ -167,9 +179,10 @@ export default function App() {
 
   const handleNavigate = (page: string, data?: any) => {
     if (data) {
-      setPendingOcrData(data);
+       setPendingOcrData(data);
     }
     setCurrentPage(page as Page);
+    localStorage.setItem('mooduit_current_page', page);
   };
 
   const renderContent = () => {
@@ -198,6 +211,17 @@ export default function App() {
   };
 
   const needsLayout = !['landing', 'auth', 'scanner'].includes(currentPage);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-t-[#112F58] border-[#112F58]/20 rounded-full animate-spin"></div>
+          <p className="text-sm font-semibold text-[#112F58]/75 dark:text-white/75 text-center">Memeriksa sesi...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (resetToken) {
     return (

@@ -435,13 +435,13 @@ export default function Transactions({ transactions: propsTransactions, setTrans
           .sticky-footer-kas {
             position: sticky !important;
             bottom: 24px !important;
-            z-index: 30 !important;
+            z-index: 40 !important;
             transition: all 0.3s ease-in-out;
           }
 
           @media (max-width: 991px) {
             .sticky-footer-kas {
-              bottom: 90px !important;
+              bottom: 80px !important;
             }
           }
 
@@ -560,7 +560,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
               return (
                 <motion.div 
                   key={tx.id} 
-                  className="transaction-item-row list-group-item flex flex-col md:flex-row md:items-center justify-between w-full p-4 overflow-hidden box-border bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 shadow-sm gap-4 hover:bg-slate-50 transition-all duration-300 mb-3"
+                  className="transaction-item-row list-group-item w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3 box-border hover:bg-slate-50 dark:hover:bg-gray-750 transition-all duration-300 mb-3"
                   style={{ 
                     zIndex: (1000 - i),
                     position: 'relative',
@@ -569,60 +569,58 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.4) }}
                 >
-                  {/* --- BAGIAN KIRI: IKON & INFO TEKS --- */}
-                  <div className="flex items-center gap-4 w-full md:w-auto flex-1 min-w-0 overflow-hidden">
-                    <div className="w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
-                      {transaction.icon || (transaction.type === 'income' ? '💼' : '🛒')}
+                  {/* Baris Atas (Informasi & Angka) */}
+                  <div className="flex items-start justify-between w-full gap-3">
+                    {/* Sisi Kiri (Icon + Teks) */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
+                        {transaction.icon || (transaction.type === 'income' ? '💼' : '🛒')}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate m-0">
+                          {transaction.description || 'Transaksi'}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 mb-0">
+                          {transaction.created_at} • <span className="uppercase tracking-wider">{transaction.category}</span>
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0 text-left">
-                      <h4 className="font-bold text-slate-800 dark:text-white text-base truncate m-0">
-                        {transaction.description || 'Transaksi'}
-                      </h4>
-                      <p className="text-xs text-slate-500 truncate mt-0.5 mb-0">
-                        {transaction.created_at} • <span className="uppercase tracking-wider">{transaction.category}</span>
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* --- BAGIAN KANAN: NOMINAL & TOMBOL (TIDAK BOLEH HIDDEN) --- */}
-                  <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 md:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700 mt-2 md:mt-0">
-                    
-                    {/* Nominal & Badge */}
-                    <div className="flex flex-col items-start md:items-end flex-shrink-0 text-left md:text-right">
-                      <span className={`font-bold text-base md:text-lg ${transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {/* Sisi Kanan (Nominal & Badge) */}
+                    <div className="flex flex-col items-end shrink-0 text-right">
+                      <span className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
                         {transaction.type === 'income' ? '+' : '-'}Rp{formatRupiah(transaction.amount)}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                         {transaction.type === 'income' ? t('PEMASUKAN', 'INCOME') : t('PENGELUARAN', 'EXPENSE')}
                       </span>
                     </div>
+                  </div>
 
-                    {/* WRAPPER TOMBOL AKSI - DIJAMIN SELALU MUNCUL */}
-                    <div className="flex gap-2 shrink-0 mr-1 md:mr-0">
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          platformNativeEditFunction(tx);
-                        }} 
-                        className="flex items-center justify-center w-10 h-10 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer border-none p-0 flex-shrink-0"
-                        title={t('Edit Transaksi', 'Edit Transaction')}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          platformNativeDeleteFunction(tx.id);
-                        }} 
-                        className="flex items-center justify-center w-10 h-10 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer border-none p-0 flex-shrink-0"
-                        title={t('Hapus Transaksi', 'Delete Transaction')}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-
+                  {/* Baris Bawah (Tombol Aksi Terpisah) */}
+                  <div className="flex justify-end items-center gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        platformNativeEditFunction(tx);
+                      }} 
+                      className="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                      title={t('Edit Transaksi', 'Edit Transaction')}
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        platformNativeDeleteFunction(tx.id);
+                      }} 
+                      className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                      title={t('Hapus Transaksi', 'Delete Transaction')}
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -632,23 +630,22 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       </div>
 
       {/* SUMMARY BAR CARD */}
-      <div className="bg-[#112F58] text-white p-4.5 rounded-3xl d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3.5 shadow-lg border-0 sticky-footer-kas">
+      <div className="bg-[#112F58] text-white p-4.5 rounded-3xl flex flex-col justify-between gap-3.5 shadow-lg border-0 sticky-footer-kas z-40">
         <div>
           <h6 className="mb-1 text-white/70 text-xs font-bold tracking-wider uppercase">{t('TOTAL KAS BULAN INI', 'TOTAL CASH THIS MONTH')}</h6>
-          <div className="d-flex align-items-center gap-3 mt-1.5">
+          <div className="grid grid-cols-2 gap-4 w-full mt-2">
             <div>
-              <span className="text-[10px] text-white/50 block font-bold leading-none uppercase">{t('PENGELUARAN', 'EXPENSES')}</span>
-              <span className="fw-extrabold text-[#F39C12] font-black text-lg block">{totalFormat(totalPengeluaran)}</span>
+              <span className="text-[10px] md:text-xs text-gray-300/80 truncate uppercase tracking-wider block leading-none">{t('PENGELUARAN', 'EXPENSES')}</span>
+              <span className="text-sm font-bold text-white truncate block mt-1">{totalFormat(totalPengeluaran)}</span>
             </div>
-            <div className="mx-1 h-8 w-[1px] bg-white/20"></div>
             <div>
-              <span className="text-[10px] text-white/50 block font-bold leading-none uppercase">{t('PEMASUKAN', 'INCOME')}</span>
-              <span className="fw-extrabold text-emerald-400 font-black text-lg block">{totalFormat(totalPemasukan)}</span>
+              <span className="text-[10px] md:text-xs text-gray-300/80 truncate uppercase tracking-wider block leading-none">{t('PEMASUKAN', 'INCOME')}</span>
+              <span className="text-sm font-bold text-white truncate block mt-1">{totalFormat(totalPemasukan)}</span>
             </div>
           </div>
         </div>
         <button 
-          className="flex items-center gap-2 px-5 py-2.5 btn-download-laporan font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 border-none outline-none"
+          className="w-full mt-4 flex items-center justify-center gap-2 px-5 py-2.5 btn-download-laporan font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 border-none outline-none"
           onClick={handleDownloadCSV}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>

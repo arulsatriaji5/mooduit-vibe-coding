@@ -843,7 +843,7 @@ export default function Dashboard({
               </span>
             </div>
             <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
-              Rp {totalPemasukan.toLocaleString("id-ID")}
+              {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
             </h3>
           </div>
 
@@ -860,7 +860,7 @@ export default function Dashboard({
               </span>
             </div>
             <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
-              Rp {totalPengeluaran.toLocaleString("id-ID")}
+              {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
             </h3>
           </div>
 

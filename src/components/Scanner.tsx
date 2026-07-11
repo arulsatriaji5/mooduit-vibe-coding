@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, Image as ImageIcon, Check, X, Loader2, Save, AlertCircle, RefreshCw } from 'lucide-react';
-import Tesseract from 'tesseract.js';
 import { insertTransaction } from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 interface ScannerProps {
   onNavigate: (page: string, data?: any) => void;
@@ -109,92 +109,45 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const memprosesGambarDenganVisionAPI = async (file: File) => {
     try {
-      // 1. PROSES BACA GAMBAR ASLI (REAL OCR)
-      // Akan memakan waktu 2-4 detik, ini membuktikan aplikasi sedang membaca piksel gambar
-      const result = await Tesseract.recognize(file, 'ind');
-      const teksStruk = result.data.text.toLowerCase();
-      
-      console.log("Hasil Baca Teks AI:", teksStruk);
+      const base64Data = await fileToBase64(file);
+      const mimeType = file.type || "image/jpeg";
 
-      // 2. SMART NLP PARSER (Menganalisa teks yang terbaca)
-      
-      // DETEKSI STRUK ETTRA COSMETICS
-      if (teksStruk.includes("ettra") || teksStruk.includes("cosmetics") || teksStruk.includes("hanasui") || teksStruk.includes("pixy")) {
-        return {
-          totalAmount: 116000,
-          cashPaid: 150000,
-          merchantName: "ETTRA COSMETICS",
-          category: "Belanja",
-          icon: "🛍️",
-          date: new Date().toISOString().split('T')[0],
-          items: [
-            { namaItem: "Hanasui Powder Nat 03", harga: 37000 },
-            { namaItem: "Hanasui Lip Cream 06", harga: 23000 },
-            { namaItem: "Pixy Protecting Mist", harga: 28000 },
-            { namaItem: "Focallure Eye Bro 03 Dark", harga: 28000 }
-          ]
-        };
-      }
-      
-      // DETEKSI STRUK TOMORO COFFEE
-      if (teksStruk.includes("tomoro") || teksStruk.includes("coffee") || teksStruk.includes("latte")) {
-        return {
-          totalAmount: 48000,
-          cashPaid: 50000,
-          merchantName: "TOMORO COFFEE",
-          category: "Makan & Minum",
-          icon: "☕",
-          date: new Date().toISOString().split('T')[0],
-          items: [
-            { namaItem: "Caffe Latte Iced Small (x2)", harga: 48000 }
-          ]
-        };
+      const response = await fetch("/api/scan-receipt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          image: base64Data,
+          mimeType: mimeType
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Gagal menganalisa struk");
       }
 
-      // DETEKSI STRUK ALFAMART / INDOMARET
-      if (teksStruk.includes("alfamart") || teksStruk.includes("indomaret") || teksStruk.includes("mart")) {
-        return {
-          totalAmount: 14500,
-          cashPaid: 15000,
-          merchantName: teksStruk.includes("alfamart") ? "Alfamart" : "Minimarket Terdeteksi",
-          category: "Kebutuhan Pokok",
-          icon: "🛒",
-          date: new Date().toISOString().split('T')[0],
-          items: [
-            { namaItem: "Susu Kotak & Roti", harga: 14500 }
-          ]
-        };
-      }
-
-      // 3. FALLBACK DINAMIS JIKA STRUK BARU/TIDAK DIKENALI
-      // Mencari angka terbesar di dalam teks sebagai estimasi total belanja
-      const angkaDitemukan = teksStruk.match(/\d{2,3}(?:[.,]\d{3})*/g);
-      let estimasiTotal = 50000;
-      
-      if (angkaDitemukan) {
-        const angkaBersih = angkaDitemukan.map(a => Number(a.replace(/\D/g, ''))).filter(n => n > 1000 && n < 5000000);
-        if (angkaBersih.length > 0) {
-          estimasiTotal = Math.max(...angkaBersih); // Mengambil nominal terbesar
-        }
-      }
-
-      return {
-        totalAmount: estimasiTotal,
-        cashPaid: estimasiTotal + 20000, // Simulasi kembalian
-        merchantName: "Merchant Terdeteksi AI",
-        category: "Lainnya",
-        icon: "🧾",
-        date: new Date().toISOString().split('T')[0],
-        items: [
-          { namaItem: "Item Belanja (Otomatis)", harga: estimasiTotal }
-        ]
-      };
-
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error("Gagal menjalankan OCR:", error);
-      throw new Error("OCR Gagal diproses");
+      console.error("Gagal menjalankan OCR Gemini:", error);
+      throw error;
     }
   };
 
@@ -215,6 +168,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       });
       
       setStep('result');
+      toast.success("Struk berhasil dianalisis oleh Gemini!");
     } catch (error) {
       console.error("Gagal membaca struk secara fisik:", error);
       setHasilOcr({
@@ -227,6 +181,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
         items: []
       });
       setStep('result');
+      toast.error("Gagal menganalisis struk. Silakan coba lagi.");
     }
   };
 
@@ -411,10 +366,10 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               >
                 <Loader2 size={48} />
               </motion.div>
-              <h5 className="fw-bold mb-3">Memproses Gambar...</h5>
+              <h5 className="fw-bold mb-3">Menganalisis Struk...</h5>
               <div className="skeleton-loader h-2 rounded-full mb-2 w-100"></div>
               <div className="skeleton-loader h-2 rounded-full mb-4 w-75 mx-auto"></div>
-              <p className="text-muted small">Ambient AI sedang mengekstrak data dari struk Anda secara sakti.</p>
+              <p className="text-muted small">✨ AI sedang menganalisa strukmu...</p>
             </div>
           </motion.div>
         )}

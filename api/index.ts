@@ -851,7 +851,7 @@ app.post("/api/scan-receipt", async (req, res) => {
       return res.status(400).json({ error: "Missing image or mimeType" });
     }
 
-    const prompt = `Ekstrak data dari gambar struk ini secara akurat. Ambil: 1. Nama Merchant/Toko (Jika tidak terdeteksi atau tidak ada, WAJIB tulis 'Merchant Tidak Diketahui'), 2. Total Belanja Asli (Bukan uang tunai yang dibayar), 3. Nominal Tunai/Bayar, 4. Kembalian, 5. Tanggal Transaksi, 6. Kategori yang paling cocok.`;
+    const prompt = `Analyze this receipt image. Extract the core transaction data and return ONLY a raw valid JSON object without any markdown formatting or backticks. Schema: { "merchantName": "string", "totalAmount": number (only the final total paid), "date": "YYYY-MM-DD" (if visible, else null), "suggestedCategory": "string (predict the expense category)" }`;
 
     const ai = getAiClient();
     const response = await ai.models.generateContent({
@@ -876,18 +876,33 @@ app.post("/api/scan-receipt", async (req, res) => {
           properties: {
             merchantName: { type: Type.STRING },
             totalAmount: { type: Type.NUMBER },
+            date: { type: Type.STRING },
+            suggestedCategory: { type: Type.STRING },
             cashPaid: { type: Type.NUMBER },
             change: { type: Type.NUMBER },
-            date: { type: Type.STRING },
             category: { type: Type.STRING },
             icon: { type: Type.STRING, description: "One representative emoji for the category" }
           },
-          required: ["merchantName", "totalAmount", "cashPaid", "change", "date", "category", "icon"]
+          required: ["merchantName", "totalAmount", "suggestedCategory"]
         }
       }
     });
 
     const result = JSON.parse(response.text);
+    // Fill backwards compatibility fields if missing
+    if (!result.category) result.category = result.suggestedCategory || "Lainnya";
+    if (!result.cashPaid) result.cashPaid = result.totalAmount || 0;
+    if (!result.change) result.change = 0;
+    if (!result.date) result.date = new Date().toISOString().split('T')[0];
+    if (!result.icon) {
+      const categoryIcons: Record<string, string> = {
+        "Kebutuhan Pokok": "🛒", "Transportasi": "🚗", "Hiburan": "🎬", 
+        "Makan & Minum": "🍜", "Kesehatan": "💊", "Pendidikan": "📚", 
+        "Tagihan": "📄", "Belanja": "👕", "Lainnya": "📦"
+      };
+      result.icon = categoryIcons[result.category] || "🧾";
+    }
+
     res.json(result);
   } catch (error: any) {
     console.error("OCR Error:", error);
@@ -985,6 +1000,126 @@ app.post("/api/chat", async (req, res) => {
       ? `Sistem gagal terhubung: ${error.message || String(error)}`
       : `System failed to connect: ${error.message || String(error)}`;
     res.status(500).json({ error: error.message || String(error), text: fallbackMsg });
+  }
+});
+
+app.get("/api/cron/monthly-report", async (req, res) => {
+  try {
+    const db = getDb();
+    
+    // Get current year and month (YYYY-MM)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const currentMonthStr = `${year}-${month}`; // e.g. "2026-07"
+    
+    // Fetch all transactions for the current month
+    const txResult = await db.execute({
+      sql: "SELECT * FROM transactions WHERE created_at LIKE ?",
+      args: [`${currentMonthStr}%`]
+    });
+    
+    const transactions = txResult.rows;
+    const totalIncome = transactions.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+    const totalExpense = transactions.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+    const totalSaldo = totalIncome - totalExpense;
+    
+    // Get all users
+    const usersResult = await db.execute("SELECT * FROM users");
+    const users = usersResult.rows;
+    
+    const smtpEmail = process.env.VITE_SMTP_EMAIL || process.env.SMTP_EMAIL;
+    const smtpPassword = process.env.VITE_SMTP_PASSWORD || process.env.SMTP_PASSWORD;
+    
+    let emailsSent = 0;
+    
+    // Helper function to send email
+    const sendReportEmail = async (user: any) => {
+      if (!smtpEmail || !smtpPassword) {
+        console.warn(`SMTP not configured. Skipping email send for ${user.email}`);
+        return false;
+      }
+      
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: smtpEmail,
+          pass: smtpPassword,
+        },
+      });
+      
+      const mailOptions = {
+        from: `"MOODUIT Financial Report" <${smtpEmail}>`,
+        to: user.email,
+        subject: `Laporan Keuangan Bulanan MOODUIT - Bulan ${month}/${year}`,
+        html: `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #f1f5f9; border-radius: 16px; background-color: #ffffff; color: #1e293b;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <span style="font-size: 28px; font-weight: 800; color: #112F58; letter-spacing: -0.5px;">MOODUIT</span>
+              <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-top: 4px; letter-spacing: 1px;">Smart Financial Advisor</div>
+            </div>
+            
+            <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #112F58;">
+              <h3 style="margin: 0 0 8px 0; color: #112F58; font-size: 16px; font-weight: 700;">Halo, ${user.name}! 👋</h3>
+              <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.5;">Berikut adalah rekapitulasi performa keuangan bulanan Anda untuk periode <strong>${month}/${year}</strong> yang dianalisis secara otomatis oleh sistem kami.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px;">
+              <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; text-align: left;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #15803d; display: block; margin-bottom: 4px;">📈 TOTAL PEMASUKAN</span>
+                <strong style="font-size: 20px; color: #16a34a; font-family: monospace;">Rp ${totalIncome.toLocaleString('id-ID')}</strong>
+              </div>
+              
+              <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; text-align: left;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b91c1c; display: block; margin-bottom: 4px;">📉 TOTAL PENGELUARAN</span>
+                <strong style="font-size: 20px; color: #dc2626; font-family: monospace;">Rp ${totalExpense.toLocaleString('id-ID')}</strong>
+              </div>
+              
+              <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; text-align: left;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0369a1; display: block; margin-bottom: 4px;">💼 SELISIH / SALDO NETTO</span>
+                <strong style="font-size: 20px; color: ${totalSaldo >= 0 ? '#0284c7' : '#dc2626'}; font-family: monospace;">Rp ${totalSaldo.toLocaleString('id-ID')}</strong>
+              </div>
+            </div>
+            
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 13px; color: #64748b; line-height: 1.5; text-align: center;">
+              <p style="margin: 0 0 8px 0;">Terus pantau pengeluaranmu menggunakan metode <strong>50/30/20</strong> agar kondisi dompetmu selalu sehat walafiat! 🚀</p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">Email ini dikirimkan secara otomatis oleh sistem penjadwalan MOODUIT Bulanan.</p>
+            </div>
+          </div>
+        `
+      };
+      
+      try {
+        await transporter.sendMail(mailOptions);
+        return true;
+      } catch (err) {
+        console.error(`Failed to send email to ${user.email}:`, err);
+        return false;
+      }
+    };
+    
+    for (const user of users) {
+      if (user.email) {
+        const sent = await sendReportEmail(user);
+        if (sent) emailsSent++;
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "Laporan bulanan sukses diproses",
+      currentMonth: currentMonthStr,
+      processedUsers: users.length,
+      emailsSent: emailsSent,
+      totals: {
+        income: totalIncome,
+        expense: totalExpense,
+        net: totalSaldo
+      }
+    });
+  } catch (err: any) {
+    console.error("Monthly report cron error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
