@@ -441,18 +441,18 @@ export default function Settings({ onLogout }: SettingsProps) {
                 {!isGoogleUser && (
                   <div className="mooduit-form-group">
                     <label className="mooduit-form-label">{t("Kata Sandi Lama", "Old Password")}</label>
-                    <div className="position-relative w-100">
+                    <div className="relative w-full">
                       <input 
                         type={showOld ? "text" : "password"} 
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
-                        className="mooduit-form-input pr-10"
+                        className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
                         placeholder={t("Masukkan kata sandi lama", "Enter old password")}
                       />
                       <button 
                         type="button"
                         onClick={() => setShowOld(!showOld)}
-                        className="mooduit-password-toggle-btn"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
                       >
                         {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -463,18 +463,18 @@ export default function Settings({ onLogout }: SettingsProps) {
                 {/* Password Baru */}
                 <div className="mooduit-form-group">
                   <label className="mooduit-form-label">{t("Kata Sandi Baru", "New Password")}</label>
-                  <div className="position-relative w-100">
+                  <div className="relative w-full">
                     <input 
                       type={showNew ? "text" : "password"} 
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="mooduit-form-input pr-10"
+                      className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
                       placeholder={t("Masukkan kata sandi baru", "Enter new password")}
                     />
                     <button 
                       type="button"
                       onClick={() => setShowNew(!showNew)}
-                      className="mooduit-password-toggle-btn"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
                     >
                       {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -484,18 +484,18 @@ export default function Settings({ onLogout }: SettingsProps) {
                 {/* Konfirmasi Password */}
                 <div className="mooduit-form-group">
                   <label className="mooduit-form-label">{t("Konfirmasi Kata Sandi Baru", "Confirm New Password")}</label>
-                  <div className="position-relative w-100">
+                  <div className="relative w-full">
                     <input 
                       type={showConfirm ? "text" : "password"} 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="mooduit-form-input pr-10"
+                      className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
                       placeholder={t("Ulangi kata sandi baru", "Repeat new password")}
                     />
                     <button 
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="mooduit-password-toggle-btn"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
                     >
                       {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>

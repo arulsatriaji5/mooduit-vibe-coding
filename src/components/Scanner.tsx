@@ -127,6 +127,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       const rawImage = await fileToBase64(file);
       const cleanBase64 = rawImage.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
       const mimeType = file.type || "image/jpeg";
+      const tempGeminiKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
 
       const response = await fetch("/api/scan-receipt", {
         method: "POST",
@@ -135,7 +136,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
         },
         body: JSON.stringify({
           image: cleanBase64,
-          mimeType: mimeType
+          mimeType: mimeType,
+          tempGeminiKey
         })
       });
 

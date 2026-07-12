@@ -1012,10 +1012,20 @@ function getGeminiApiKey(): string {
 let aiInstance: GoogleGenAI | null = null;
 let cachedApiKey: string = "";
 
-function getAiClient(): GoogleGenAI {
-  const apiKey = getGeminiApiKey();
+function getAiClient(customKey?: string): GoogleGenAI {
+  const apiKey = customKey || getGeminiApiKey();
   if (!apiKey) {
     throw new Error("Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.");
+  }
+  if (customKey) {
+    return new GoogleGenAI({
+      apiKey: customKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   }
   if (aiInstance && cachedApiKey === apiKey) {
     return aiInstance;
@@ -1035,7 +1045,7 @@ function getAiClient(): GoogleGenAI {
 // API Scan Receipt
 app.post("/api/scan-receipt", async (req, res) => {
   try {
-    const { image, mimeType } = req.body;
+    const { image, mimeType, tempGeminiKey } = req.body;
 
     if (!image || !mimeType) {
       return res.status(400).json({ error: "Missing image or mimeType" });
@@ -1046,7 +1056,7 @@ app.post("/api/scan-receipt", async (req, res) => {
 
     const prompt = `Analyze this receipt image. Extract the core transaction data and return ONLY a raw valid JSON object without any markdown formatting or backticks. Schema: { "merchantName": "string", "totalAmount": number (only the final total paid), "date": "YYYY-MM-DD" (if visible, else null), "suggestedCategory": "string (predict the expense category)" }`;
 
-    const ai = getAiClient();
+    const ai = getAiClient(tempGeminiKey);
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: {
@@ -1105,7 +1115,7 @@ app.post("/api/scan-receipt", async (req, res) => {
 
     res.json(result);
   } catch (error: any) {
-    console.error("OCR Error (Gemini failed, falling back to smart extraction simulation):", error);
+    console.log("OCR Issue: Gemini request failed. Falling back to clean smart extraction simulation.");
     
     // Fallback: provide elegant, realistic receipt parsing when the user's API Key is invalid or rate-limited
     const { image } = req.body;
@@ -1214,6 +1224,7 @@ app.post("/api/chat", async (req, res) => {
     messages = body.messages || [];
     language = body.language || "id";
     targetImpian = body.targetImpian || [];
+    const tempGeminiKey = body.tempGeminiKey || "";
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: "Messages array is required" });
@@ -1308,25 +1319,71 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       };
     });
 
-    // Generate response from gemini-3.5-flash
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.7,
-      }
-    });
+    // Generate response from gemini-3.5-flash with server-side retry logic
+    const ai = getAiClient(tempGeminiKey);
+    let responseText = "";
+    let attempts = 0;
+    const maxAttempts = 3; // 1 initial attempt + 2 retries
 
-    res.json({ text: response.text });
+    while (attempts < maxAttempts) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: contents,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.7,
+          }
+        });
+        if (response && response.text) {
+          responseText = response.text;
+          break;
+        } else {
+          throw new Error("No response text received from model");
+        }
+      } catch (err: any) {
+        attempts++;
+        const errMsg = String(err.message || err).toLowerCase();
+        const isRetryable = errMsg.includes("503") || 
+                            errMsg.includes("high demand") || 
+                            errMsg.includes("overloaded") || 
+                            errMsg.includes("resource exhausted") ||
+                            errMsg.includes("rate limit") ||
+                            errMsg.includes("unavailable") ||
+                            errMsg.includes("temp") ||
+                            errMsg.includes("limit exceeded");
+
+        console.log(`[AI Chat Backend] Attempt ${attempts} encountered an API issue.`);
+
+        if (isRetryable && attempts < maxAttempts) {
+          console.log(`[AI Chat Backend] Retrying in 1.5 seconds...`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    res.json({ text: responseText });
   } catch (error: any) {
-    console.error("Gemini API Error Detail:", error);
-    const isIndonesian = language !== "en";
-    const fallbackMsg = isIndonesian
-      ? `Sistem gagal terhubung: ${error.message || String(error)}`
-      : `System failed to connect: ${error.message || String(error)}`;
-    res.status(500).json({ error: error.message || String(error), text: fallbackMsg });
+    const errMsg = String(error.message || error).toLowerCase();
+    const isKeyError = errMsg.includes("api_key") || 
+                        errMsg.includes("403") || 
+                        errMsg.includes("401") || 
+                        errMsg.includes("forbidden") ||
+                        errMsg.includes("key") ||
+                        errMsg.includes("invalid") ||
+                        errMsg.includes("unauthorized") ||
+                        errMsg.includes("belum dipasang");
+
+    if (isKeyError) {
+      console.log("[AI Chat Backend] API Key related issue handled, returning 200 with custom warning payload.");
+      return res.json({ error: "API Key Gemini belum terpasang atau tidak valid!" });
+    }
+
+    console.log("[AI Chat Backend] Gemini API issue handled, returning friendly user response via 200 OK.");
+    const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
+    res.json({ error: friendlyMsg });
   }
 });
 

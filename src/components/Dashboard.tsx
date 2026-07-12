@@ -186,6 +186,20 @@ export default function Dashboard({
   const [editHarga, setEditHarga] = React.useState("");
   const chatScrollRef = React.useRef<HTMLDivElement>(null);
 
+  const [showApiKeyPanel, setShowApiKeyPanel] = React.useState(false);
+  const [tempApiKeyInput, setTempApiKeyInput] = React.useState("");
+
+  React.useEffect(() => {
+    if (isChatOpen) {
+      const savedKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
+      setTempApiKeyInput(savedKey);
+      const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+      if (!savedKey && !envKey) {
+        setShowApiKeyPanel(true);
+      }
+    }
+  }, [isChatOpen]);
+
   // Dynamically calculate pocket balances from transactions ledger!
   const savingsPockets = React.useMemo(() => {
     let darurat = 0;
@@ -680,35 +694,111 @@ export default function Dashboard({
       }))
     };
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          messages: updatedMessages, 
-          language, 
-          user_email,
-          financialContext,
-          targetImpian: targetImpian && targetImpian.length > 0 ? targetImpian : wishlist 
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Server returned status ${res.status}`);
+    const tempGeminiKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
+
+    let attempts = 0;
+    const maxAttempts = 3; // 1 initial + 2 retries
+    let success = false;
+    let dataText = "";
+    let lastError = "";
+
+    while (attempts < maxAttempts) {
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            messages: updatedMessages, 
+            language, 
+            user_email,
+            financialContext,
+            targetImpian: targetImpian && targetImpian.length > 0 ? targetImpian : wishlist,
+            tempGeminiKey
+          }),
+        });
+
+        const status = res.status;
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok || status === 503) {
+          const errData = contentType.includes("application/json") 
+            ? await res.json().catch(() => ({})) 
+            : {};
+          
+          const errStr = String(errData.error || errData.text || `Server error ${status}`).toLowerCase();
+          lastError = errData.error || errData.text || `Server error ${status}`;
+          
+          const isRetryable = status === 503 || 
+                              errStr.includes("503") || 
+                              errStr.includes("high demand") || 
+                              errStr.includes("overloaded") || 
+                              errStr.includes("resource exhausted") ||
+                              errStr.includes("rate limit") ||
+                              errStr.includes("unavailable");
+
+          if (isRetryable && (attempts + 1) < maxAttempts) {
+            attempts++;
+            console.log(`[AI Chat Frontend] Attempt ${attempts} did not succeed. Retrying in 1.5s...`);
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            continue;
+          } else {
+            throw new Error(errData.error || `Server returned status ${status}`);
+          }
+        }
+
+        const data = await res.json();
+        if (data && data.text) {
+          dataText = data.text;
+          success = true;
+          break;
+        } else if (data && data.error) {
+          throw new Error(data.error);
+        } else {
+          throw new Error("No response text received from server");
+        }
+      } catch (error: any) {
+        attempts++;
+        const errMsg = String(error.message || error).toLowerCase();
+        lastError = error.message || String(error);
+        
+        const isRetryable = errMsg.includes("503") || 
+                            errMsg.includes("high demand") || 
+                            errMsg.includes("overloaded") || 
+                            errMsg.includes("resource exhausted") ||
+                            errMsg.includes("rate limit") || 
+                            errMsg.includes("unavailable");
+
+        if (isRetryable && attempts < maxAttempts) {
+          console.log(`[AI Chat Frontend] Catch attempt ${attempts} did not succeed. Retrying in 1.5s...`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } else {
+          break;
+        }
       }
-      const data = await res.json();
-      if (data.text) {
-        setMessages((prev) => [...prev, { text: data.text, isAi: true }]);
-      } else {
-        throw new Error("No response text received from server");
-      }
-    } catch (error: any) {
-      console.error("Chat connection failed:", error);
-      const errMsg = "Sistem gagal terhubung: " + (error.message || String(error));
-      setMessages((prev) => [...prev, { text: errMsg, isAi: true }]);
-    } finally {
-      setIsTyping(false);
     }
+
+    if (success && dataText) {
+      setMessages((prev) => [...prev, { text: dataText, isAi: true }]);
+    } else {
+      const lastErrorLower = lastError.toLowerCase();
+      if (
+        lastErrorLower.includes("api_key") || 
+        lastErrorLower.includes("403") || 
+        lastErrorLower.includes("401") || 
+        lastErrorLower.includes("forbidden") || 
+        lastErrorLower.includes("unauthorized") || 
+        lastErrorLower.includes("key not valid") || 
+        lastErrorLower.includes("invalid key") || 
+        lastErrorLower.includes("key belum dipasang")
+      ) {
+        const keyMsg = "🔑 API Key Gemini belum terpasang atau tidak valid! Silakan klik tombol Kunci 🔑 di atas untuk memasukkan API Key Anda agar AI bisa menjawab.";
+        setMessages((prev) => [...prev, { text: keyMsg, isAi: true }]);
+      } else {
+        const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
+        setMessages((prev) => [...prev, { text: friendlyMsg, isAi: true }]);
+      }
+    }
+    setIsTyping(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1190,7 +1280,19 @@ export default function Dashboard({
           >
             {/* HEADER CHAT */}
             <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0 mooduit-chat-header">
-              <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
+                <button
+                  onClick={() => setShowApiKeyPanel(!showApiKeyPanel)}
+                  className={`border-0 rounded-full p-1.5 transition-all text-sm leading-none flex items-center justify-center cursor-pointer ${
+                    showApiKeyPanel ? "bg-amber-500 text-slate-950 scale-110" : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
+                  title="Set API Key (Local Test)"
+                  style={{ outline: "none" }}
+                >
+                  🔑
+                </button>
+              </div>
               <button 
                 onClick={() => setIsChatOpen(false)} 
                 className="btn btn-link text-white text-xl p-2 cursor-pointer border-0 shadow-none leading-none d-flex align-items-center justify-content-center mooduit-chat-close"
@@ -1199,6 +1301,42 @@ export default function Dashboard({
                 ✕
               </button>
             </div>
+
+            {/* EXPANDABLE LOCAL API KEY PANEL */}
+            {showApiKeyPanel && (
+              <div className="bg-slate-100 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex justify-between items-center">
+                  <span>Gemini API Key (Local Test)</span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Disimpan lokal di browser</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={tempApiKeyInput}
+                    onChange={(e) => setTempApiKeyInput(e.target.value)}
+                    className="flex-1 text-xs px-2.5 py-1.5 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary-mooduit"
+                  />
+                  <button
+                    onClick={() => {
+                      const val = tempApiKeyInput.trim();
+                      if (val) {
+                        localStorage.setItem("TEMP_GEMINI_KEY", val);
+                        toast.success("API Key untuk testing berhasil disimpan!");
+                        setShowApiKeyPanel(false);
+                      } else {
+                        localStorage.removeItem("TEMP_GEMINI_KEY");
+                        toast.success("API Key dihapus. Menggunakan key bawaan.");
+                        setShowApiKeyPanel(false);
+                      }
+                    }}
+                    className="bg-primary-mooduit hover:bg-[#0c2444] text-white text-xs px-3 py-1.5 rounded transition-colors border-0 font-medium cursor-pointer"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* AREA OBROLAN */}
             <div 
