@@ -164,6 +164,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [targetImpian, setTargetImpian] = useState<any[]>([]);
   const [isEditTargetModalOpen, setIsEditTargetModalOpen] = useState(false);
+  const [isPlanSaved, setIsPlanSaved] = useState(false);
 
   const handleHapusTarget = (idTarget: string) => {
     setTargetImpian(prev => prev.filter(target => target.id !== idTarget));
@@ -208,6 +209,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
           setSavingsTarget(data.savingsTarget || '20');
           setShowResult(true);
           setActiveTab('custom_budget');
+          setIsPlanSaved(true);
         }
       }).catch(console.error);
 
@@ -769,34 +771,49 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   </div>
                   
                   <div className="d-flex flex-column gap-2 mt-auto">
-                     <button 
-                      className="btn w-100 py-3 rounded-lg fw-800 shadow-sm transition-all hover:scale-[1.02] text-white"
-                      style={{ backgroundColor: '#112F58' }}
-                      onClick={async () => {
-                        const user_email = localStorage.getItem("userEmail") || "";
-                        if (!user_email) {
-                          toast.error("Harap login terlebih dahulu.");
-                          return;
-                        }
-                        try {
-                          const { saveBudgetPlanCustom, syncGoals } = await import('../utils/api');
-                          await saveBudgetPlanCustom(user_email, { income, expenses, emergencyTarget, savingsTarget });
-                          await syncGoals(user_email, wishlist);
-                        } catch (err) {
-                          console.error("Failed to save custom budget plan to DB:", err);
-                        }
-                        toast.success(activeLang.saved2);
-                        if (onNavigate) onNavigate('dashboard');
-                      }}
-                     >
-                       {activeLang.saveRencana}
-                     </button>
-                     <button 
-                      className="btn btn-mooduit-outline w-100 py-3 rounded-lg fw-800 transition-all"
-                      onClick={() => setShowResult(false)}
-                     >
-                       {activeLang.hitungUlang}
-                     </button>
+                    {!isPlanSaved ? (
+                      <>
+                        <button 
+                         className="btn w-100 py-3 rounded-lg fw-800 shadow-sm transition-all hover:scale-[1.02] text-white cursor-pointer border-0"
+                         style={{ backgroundColor: '#112F58' }}
+                         onClick={async () => {
+                           const user_email = localStorage.getItem("userEmail") || "";
+                           if (!user_email) {
+                             toast.error("Harap login terlebih dahulu.");
+                             return;
+                           }
+                           try {
+                             const { saveBudgetPlanCustom, syncGoals } = await import('../utils/api');
+                             await saveBudgetPlanCustom(user_email, { income, expenses, emergencyTarget, savingsTarget });
+                             await syncGoals(user_email, wishlist);
+                             setIsPlanSaved(true);
+                           } catch (err) {
+                             console.error("Failed to save custom budget plan to DB:", err);
+                           }
+                           toast.success(activeLang.saved2);
+                           if (onNavigate) onNavigate('dashboard');
+                         }}
+                        >
+                          {activeLang.saveRencana}
+                        </button>
+                        <button 
+                         className="btn btn-mooduit-outline w-100 py-3 rounded-lg fw-800 transition-all cursor-pointer"
+                         onClick={() => setShowResult(false)}
+                        >
+                          {activeLang.hitungUlang}
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        className="w-full py-3.5 border-2 border-[#001F3F] text-[#001F3F] font-semibold rounded-xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent text-center"
+                        onClick={() => {
+                          setIsPlanSaved(false);
+                          setShowResult(false);
+                        }}
+                      >
+                        {language === 'en' ? 'Change Plan' : 'Ubah Rencana'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

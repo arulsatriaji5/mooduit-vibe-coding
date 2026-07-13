@@ -106,6 +106,18 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     }
   }, [propsTransactions]);
 
+  // Body Scroll Lock for Edit Modal
+  useEffect(() => {
+    if (isEditModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isEditModalOpen]);
+
   const handleOpenEdit = (t: any) => {
     setTransaksiDiedit(t);
     setEditNominal(Number(t.nominal).toLocaleString('id-ID'));
@@ -641,10 +653,10 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       {/* EDIT MODAL DIALOG CONTAINER */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-50 d-flex align-items-center justify-content-center p-4">
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
             {/* Modal Glass Backdrop */}
             <motion.div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -653,19 +665,19 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
             {/* Modal Body Card */}
             <motion.div 
-              className="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl relative z-50 border border-gray-100 flex flex-col"
+              className="relative w-full max-w-lg bg-white rounded-t-[2rem] sm:rounded-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl z-[1000]"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
             >
               {/* Modal header */}
-              <div className="p-4 border-b border-gray-100 d-flex align-items-center justify-content-between bg-[#112F58]/5">
-                <div className="d-flex align-items-center gap-2">
+              <div className="flex-shrink-0 p-6 border-b border-gray-100 bg-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <span className="p-1.5 bg-[#112F58] text-white rounded-lg"><Edit2 size={16} /></span>
                   <h5 className="font-extrabold text-[#112F58] font-bold text-base mb-0">{t('Revisi Transaksi', 'Edit Transaction')}</h5>
                 </div>
                 <button 
-                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 border-0"
+                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 border-0 cursor-pointer bg-transparent"
                   onClick={() => setIsEditModalOpen(false)}
                 >
                   <X size={18} />
@@ -673,7 +685,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
               </div>
 
               {/* Modal content body */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto p-6 pb-12 space-y-4 custom-scrollbar">
                 {/* NOMINAL FIELD */}
                 <div>
                   <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1">{t('Nominal Transaksi (Rupiah)', 'Transaction Amount (Rupiah)')}</label>
@@ -695,22 +707,24 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                 {/* TOGGLE TYPE PENGELUARAN / PEMASUKAN */}
                 <div>
                   <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">{t('Jenis Transaksi', 'Transaction Type')}</label>
-                  <div className="flex bg-gray-100 p-1.5 rounded-2xl">
+                  <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
                     <button 
+                      type="button"
                       onClick={() => {
                         setEditJenis("pengeluaran");
                         setEditKategori("Kebutuhan Pokok");
                       }}
-                      className={`w-1/2 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border-0 ${editJenis === "pengeluaran" ? "bg-white text-red-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-0 cursor-pointer ${editJenis === "pengeluaran" ? "bg-white text-red-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
                     >
                       📉 {t('Pengeluaran', 'Expenses')}
                     </button>
                     <button 
+                      type="button"
                       onClick={() => {
                         setEditJenis("pemasukan");
                         setEditKategori("Gaji & Upah");
                       }}
-                      className={`w-1/2 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border-0 ${editJenis === "pemasukan" ? "bg-white text-green-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-0 cursor-pointer ${editJenis === "pemasukan" ? "bg-white text-green-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
                     >
                       📈 {t('Pemasukan', 'Income')}
                     </button>
@@ -722,10 +736,11 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-2 px-1">{t('Pilih Kategori', 'Select Category')}</label>
                   <div className="grid grid-cols-3 gap-2">
                     {kategoriAktif.map((kat) => (
-                      <button 
+                       <button 
                         key={kat.id}
+                        type="button"
                         onClick={() => setEditKategori(kat.id)}
-                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all duration-200 border-0 ${editKategori === kat.id ? "bg-[#112F58]/10 border-2 border-[#112F58] text-[#112F58] shadow-sm scale-102" : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-500"}`}
+                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all duration-200 border-0 cursor-pointer ${editKategori === kat.id ? "bg-[#112F58]/10 border-2 border-[#112F58] text-[#112F58] shadow-sm scale-102" : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-500"}`}
                       >
                         <span className="text-xl">{kat.icon}</span>
                         <span className="text-[10px] font-bold tracking-tight text-center truncate w-full">{kat.id}</span>
@@ -761,15 +776,17 @@ export default function Transactions({ transactions: propsTransactions, setTrans
               </div>
 
               {/* Modal action actions footer */}
-              <div className="p-4 border-t border-gray-100 d-flex gap-2 font-sans">
+              <div className="flex-shrink-0 p-6 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-4 font-sans">
                 <button 
-                  className="w-1/2 py-3 rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-bold text-sm bg-white"
+                  type="button"
+                  className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 rounded-xl transition-all border-0 cursor-pointer bg-transparent"
                   onClick={() => setIsEditModalOpen(false)}
                 >
                   {t('Batal', 'Cancel')}
                 </button>
                 <button 
-                  className="w-1/2 py-3 rounded-2xl bg-[#112F58] hover:bg-[#1a4a86] text-white font-bold text-sm border-0"
+                  type="button"
+                  className="flex-1 sm:flex-none px-8 py-3 bg-[#001F3F] text-white font-bold rounded-xl shadow-lg border-0 cursor-pointer transition-all"
                   onClick={handleSimpanEdit}
                 >
                   {t('Simpan Perubahan', 'Save Changes')}
