@@ -217,13 +217,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       openManual: false
     });
 
-    // Trigger streak celebration globally after dashboard page has loaded
-    setTimeout(() => {
-      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-        (window as any).triggerTransactionSuccess();
-      }
-    }, 100);
-
     // Persistent save in database in background
     insertTransaction(newTransaction, user_email).then((inserted) => {
       if (setTransactions) {
@@ -237,8 +230,16 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
           return prev;
         });
       }
+      // Trigger success modal with exact streak details from API response!
+      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday);
+      }
     }).catch((err) => {
       console.error("Failed to persist OCR transaction to DB:", err);
+      // Fallback trigger in case of failure
+      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+        (window as any).triggerTransactionSuccess();
+      }
     });
   };
 

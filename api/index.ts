@@ -252,7 +252,70 @@ app.post("/api/transactions", async (req, res) => {
       args: [newTx.id, newTx.user_email, newTx.amount, newTx.type, newTx.category, newTx.description, newTx.created_at]
     });
 
-    res.status(201).json(newTx);
+    // Hitung streak harian dari basis data transaksi (Integritas Backend)
+    const txDate = newTx.created_at.split('T')[0];
+    const allTxResult = await db.execute({
+      sql: "SELECT DISTINCT SUBSTR(created_at, 1, 10) as tx_date FROM transactions WHERE user_email = ? ORDER BY tx_date DESC",
+      args: [newTx.user_email]
+    });
+
+    const uniqueDates = allTxResult.rows
+      .map((row: any) => String(row.tx_date || ""))
+      .filter((d: string) => d.length === 10);
+
+    let currentStreak = 0;
+    if (uniqueDates.length > 0) {
+      const parseDate = (dStr: string) => {
+        const [y, m, d] = dStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      };
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const latestDateStr = uniqueDates[0];
+      
+      const latestDate = parseDate(latestDateStr);
+      const today = parseDate(todayStr);
+      
+      const diffTime = Math.abs(today.getTime() - latestDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Jika transaksi terakhir hari ini atau kemarin, streak masih aktif
+      if (diffDays <= 1 || latestDateStr === todayStr) {
+        currentStreak = 1;
+        let checkDate = latestDate;
+        for (let i = 1; i < uniqueDates.length; i++) {
+          const prevDate = parseDate(uniqueDates[i]);
+          const gap = Math.ceil(Math.abs(checkDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (gap === 1) {
+            currentStreak++;
+            checkDate = prevDate;
+          } else if (gap === 0) {
+            continue;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    // Periksa apakah ini transaksi pertama pengguna pada tanggal tersebut
+    const sameDayResult = await db.execute({
+      sql: "SELECT COUNT(*) as count FROM transactions WHERE user_email = ? AND SUBSTR(created_at, 1, 10) = ?",
+      args: [newTx.user_email, txDate]
+    });
+    const sameDayCount = Number(sameDayResult.rows[0]?.count || 0);
+    
+    // Jika sameDayCount === 1, berarti ini adalah transaksi pertama yang dicatat hari ini
+    const streakIncreasedToday = sameDayCount === 1;
+
+    const responsePayload = {
+      ...newTx,
+      success: true,
+      currentStreak,
+      streakIncreasedToday
+    };
+
+    res.status(201).json(responsePayload);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -305,14 +368,6 @@ app.delete("/api/transactions/:id", async (req, res) => {
     const user_email = req.query.user_email || req.headers["user-email"];
     if (!user_email) {
       return res.status(400).json({ error: "Email pengguna wajib disertakan" });
-    }
-
-    const check = await db.execute({
-      sql: "SELECT * FROM transactions WHERE id = ? AND user_email = ?",
-      args: [id, String(user_email)]
-    });
-    if (check.rows.length === 0) {
-      return res.status(404).json({ error: "Transaction not found or unauthorized" });
     }
     
     await db.execute({

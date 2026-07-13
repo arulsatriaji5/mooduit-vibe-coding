@@ -72,39 +72,52 @@ export default function Dashboard({
     return false;
   });
   const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
+  const [streakIncreasedToday, setStreakIncreasedToday] = React.useState<boolean>(true);
 
   // Expose triggerTransactionSuccess and showStreakCelebration murni ke global window object
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      const triggerFn = () => {
+      const triggerFn = (apiStreak?: number, apiIncreased?: boolean) => {
         const todayStr = new Date().toDateString();
         const lastStreakDate = localStorage.getItem("mooduit_last_streak_date");
         
-        // Tampilkan modal selebrasi animasi (On Action)
-        setShowCelebration(true);
+        let isIncreased = false;
+        let finalStreak = streakCount;
 
-        if (lastStreakDate === todayStr) {
-          // Jika last_streak_date SAMA DENGAN tanggal hari ini: Jangan tambahkan angka streak.
-          // Pastikan saja ikon api di header berstatus "Menyala" (oranye/merah terang).
-          setStreakActive(true);
-          localStorage.setItem("mooduit_streak_active", "true");
+        if (apiStreak !== undefined && apiIncreased !== undefined) {
+          isIncreased = apiIncreased;
+          finalStreak = apiStreak;
         } else {
-          // Jika last_streak_date TIDAK SAMA (atau kosong): Munculkan modal selebrasi animasi,
-          // tambahkan angka streak +1, ubah warna ikon api menjadi oranye,
-          // dan perbarui nilai last_streak_date di localStorage menjadi tanggal hari ini.
-          const nextStreak = streakCount + 1;
-          setStreakCount(nextStreak);
-          localStorage.setItem("mooduit_streak_count", String(nextStreak));
-          
-          setStreakActive(true);
-          localStorage.setItem("mooduit_streak_active", "true");
-          
-          localStorage.setItem("mooduit_last_streak_date", todayStr);
+          // Fallback simulation
+          if (lastStreakDate === todayStr) {
+            isIncreased = false;
+            finalStreak = streakCount;
+          } else {
+            isIncreased = true;
+            finalStreak = streakCount + 1;
+          }
+        }
+
+        // Save to state and localStorage
+        setStreakCount(finalStreak);
+        localStorage.setItem("mooduit_streak_count", String(finalStreak));
+        setStreakActive(true);
+        localStorage.setItem("mooduit_streak_active", "true");
+        localStorage.setItem("mooduit_last_streak_date", todayStr);
+
+        setStreakIncreasedToday(isIncreased);
+        if (isIncreased) {
+          setShowCelebration(true);
+        } else {
+          setShowCelebration(false);
         }
       };
 
       (window as any).triggerTransactionSuccess = triggerFn;
-      (window as any).showStreakCelebration = () => setShowCelebration(true);
+      (window as any).showStreakCelebration = () => {
+        setStreakIncreasedToday(true);
+        setShowCelebration(true);
+      };
     }
     return () => {
       if (typeof window !== "undefined") {
@@ -1647,26 +1660,24 @@ export default function Dashboard({
               transition={{ type: "spring", duration: 0.5, bounce: 0.25 }}
               className="celebration-modal-content"
             >
-              {/* 10% Bright Orange Accent specifically highlighting the large flame icon with ignition animation */}
+              {/* KONDISI A: SELEBRASI STREAK BARU */}
               <div className="celebration-orange-accent-wrapper">
                 <span className="celebration-modal-fire">🔥</span>
                 <span className="streak-celebration-sparkle streak-celebration-sparkle-1">✨</span>
                 <span className="streak-celebration-sparkle streak-celebration-sparkle-2">✨</span>
               </div>
  
-              {/* 30% Navy/Dark Blue branding for main text */}
               <h4 className="celebration-modal-title">
-                {t("Streak Menyala!", "Streak Lit!")}
+                {t("🔥 Streak Harian +1!", "🔥 Daily Streak +1!")}
               </h4>
  
               <p className="celebration-modal-text">
                 {t(
-                  "Kerja bagus mencatat keuanganmu hari ini.",
-                  "Great job logging your finances today."
+                  `Keren! Kamu sudah konsisten mencatat keuangan selama ${streakCount} hari berturut-turut!`,
+                  `Awesome! You have consistently logged your finances for ${streakCount} consecutive days!`
                 )}
               </p>
  
-              {/* Info Stats Card inside white canvas container */}
               <div className="celebration-modal-stats-card">
                 <span className="celebration-modal-stats-val">🔥 {streakCount}</span>
                 <span className="celebration-modal-stats-label">

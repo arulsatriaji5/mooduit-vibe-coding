@@ -26,7 +26,9 @@ export function mapDBToFrontend(dt: any): any {
     kategori: cat,
     catatan: dt.description || '',
     tanggal: dt.created_at ? dt.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-    icon: icon
+    icon: icon,
+    currentStreak: dt.currentStreak,
+    streakIncreasedToday: dt.streakIncreasedToday
   };
 }
 

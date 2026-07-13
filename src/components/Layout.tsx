@@ -436,13 +436,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     setManualNominal("");
                     setManualCatatan("");
                     onNavigate('dashboard');
-
-                    // Trigger streak celebration globally after dashboard page has loaded
-                    setTimeout(() => {
-                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                        (window as any).triggerTransactionSuccess();
-                      }
-                    }, 100);
                     
                     // Database insertion
                     try {
@@ -458,8 +451,17 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                           return prev;
                         });
                       }
+                      
+                      // Trigger success modal with exact streak details from API response!
+                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday);
+                      }
                     } catch (err) {
                       console.error("Failed to insert transaction in background:", err);
+                      // Fallback trigger in case of connection issue
+                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                        (window as any).triggerTransactionSuccess();
+                      }
                     }
                   }}
                 >
