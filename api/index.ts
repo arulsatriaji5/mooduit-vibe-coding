@@ -466,7 +466,9 @@ app.post("/api/goals/sync", async (req, res) => {
       for (const item of wishlist) {
         const itemId = item.id || String(Date.now() + Math.random());
         const itemName = item.name || item.nama || "";
-        const itemPrice = Number(item.price || item.harga) || 0;
+        const rawPrice = String(item.price !== undefined ? item.price : (item.harga !== undefined ? item.harga : "0"));
+        const cleanPriceStr = rawPrice.replace(/\D/g, "");
+        const itemPrice = Number(cleanPriceStr) || 0;
         await db.execute({
           sql: "INSERT INTO goals (id, user_email, name, price, nama, harga) VALUES (?, ?, ?, ?, ?, ?)",
           args: [itemId, String(email), itemName, itemPrice, itemName, itemPrice]

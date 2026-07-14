@@ -487,10 +487,12 @@ export default function Dashboard({
   const handleUpdateItem = () => {
     if (editIndex === null) return;
     const updatedWishlist = [...wishlist];
+    const cleanPrice = String(editHarga).replace(/\D/g, "");
     updatedWishlist[editIndex] = {
       ...updatedWishlist[editIndex],
       name: editNama,
-      price: editHarga,
+      price: cleanPrice,
+      harga: cleanPrice,
     };
     setWishlist(updatedWishlist);
     setTargetImpian(updatedWishlist);

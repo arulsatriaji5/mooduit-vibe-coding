@@ -214,13 +214,15 @@ export async function fetchBudgetPlanCustom(user_email: string): Promise<any | n
 export async function saveBudgetPlanCustom(user_email: string, data: any): Promise<boolean> {
   try {
     if (!user_email) return false;
+    const cleanIncome = data.income ? String(data.income).replace(/\D/g, "") : "";
+    const cleanExpenses = data.expenses ? String(data.expenses).replace(/\D/g, "") : "";
     const response = await fetch('/api/budget-plans', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_email,
-        income: data.income,
-        expenses: data.expenses,
+        income: cleanIncome,
+        expenses: cleanExpenses,
         emergencyTarget: data.emergencyTarget,
         savingsTarget: data.savingsTarget
       })
