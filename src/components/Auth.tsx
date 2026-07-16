@@ -71,13 +71,16 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
             localStorage.setItem('userAvatar', backendUser.picture);
           }
 
-          onAuth({
+          const userData = {
             id: backendUser.id,
             name: backendUser.name,
             email: backendUser.email,
             picture: backendUser.picture,
             authProvider: backendUser.authProvider || 'google',
-          });
+          };
+          localStorage.setItem('mooduit_user', JSON.stringify(userData));
+
+          onAuth(userData);
 
           toast.success(
             language === 'id'
@@ -198,8 +201,14 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       );
 
       // Simpan ke localStorage
+      const registeredUserData = {
+        name,
+        email,
+        authProvider: 'local'
+      };
       localStorage.setItem('userName', name);
       localStorage.setItem('userEmail', email);
+      localStorage.setItem('mooduit_user', JSON.stringify(registeredUserData));
 
       // Secara otomatis alihkan (redirect / switch state) tampilan Modal dari "Daftar" ke "Masuk"
       setTimeout(() => {
@@ -265,8 +274,17 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         localStorage.setItem('userAvatar', data.picture);
       }
 
+      const loginUserData = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        picture: data.picture,
+        authProvider: data.authProvider || 'local'
+      };
+      localStorage.setItem('mooduit_user', JSON.stringify(loginUserData));
+
       setTimeout(() => {
-        onAuth({ id: data.id, name: data.name, email: data.email, picture: data.picture, authProvider: data.authProvider || 'local' });
+        onAuth(loginUserData);
       }, 1200);
     } catch (err: any) {
       setToastType('error');

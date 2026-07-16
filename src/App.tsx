@@ -23,34 +23,11 @@ import Analysis from './components/Analysis';
 type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist' | 'settings' | 'smart-budget' | 'analisa';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const savedName = localStorage.getItem('userName');
-    const savedEmail = localStorage.getItem('userEmail');
-    if (savedName && savedEmail) {
-      const lastPage = localStorage.getItem('mooduit_current_page');
-      if (lastPage && ['dashboard', 'scanner', 'history', 'wishlist', 'settings', 'smart-budget', 'analisa'].includes(lastPage)) {
-        return lastPage as Page;
-      }
-      return 'dashboard';
-    }
-    return 'landing';
-  });
-  const [user, setUser] = useState<any>(() => {
-    const savedName = localStorage.getItem('userName');
-    const savedEmail = localStorage.getItem('userEmail');
-    if (savedName && savedEmail) {
-      return { 
-        name: savedName, 
-        email: savedEmail, 
-        picture: localStorage.getItem('userAvatar'),
-        authProvider: localStorage.getItem('authProvider') || 'local'
-      };
-    }
-    return null;
-  });
+  const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const [user, setUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [resetToken, setResetToken] = useState<string | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
@@ -59,6 +36,42 @@ export default function App() {
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
+    // 1. Periksa sesi tersimpan menggunakan key 'mooduit_user'
+    const savedUserStr = localStorage.getItem('mooduit_user');
+    let authenticatedUser = null;
+    
+    if (savedUserStr) {
+      try {
+        authenticatedUser = JSON.parse(savedUserStr);
+        setUser(authenticatedUser);
+        
+        // Sinkronisasi data ke key lain untuk kompatibilitas penuh dengan komponen lain
+        localStorage.setItem('userName', authenticatedUser.name);
+        localStorage.setItem('userEmail', authenticatedUser.email);
+        localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
+        if (authenticatedUser.picture) {
+          localStorage.setItem('userAvatar', authenticatedUser.picture);
+        }
+      } catch (e) {
+        console.error("Gagal membaca data sesi 'mooduit_user'", e);
+      }
+    } else {
+      // Fallback kompatibilitas jika key lama yang terisi
+      const legacyName = localStorage.getItem('userName');
+      const legacyEmail = localStorage.getItem('userEmail');
+      if (legacyName && legacyEmail) {
+        authenticatedUser = {
+          name: legacyName,
+          email: legacyEmail,
+          picture: localStorage.getItem('userAvatar'),
+          authProvider: localStorage.getItem('authProvider') || 'local'
+        };
+        setUser(authenticatedUser);
+        localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
+      }
+    }
+
+    // 2. Tentukan halaman tujuan (OAuth Callback, Halaman Terakhir, Dashboard, atau Landing)
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const oauthEmail = params.get('oauth_email') || params.get('email');
@@ -71,6 +84,14 @@ export default function App() {
 
     if (oauthEmail) {
       const nameToUse = oauthName || oauthEmail.split('@')[0];
+      const oauthUser = {
+        name: nameToUse,
+        email: oauthEmail,
+        picture: oauthPicture || null,
+        token: token || null,
+        authProvider: 'google'
+      };
+      
       localStorage.setItem('userName', nameToUse);
       localStorage.setItem('userEmail', oauthEmail);
       localStorage.setItem('authProvider', 'google');
@@ -80,18 +101,13 @@ export default function App() {
       if (oauthPicture) {
         localStorage.setItem('userAvatar', oauthPicture);
       }
+      localStorage.setItem('mooduit_user', JSON.stringify(oauthUser));
       
-      setUser({
-        name: nameToUse,
-        email: oauthEmail,
-        picture: oauthPicture || null,
-        token: token || null,
-        authProvider: 'google'
-      });
-      
+      setUser(oauthUser);
       setCurrentPage('dashboard');
+      localStorage.setItem('mooduit_current_page', 'dashboard');
       
-      // Clean up parameters from the URL
+      // Bersihkan parameter dari URL
       const url = new URL(window.location.href);
       url.searchParams.delete('token');
       url.searchParams.delete('email');
@@ -99,9 +115,19 @@ export default function App() {
       url.searchParams.delete('oauth_name');
       url.searchParams.delete('oauth_picture');
       window.history.replaceState({}, document.title, url.pathname + url.search);
+    } else if (authenticatedUser) {
+      const lastPage = localStorage.getItem('mooduit_current_page');
+      if (lastPage && ['dashboard', 'scanner', 'history', 'wishlist', 'settings', 'smart-budget', 'analisa'].includes(lastPage)) {
+        setCurrentPage(lastPage as Page);
+      } else {
+        setCurrentPage('dashboard');
+        localStorage.setItem('mooduit_current_page', 'dashboard');
+      }
+    } else {
+      setCurrentPage('landing');
     }
     
-    setIsCheckingAuth(false);
+    setIsAuthLoading(false);
   }, []);
 
   const handleCloseResetPassword = () => {
@@ -145,6 +171,7 @@ export default function App() {
 
   const handleAuth = (userData: any) => {
     setUser(userData);
+    localStorage.setItem('mooduit_user', JSON.stringify(userData));
     localStorage.setItem('authProvider', userData.authProvider || 'local');
     setCurrentPage('dashboard');
     localStorage.setItem('mooduit_current_page', 'dashboard');
@@ -154,6 +181,9 @@ export default function App() {
     // Simpan preferensi tema dan bahasa agar tidak ikut terhapus
     const savedTheme = localStorage.getItem('theme');
     const savedLanguage = localStorage.getItem('language');
+    
+    // Hapus sesi 'mooduit_user' secara eksplisit sesuai instruksi
+    localStorage.removeItem('mooduit_user');
     
     // Bersihkan seluruh data sesi (termasuk userName, profil, dll)
     localStorage.clear();
@@ -171,14 +201,14 @@ export default function App() {
 
   // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login
   useEffect(() => {
-    if (isCheckingAuth) return;
+    if (isAuthLoading) return;
     
     const isPublicPage = ['landing', 'auth'].includes(currentPage);
     const hasSession = localStorage.getItem('userName') !== null;
     if (!isPublicPage && !user && !hasSession) {
       setCurrentPage('landing');
     }
-  }, [currentPage, user, isCheckingAuth]);
+  }, [currentPage, user, isAuthLoading]);
 
   const handleNavigate = (page: string, data?: any) => {
     if (data) {
@@ -215,7 +245,7 @@ export default function App() {
 
   const needsLayout = !['landing', 'auth', 'scanner'].includes(currentPage);
 
-  if (isCheckingAuth) {
+  if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
         <div className="flex flex-col items-center gap-3">
