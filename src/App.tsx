@@ -36,38 +36,90 @@ export default function App() {
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    // 1. Periksa sesi tersimpan menggunakan key 'mooduit_user'
-    const savedUserStr = localStorage.getItem('mooduit_user');
+    // 1. Periksa sesi tersimpan menggunakan key 'mooduit_session' dengan Session Expiry 3 hari
+    const savedSessionString = localStorage.getItem('mooduit_session');
     let authenticatedUser = null;
     
-    if (savedUserStr) {
+    if (savedSessionString) {
       try {
-        authenticatedUser = JSON.parse(savedUserStr);
-        setUser(authenticatedUser);
-        
-        // Sinkronisasi data ke key lain untuk kompatibilitas penuh dengan komponen lain
-        localStorage.setItem('userName', authenticatedUser.name);
-        localStorage.setItem('userEmail', authenticatedUser.email);
-        localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
-        if (authenticatedUser.picture) {
-          localStorage.setItem('userAvatar', authenticatedUser.picture);
+        const savedSession = JSON.parse(savedSessionString);
+        const currentTime = Date.now();
+
+        // Cek apakah sesi sudah kadaluarsa (> 3 hari tidak aktif)
+        if (currentTime > savedSession.expiresAt) {
+          // Sesi habis: Hapus memori dan paksa ke halaman Login
+          localStorage.removeItem('mooduit_session');
+          localStorage.removeItem('mooduit_user');
+          const savedTheme = localStorage.getItem('theme');
+          const savedLanguage = localStorage.getItem('language');
+          localStorage.clear();
+          if (savedTheme) localStorage.setItem('theme', savedTheme);
+          if (savedLanguage) localStorage.setItem('language', savedLanguage);
+          setUser(null);
+          setCurrentPage('landing');
+          alert("Sesi Anda telah berakhir demi keamanan keuanganmu. Yuk, login kembali!");
+        } else {
+          // Sesi masih valid: Masuk otomatis ke Beranda & perpanjang umur sesi 3 hari lagi
+          authenticatedUser = savedSession.user;
+          setUser(authenticatedUser);
+          savedSession.expiresAt = Date.now() + (3 * 24 * 60 * 60 * 1000);
+          localStorage.setItem('mooduit_session', JSON.stringify(savedSession));
+          localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
+          
+          // Sinkronisasi data ke key lain untuk kompatibilitas penuh dengan komponen lain
+          localStorage.setItem('userName', authenticatedUser.name);
+          localStorage.setItem('userEmail', authenticatedUser.email);
+          localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
+          if (authenticatedUser.picture) {
+            localStorage.setItem('userAvatar', authenticatedUser.picture);
+          }
         }
       } catch (e) {
-        console.error("Gagal membaca data sesi 'mooduit_user'", e);
+        console.error("Gagal membaca data sesi 'mooduit_session'", e);
       }
     } else {
-      // Fallback kompatibilitas jika key lama yang terisi
-      const legacyName = localStorage.getItem('userName');
-      const legacyEmail = localStorage.getItem('userEmail');
-      if (legacyName && legacyEmail) {
-        authenticatedUser = {
-          name: legacyName,
-          email: legacyEmail,
-          picture: localStorage.getItem('userAvatar'),
-          authProvider: localStorage.getItem('authProvider') || 'local'
-        };
-        setUser(authenticatedUser);
-        localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
+      // Fallback kompatibilitas jika key 'mooduit_user' yang terisi
+      const savedUserStr = localStorage.getItem('mooduit_user');
+      if (savedUserStr) {
+        try {
+          authenticatedUser = JSON.parse(savedUserStr);
+          setUser(authenticatedUser);
+          
+          const sessionData = {
+            user: authenticatedUser,
+            expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+          };
+          localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
+
+          // Sinkronisasi data ke key lain untuk kompatibilitas penuh dengan komponen lain
+          localStorage.setItem('userName', authenticatedUser.name);
+          localStorage.setItem('userEmail', authenticatedUser.email);
+          localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
+          if (authenticatedUser.picture) {
+            localStorage.setItem('userAvatar', authenticatedUser.picture);
+          }
+        } catch (e) {
+          console.error("Gagal membaca data sesi 'mooduit_user'", e);
+        }
+      } else {
+        // Fallback legacy name & email
+        const legacyName = localStorage.getItem('userName');
+        const legacyEmail = localStorage.getItem('userEmail');
+        if (legacyName && legacyEmail) {
+          authenticatedUser = {
+            name: legacyName,
+            email: legacyEmail,
+            picture: localStorage.getItem('userAvatar'),
+            authProvider: localStorage.getItem('authProvider') || 'local'
+          };
+          setUser(authenticatedUser);
+          const sessionData = {
+            user: authenticatedUser,
+            expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000)
+          };
+          localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
+          localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
+        }
       }
     }
 
@@ -102,6 +154,12 @@ export default function App() {
         localStorage.setItem('userAvatar', oauthPicture);
       }
       localStorage.setItem('mooduit_user', JSON.stringify(oauthUser));
+      
+      const sessionData = {
+        user: oauthUser,
+        expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+      };
+      localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
       
       setUser(oauthUser);
       setCurrentPage('dashboard');
@@ -171,8 +229,18 @@ export default function App() {
 
   const handleAuth = (userData: any) => {
     setUser(userData);
+    const sessionData = {
+      user: userData,
+      expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+    };
+    localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
     localStorage.setItem('mooduit_user', JSON.stringify(userData));
     localStorage.setItem('authProvider', userData.authProvider || 'local');
+    localStorage.setItem('userName', userData.name);
+    localStorage.setItem('userEmail', userData.email);
+    if (userData.picture) {
+      localStorage.setItem('userAvatar', userData.picture);
+    }
     setCurrentPage('dashboard');
     localStorage.setItem('mooduit_current_page', 'dashboard');
   };
@@ -182,8 +250,9 @@ export default function App() {
     const savedTheme = localStorage.getItem('theme');
     const savedLanguage = localStorage.getItem('language');
     
-    // Hapus sesi 'mooduit_user' secara eksplisit sesuai instruksi
+    // Hapus sesi secara eksplisit sesuai instruksi
     localStorage.removeItem('mooduit_user');
+    localStorage.removeItem('mooduit_session');
     
     // Bersihkan seluruh data sesi (termasuk userName, profil, dll)
     localStorage.clear();
