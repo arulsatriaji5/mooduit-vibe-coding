@@ -36,7 +36,8 @@ export default function App() {
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    // 1. Periksa sesi tersimpan menggunakan key 'mooduit_session' dengan Session Expiry 3 hari
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    // 1. Periksa sesi tersimpan menggunakan key 'mooduit_session' dengan Session Expiry 24 Jam (Rolling)
     const savedSessionString = localStorage.getItem('mooduit_session');
     let authenticatedUser = null;
     
@@ -45,7 +46,7 @@ export default function App() {
         const savedSession = JSON.parse(savedSessionString);
         const currentTime = Date.now();
 
-        // Cek apakah sesi sudah kadaluarsa (> 3 hari tidak aktif)
+        // Cek apakah waktu 24 jam sudah terlewati (tidak aktif > 24 jam)
         if (currentTime > savedSession.expiresAt) {
           // Sesi habis: Hapus memori dan paksa ke halaman Login
           localStorage.removeItem('mooduit_session');
@@ -57,12 +58,12 @@ export default function App() {
           if (savedLanguage) localStorage.setItem('language', savedLanguage);
           setUser(null);
           setCurrentPage('landing');
-          alert("Sesi Anda telah berakhir demi keamanan keuanganmu. Yuk, login kembali!");
+          alert("Sesi keamanan 24 jam Anda telah berakhir. Silakan login kembali untuk keamanan keuanganmu!");
         } else {
-          // Sesi masih valid: Masuk otomatis ke Beranda & perpanjang umur sesi 3 hari lagi
+          // Sesi masih valid: Masuk otomatis ke Beranda DAN PERPANJANG durasi sesi 24 jam lagi dari sekarang (Rolling Session)
           authenticatedUser = savedSession.user;
           setUser(authenticatedUser);
-          savedSession.expiresAt = Date.now() + (3 * 24 * 60 * 60 * 1000);
+          savedSession.expiresAt = Date.now() + TWENTY_FOUR_HOURS;
           localStorage.setItem('mooduit_session', JSON.stringify(savedSession));
           localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
           
@@ -87,7 +88,7 @@ export default function App() {
           
           const sessionData = {
             user: authenticatedUser,
-            expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+            expiresAt: Date.now() + TWENTY_FOUR_HOURS
           };
           localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
 
@@ -115,7 +116,7 @@ export default function App() {
           setUser(authenticatedUser);
           const sessionData = {
             user: authenticatedUser,
-            expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000)
+            expiresAt: Date.now() + TWENTY_FOUR_HOURS
           };
           localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
           localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
@@ -157,7 +158,7 @@ export default function App() {
       
       const sessionData = {
         user: oauthUser,
-        expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 Jam (Rolling)
       };
       localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
       
@@ -231,7 +232,7 @@ export default function App() {
     setUser(userData);
     const sessionData = {
       user: userData,
-      expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 Hari
+      expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 Jam (Rolling)
     };
     localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
     localStorage.setItem('mooduit_user', JSON.stringify(userData));
