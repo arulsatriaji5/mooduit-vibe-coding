@@ -184,6 +184,9 @@ export default function Dashboard({
   const [isTargetModalOpen, setIsTargetModalOpen] = React.useState(false);
   const [newTargetName, setNewTargetName] = React.useState("");
   const [newTargetPrice, setNewTargetPrice] = React.useState("");
+  
+  const [isCelebrationOpen, setIsCelebrationOpen] = React.useState(false);
+  const [selectedTargetForCelebration, setSelectedTargetForCelebration] = React.useState<any>(null);
 
   const [localTransactions, setLocalTransactions] = React.useState<any[]>([]);
   const transactions =
@@ -192,6 +195,53 @@ export default function Dashboard({
     propsSetTransactions !== undefined
       ? propsSetTransactions
       : setLocalTransactions;
+
+  const handleBuyTarget = async () => {
+    if (!selectedTargetForCelebration) return;
+    const target = selectedTargetForCelebration;
+
+    // 1. Hapus Target Impian tersebut dari daftar impian aktif
+    const updatedWishlist = wishlist.filter((t) => t.id !== target.id);
+    setWishlist(updatedWishlist);
+    setTargetImpian(updatedWishlist);
+    syncWishlistWithDb(updatedWishlist);
+
+    // 2. OTOMATIS tambahkan entri transaksi baru
+    const nominalTarget = Number((target.harga || target.price || "0").toString().replace(/\D/g, ""));
+    const newTx = {
+      id: "purchase_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      nominal: nominalTarget,
+      jenis: "pengeluaran" as const,
+      kategori: "Target Impian",
+      catatan: `Mewujudkan impian: ${target.nama || target.name}`,
+      tanggal: new Date().toISOString().split('T')[0],
+      icon: "🎯"
+    };
+
+    try {
+      if (propsSetTransactions && typeof propsSetTransactions === "function") {
+        const { insertTransaction } = await import("../utils/api");
+        const user_email = localStorage.getItem("userEmail") || "";
+        const insertedTx = await insertTransaction(newTx, user_email);
+        propsSetTransactions(prev => [insertedTx, ...prev]);
+      } else {
+        setLocalTransactions(prev => [newTx, ...prev]);
+      }
+    } catch (err) {
+      console.error("Failed to insert purchase transaction:", err);
+      // Fallback update
+      setLocalTransactions(prev => [newTx, ...prev]);
+    }
+
+    toast.success(
+      language === "id"
+        ? "Selamat! Saldo telah diperbarui & impian tercatat di riwayat."
+        : "Congratulations! Balance updated & dream recorded in transaction history."
+    );
+
+    setIsCelebrationOpen(false);
+    setSelectedTargetForCelebration(null);
+  };
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [editIndex, setEditIndex] = React.useState<number | null>(null);
@@ -1229,44 +1279,75 @@ export default function Dashboard({
                             </p>
                           </div>
                         </div>
-                        {/* Tombol Hapus Langsung di Card */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTargetImpian((prev) => {
-                              const updated = prev.filter(
-                                (t) => t.id !== target.id,
-                              );
-                              setWishlist(updated);
-                              localStorage.setItem(
-                                "savedWishlist",
-                                JSON.stringify(updated),
-                              );
-                              return updated;
-                            });
-                          }}
-                          className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg group-hover:opacity-100 transition-opacity border-0"
-                          title={t("Hapus Target", "Delete Target")}
-                          style={{
-                            backgroundColor: "#FEF2F2",
-                            color: "#DC2626",
-                          }}
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            style={{ width: "20px", height: "20px" }}
+                        {/* Tombol Aksi di Card */}
+                        <div className="d-flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          {/* Tombol Beli / Tercapai */}
+                          <button
+                            onClick={() => {
+                              setSelectedTargetForCelebration(target);
+                              setIsCelebrationOpen(true);
+                            }}
+                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border-0 flex items-center justify-center"
+                            title={t("Beli / Tercapai", "Buy / Achieved")}
+                            style={{
+                              backgroundColor: "#ECFDF5",
+                              color: "#059669",
+                            }}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            ></path>
-                          </svg>
-                        </button>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              style={{ width: "20px", height: "20px" }}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2.5"
+                                d="M5 13l4 4L19 7"
+                              ></path>
+                            </svg>
+                          </button>
+
+                          {/* Tombol Hapus Langsung di Card */}
+                          <button
+                            onClick={() => {
+                              setTargetImpian((prev) => {
+                                const updated = prev.filter(
+                                  (t) => t.id !== target.id,
+                                );
+                                setWishlist(updated);
+                                localStorage.setItem(
+                                  "savedWishlist",
+                                  JSON.stringify(updated),
+                                );
+                                return updated;
+                              });
+                            }}
+                            className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg group-hover:opacity-100 transition-opacity border-0 flex items-center justify-center"
+                            title={t("Hapus Target", "Delete Target")}
+                            style={{
+                              backgroundColor: "#FEF2F2",
+                              color: "#DC2626",
+                            }}
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              style={{ width: "20px", height: "20px" }}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              ></path>
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     ))}
                     <button
@@ -1637,6 +1718,73 @@ export default function Dashboard({
                   disabled={!newTargetName || !newTargetPrice}
                 >
                   {t("Tambah Target", "Add Target")}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Modal Popup Apresiasi (Selebrasi Impian Tercapai) */}
+        {isCelebrationOpen && selectedTargetForCelebration && (
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3 animate-fade-in"
+            style={{
+              zIndex: 2500,
+              backgroundColor: "rgba(17, 47, 88, 0.5)",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="card-mooduit p-4 shadow-2xl w-100 bg-white text-center"
+              style={{ maxWidth: "450px", borderRadius: "24px" }}
+            >
+              {/* Celebration Icon/Illustration */}
+              <div className="mb-4 mt-2">
+                <span className="display-4" style={{ fontSize: "3.5rem" }}>🎉</span>
+              </div>
+
+              {/* Title */}
+              <h4 className="fw-800 text-primary-mooduit mb-3" style={{ fontSize: "1.4rem" }}>
+                🎉 {t("SAH! Impianmu Terbeli!", "SOLD! Your Dream Is Achieved!")}
+              </h4>
+
+              {/* Description */}
+              <p className="text-gray-600 mb-4 px-2" style={{ fontSize: "0.95rem", lineHeight: "1.6" }}>
+                {t(
+                  `Keren banget! Kamu berhasil mewujudkan impian ${selectedTargetForCelebration.nama || selectedTargetForCelebration.name} seharga Rp ${Number(
+                    (selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0")
+                      .toString()
+                      .replace(/\D/g, ""),
+                  ).toLocaleString("id-ID")}. Kerja kerasmu menabung terbayar lunas!`,
+                  `So cool! You have successfully achieved your dream ${selectedTargetForCelebration.nama || selectedTargetForCelebration.name} worth Rp ${Number(
+                    (selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0")
+                      .toString()
+                      .replace(/\D/g, ""),
+                  ).toLocaleString("id-ID")}. Your hard work saving has paid off!`
+                )}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="d-flex gap-3 font-sans justify-content-center">
+                <button
+                  className="btn btn-mooduit-outline px-4 py-3 rounded-xl fw-bold flex-grow-1"
+                  style={{ minWidth: "120px" }}
+                  onClick={() => {
+                    setIsCelebrationOpen(false);
+                    setSelectedTargetForCelebration(null);
+                  }}
+                >
+                  {t("Batal", "Cancel")}
+                </button>
+                <button
+                  className="btn btn-mooduit-primary px-4 py-3 rounded-xl fw-800 flex-grow-1"
+                  style={{ minWidth: "150px" }}
+                  onClick={handleBuyTarget}
+                >
+                  {t("Catat & Rayakan!", "Record & Celebrate!")}
                 </button>
               </div>
             </motion.div>
