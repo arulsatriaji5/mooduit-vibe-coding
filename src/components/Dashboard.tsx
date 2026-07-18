@@ -260,20 +260,6 @@ export default function Dashboard({
   const [editHarga, setEditHarga] = React.useState("");
   const chatScrollRef = React.useRef<HTMLDivElement>(null);
 
-  const [showApiKeyPanel, setShowApiKeyPanel] = React.useState(false);
-  const [tempApiKeyInput, setTempApiKeyInput] = React.useState("");
-
-  React.useEffect(() => {
-    if (isChatOpen) {
-      const savedKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
-      setTempApiKeyInput(savedKey);
-      const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
-      if (!savedKey && !envKey) {
-        setShowApiKeyPanel(true);
-      }
-    }
-  }, [isChatOpen]);
-
   // Dynamically calculate pocket balances from transactions ledger!
   const savingsPockets = React.useMemo(() => {
     let darurat = 0;
@@ -1491,16 +1477,6 @@ export default function Dashboard({
             <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0 mooduit-chat-header">
               <div className="flex items-center gap-2">
                 <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
-                <button
-                  onClick={() => setShowApiKeyPanel(!showApiKeyPanel)}
-                  className={`border-0 rounded-full p-1.5 transition-all text-sm leading-none flex items-center justify-center cursor-pointer ${
-                    showApiKeyPanel ? "bg-amber-500 text-slate-950 scale-110" : "bg-white/10 hover:bg-white/20 text-white"
-                  }`}
-                  title="Pengaturan API Key AI"
-                  style={{ outline: "none" }}
-                >
-                  <Settings size={16} />
-                </button>
               </div>
               <button 
                 onClick={() => setIsChatOpen(false)} 
@@ -1510,42 +1486,6 @@ export default function Dashboard({
                 ✕
               </button>
             </div>
-
-            {/* EXPANDABLE LOCAL API KEY PANEL */}
-            {showApiKeyPanel && (
-              <div className="bg-slate-100 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex justify-between items-center">
-                  <span>Gemini API Key (Local Test)</span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Disimpan lokal di browser</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    placeholder="AIzaSy..."
-                    value={tempApiKeyInput}
-                    onChange={(e) => setTempApiKeyInput(e.target.value)}
-                    className="flex-1 text-xs px-2.5 py-1.5 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary-mooduit"
-                  />
-                  <button
-                    onClick={() => {
-                      const val = tempApiKeyInput.trim();
-                      if (val) {
-                        localStorage.setItem("TEMP_GEMINI_KEY", val);
-                        toast.success("API Key untuk testing berhasil disimpan!");
-                        setShowApiKeyPanel(false);
-                      } else {
-                        localStorage.removeItem("TEMP_GEMINI_KEY");
-                        toast.success("API Key dihapus. Menggunakan key bawaan.");
-                        setShowApiKeyPanel(false);
-                      }
-                    }}
-                    className="bg-primary-mooduit hover:bg-[#0c2444] text-white text-xs px-3 py-1.5 rounded transition-colors border-0 font-medium cursor-pointer"
-                  >
-                    Simpan
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* AREA OBROLAN */}
             <div 
