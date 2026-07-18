@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Camera,
   Eye,
-  EyeOff
+  EyeOff,
+  Lock
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import './Settings.css';
@@ -33,6 +34,8 @@ export default function Settings({ onLogout }: SettingsProps) {
   });
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
 
   // VIEW NAVIGATION STATE
   const [activeView, setActiveView] = useState<'main' | 'profile'>('main');
@@ -323,6 +326,34 @@ export default function Settings({ onLogout }: SettingsProps) {
                 <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h6>
                 <div className="w-full card-mooduit overflow-hidden mb-4 p-0 box-border">
                   <div className="list-group list-group-flush border-0">
+                    {/* Keamanan Akun */}
+                    <button 
+                      onClick={() => {
+                        setIsSecurityModalOpen(true);
+                        setIsEditingPassword(false);
+                        setOldPassword('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                      className="privacy-btn d-flex align-items-center justify-content-between p-3 border-0 border-bottom w-full overflow-hidden flex-nowrap"
+                      type="button"
+                      style={{ minWidth: 0 }}
+                    >
+                      <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="privacy-icon-wrapper flex-shrink-0"><Lock size={20} /></div>
+                        <div className="text-left min-w-0 flex-1">
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                            {t("Keamanan Akun", "Account Security")}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                            {t("Kata sandi, email, dan proteksi akun", "Password, email, and account protection")}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="privacy-chevron flex-shrink-0" />
+                    </button>
+
+                    {/* Privasi & Keamanan */}
                     <button 
                       onClick={() => setIsPrivacyModalOpen(true)}
                       className="privacy-btn d-flex align-items-center justify-content-between p-3 border-0 w-full overflow-hidden flex-nowrap"
@@ -331,7 +362,14 @@ export default function Settings({ onLogout }: SettingsProps) {
                     >
                       <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="privacy-icon-wrapper flex-shrink-0"><Shield size={20} /></div>
-                        <span className="privacy-text truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t("Privasi & Keamanan", "Privacy & Security")}</span>
+                        <div className="text-left min-w-0 flex-1">
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                            {t("Privasi & Keamanan", "Privacy & Security")}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                            {t("Aturan & enkripsi perlindungan data", "Data protection rules & encryption")}
+                          </span>
+                        </div>
                       </div>
                       <ChevronRight size={18} className="privacy-chevron flex-shrink-0" />
                     </button>
@@ -429,156 +467,9 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
               </div>
 
-              {/* CHANGE PASSWORD SECTION */}
-              <div className="w-full card-mooduit p-4 md:p-5 flex flex-col gap-4">
-                <h3 className="mooduit-section-subtitle">
-                  {isGoogleUser 
-                    ? t("Buat Kata Sandi (Untuk Login Manual)", "Create Password (For Manual Login)") 
-                    : t("Ganti Kata Sandi", "Change Password")}
-                </h3>
-
-                {/* Password Lama */}
-                {!isGoogleUser && (
-                  <div className="mooduit-form-group">
-                    <label className="mooduit-form-label">{t("Kata Sandi Lama", "Old Password")}</label>
-                    <div className="relative w-full">
-                      <input 
-                        type={showOld ? "text" : "password"} 
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                        className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
-                        placeholder={t("Masukkan kata sandi lama", "Enter old password")}
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setShowOld(!showOld)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
-                      >
-                        {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Password Baru */}
-                <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Kata Sandi Baru", "New Password")}</label>
-                  <div className="relative w-full">
-                    <input 
-                      type={showNew ? "text" : "password"} 
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
-                      placeholder={t("Masukkan kata sandi baru", "Enter new password")}
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
-                    >
-                      {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Konfirmasi Password */}
-                <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Konfirmasi Kata Sandi Baru", "Confirm New Password")}</label>
-                  <div className="relative w-full">
-                    <input 
-                      type={showConfirm ? "text" : "password"} 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pr-12 pl-4 py-2 border rounded-lg bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit"
-                      placeholder={t("Ulangi kata sandi baru", "Repeat new password")}
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center"
-                    >
-                      {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* SAVE BUTTON */}
               <button 
                 onClick={() => {
-                  // If any password fields are typed, validate and call change-password API
-                  if (oldPassword || newPassword || confirmPassword || (isGoogleUser && (newPassword || confirmPassword))) {
-                    if (!isGoogleUser && !oldPassword) {
-                      toast.error(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
-                      return;
-                    }
-                    if (!newPassword) {
-                      toast.error(language === 'id' ? 'Kata sandi baru wajib diisi!' : 'New password is required!');
-                      return;
-                    }
-                    if (newPassword !== confirmPassword) {
-                      toast.error(language === 'id' ? 'Konfirmasi kata sandi baru tidak cocok!' : 'New password confirmation does not match!');
-                      return;
-                    }
-
-                    // Tarik data email pengguna secara eksplisit
-                    const targetEmail = localStorage.getItem('userEmail') || userEmail;
-                    const targetUserId = localStorage.getItem('userId') || userId;
-
-                    // Tambahkan Validasi
-                    if (!targetEmail) {
-                      toast.error(language === 'id' ? 'Sesi tidak valid atau email tidak terdeteksi. Silakan login ulang.' : 'Invalid session or email not detected. Please login again.');
-                      return;
-                    }
-
-                    // Call backend api
-                    console.log("Payload dikirim:", { 
-                      email: targetEmail, 
-                      userId: targetUserId 
-                    });
-                    const loadToast = toast.loading(language === 'id' ? 'Menyimpan kata sandi...' : 'Saving password...');
-                    fetch('/api/change-password', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                        email: targetEmail,
-                        userId: targetUserId,
-                        oldPassword: isGoogleUser ? '' : oldPassword,
-                        newPassword
-                      })
-                    })
-                    .then(async (res) => {
-                      const data = await res.json();
-                      toast.dismiss(loadToast);
-                      if (!res.ok) {
-                        toast.error(data.error || (language === 'id' ? 'Gagal mengubah kata sandi' : 'Failed to change password'));
-                        return;
-                      }
-                      toast.success(language === 'id' ? 'Kata sandi berhasil diubah! 🎉' : 'Password successfully updated! 🎉');
-                      
-                      // Save profile details as well
-                      localStorage.setItem('userName', userName);
-                      localStorage.setItem('userAvatar', currentAvatar);
-                      
-                      window.dispatchEvent(new Event('avatarChanged'));
-                      window.dispatchEvent(new Event('profileUpdated'));
-                      
-                      setOldPassword('');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                      setActiveView('main');
-                    })
-                    .catch((err) => {
-                      toast.dismiss(loadToast);
-                      toast.error(err.message || 'Error occurred');
-                    });
-                    
-                    return;
-                  }
-
-                  // If no password fields are filled, just save profile details
                   localStorage.setItem('userName', userName);
                   localStorage.setItem('userAvatar', currentAvatar);
                   
@@ -588,11 +479,6 @@ export default function Settings({ onLogout }: SettingsProps) {
                   
                   toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
 
-                  // Optionally clear password fields
-                  setOldPassword('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  
                   // Return back to main settings
                   setActiveView('main');
                 }}
@@ -786,6 +672,239 @@ export default function Settings({ onLogout }: SettingsProps) {
                 >
                   {t("Mengerti", "I Understand")}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {isSecurityModalOpen && (
+          <div className="security-modal-overlay">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="security-modal-backdrop"
+              onClick={() => {
+                if (!isEditingPassword) {
+                  setIsSecurityModalOpen(false);
+                }
+              }}
+            />
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+              className="security-modal-content"
+            >
+              {/* Header */}
+              <div className="security-modal-header">
+                <h5 className="security-modal-title">
+                  {t("Keamanan Akun", "Account Security")}
+                </h5>
+                <button 
+                  onClick={() => setIsSecurityModalOpen(false)}
+                  className="security-modal-close"
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="security-modal-body">
+                {!isEditingPassword ? (
+                  /* TAHAP 1 */
+                  <div className="flex flex-col gap-4 animate-fade-in text-left">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 text-left">
+                        {t("Email Terdaftar", "Registered Email")}
+                      </label>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                        <span className="text-lg flex-shrink-0">📧</span>
+                        <div className="text-left font-semibold break-all">
+                          {userEmail}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 text-left">
+                      <button
+                        onClick={() => setIsEditingPassword(true)}
+                        className="w-full bg-[#112F58] hover:bg-[#0c2444] text-white font-bold py-3 px-5 rounded-full transition-all text-sm flex items-center justify-center gap-2 cursor-pointer border-0 shadow-md"
+                      >
+                        🔑 {t("Ubah Kata Sandi", "Change Password")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* TAHAP 2 */
+                  <div className="flex flex-col gap-3 text-left">
+                    <h3 className="text-sm font-bold text-[#112F58] dark:text-sky-400 mb-1 flex items-center gap-2">
+                      🔐 {t("Ubah Kata Sandi Baru", "Set New Password")}
+                    </h3>
+
+                    {/* Password Lama */}
+                    {!isGoogleUser && (
+                      <div className="mooduit-form-group">
+                        <label className="mooduit-form-label text-left">{t("Kata Sandi Lama", "Old Password")}</label>
+                        <div className="relative w-full">
+                          <input 
+                            type={showOld ? "text" : "password"} 
+                            value={oldPassword}
+                            onChange={(e) => setOldPassword(e.target.value)}
+                            className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                            placeholder={t("Masukkan kata sandi lama", "Enter old password")}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowOld(!showOld)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center border-0 bg-transparent"
+                          >
+                            {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Password Baru */}
+                    <div className="mooduit-form-group">
+                      <label className="mooduit-form-label text-left">{t("Kata Sandi Baru", "New Password")}</label>
+                      <div className="relative w-full">
+                        <input 
+                          type={showNew ? "text" : "password"} 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                          placeholder={t("Masukkan kata sandi baru", "Enter new password")}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowNew(!showNew)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center border-0 bg-transparent"
+                        >
+                          {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Konfirmasi Password */}
+                    <div className="mooduit-form-group">
+                      <label className="mooduit-form-label text-left">{t("Konfirmasi Kata Sandi Baru", "Confirm New Password")}</label>
+                      <div className="relative w-full">
+                        <input 
+                          type={showConfirm ? "text" : "password"} 
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                          placeholder={t("Ulangi kata sandi baru", "Repeat new password")}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer flex items-center justify-center border-0 bg-transparent"
+                        >
+                          {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="security-modal-footer">
+                {!isEditingPassword ? (
+                  <button 
+                    onClick={() => setIsSecurityModalOpen(false)}
+                    className="security-modal-btn"
+                    type="button"
+                  >
+                    {t("Tutup", "Close")}
+                  </button>
+                ) : (
+                  <div className="flex gap-2.5 w-full justify-end">
+                    <button 
+                      onClick={() => {
+                        setIsEditingPassword(false);
+                        setOldPassword('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                      className="px-5 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                      type="button"
+                    >
+                      {t("Batal", "Cancel")}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (!isGoogleUser && !oldPassword) {
+                          toast.error(language === 'id' ? 'Kata sandi lama wajib diisi!' : 'Old password is required!');
+                          return;
+                        }
+                        if (!newPassword) {
+                          toast.error(language === 'id' ? 'Kata sandi baru wajib diisi!' : 'New password is required!');
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          toast.error(language === 'id' ? 'Kata sandi baru minimal 6 karakter!' : 'New password must be at least 6 characters!');
+                          return;
+                        }
+                        if (newPassword !== confirmPassword) {
+                          toast.error(language === 'id' ? 'Konfirmasi kata sandi baru tidak cocok!' : 'New password confirmation does not match!');
+                          return;
+                        }
+
+                        const targetEmail = localStorage.getItem('userEmail') || userEmail;
+                        const targetUserId = localStorage.getItem('userId') || userId;
+
+                        if (!targetEmail) {
+                          toast.error(language === 'id' ? 'Sesi tidak valid atau email tidak terdeteksi. Silakan login ulang.' : 'Invalid session or email not detected. Please login again.');
+                          return;
+                        }
+
+                        const loadToast = toast.loading(language === 'id' ? 'Menyimpan kata sandi...' : 'Saving password...');
+                        fetch('/api/change-password', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({
+                            email: targetEmail,
+                            userId: targetUserId,
+                            oldPassword: isGoogleUser ? '' : oldPassword,
+                            newPassword
+                          })
+                        })
+                        .then(async (res) => {
+                          const data = await res.json();
+                          toast.dismiss(loadToast);
+                          if (!res.ok) {
+                            toast.error(data.error || (language === 'id' ? 'Gagal mengubah kata sandi' : 'Failed to change password'));
+                            return;
+                          }
+                          toast.success(language === 'id' ? 'Kata sandi berhasil diubah! 🎉' : 'Password successfully updated! 🎉');
+                          
+                          setOldPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setIsEditingPassword(false);
+                          setIsSecurityModalOpen(false);
+                        })
+                        .catch((err) => {
+                          toast.dismiss(loadToast);
+                          toast.error(err.message || 'Error occurred');
+                        });
+                      }}
+                      className="px-5 py-2.5 rounded-full bg-[#112F58] hover:bg-[#0c2444] text-white font-bold text-sm transition-colors border-0 cursor-pointer shadow-md"
+                      type="button"
+                    >
+                      {t("Simpan Kata Sandi", "Save Password")}
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
