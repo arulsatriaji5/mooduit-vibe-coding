@@ -16,6 +16,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Settings,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
 import "./Dashboard.css";
@@ -174,7 +175,17 @@ export default function Dashboard({
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [chatInput, setChatInput] = React.useState("");
   const [messages, setMessages] = React.useState<
-    { text: string; isAi: boolean }[]
+    { 
+      text: string; 
+      isAi: boolean; 
+      isTransactionSuccess?: boolean; 
+      transactionDetails?: { 
+        type: string; 
+        amount: number; 
+        category: string; 
+        notes: string; 
+      };
+    }[]
   >([]);
   const [isTyping, setIsTyping] = React.useState(false);
   const [wishlist, setWishlist] = React.useState<any[]>([]);
@@ -773,7 +784,7 @@ export default function Dashboard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
-            messages: updatedMessages, 
+            messages: updatedMessages.map(m => ({ text: m.text, isAi: m.isAi })), 
             language, 
             user_email,
             financialContext,
@@ -843,7 +854,109 @@ export default function Dashboard({
     }
 
     if (success && dataText) {
-      setMessages((prev) => [...prev, { text: dataText, isAi: true }]);
+      let cleanText = dataText;
+      let transactionData: any = null;
+
+      // Extract JSON block using standard markdown regex or raw JSON match
+      const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
+      const match = dataText.match(jsonRegex);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[1].trim());
+          if (parsed && parsed.action === "ADD_TRANSACTION") {
+            transactionData = parsed;
+            cleanText = dataText.replace(jsonRegex, "").trim();
+          }
+        } catch (e) {
+          console.error("Failed to parse ADD_TRANSACTION JSON from AI response:", e);
+        }
+      } else {
+        const rawJsonRegex = /\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/;
+        const rawMatch = dataText.match(rawJsonRegex);
+        if (rawMatch) {
+          try {
+            const parsed = JSON.parse(rawMatch[0]);
+            transactionData = parsed;
+            cleanText = dataText.replace(rawJsonRegex, "").trim();
+          } catch (e) {
+            console.error("Failed to parse raw ADD_TRANSACTION JSON:", e);
+          }
+        }
+      }
+
+      if (transactionData) {
+        const nominalValue = Number(transactionData.amount) || 0;
+        const typeValue = transactionData.type === "income" ? "pemasukan" : "pengeluaran";
+        const categoryValue = transactionData.category || "Lainnya";
+        const notesValue = transactionData.notes || "Transaksi Pintar MOODUIT AI";
+
+        const categoryIcons: Record<string, string> = {
+          "Kebutuhan Pokok": "🛒", 
+          "Transportasi": "🚗", 
+          "Hiburan": "🎬", 
+          "Makan & Minum": "🍜", 
+          "Makanan & Minuman": "🍜",
+          "Kesehatan": "💊", 
+          "Pendidikan": "📚", 
+          "Tagihan": "📄", 
+          "Belanja": "👕", 
+          "Gaji": "💰",
+          "Investasi": "📈",
+          "Lainnya": "📦"
+        };
+        const iconValue = categoryIcons[categoryValue] || "🧾";
+
+        const newTx = {
+          id: "ai_tx_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          nominal: nominalValue,
+          jenis: typeValue,
+          kategori: categoryValue,
+          catatan: notesValue,
+          tanggal: new Date().toISOString().split('T')[0],
+          icon: iconValue
+        };
+
+        const saveTransactionToState = async () => {
+          try {
+            if (propsSetTransactions && typeof propsSetTransactions === "function") {
+              const { insertTransaction } = await import("../utils/api");
+              const user_email = localStorage.getItem("userEmail") || "";
+              const insertedTx = await insertTransaction(newTx, user_email);
+              propsSetTransactions(prev => [insertedTx, ...prev]);
+            } else {
+              setLocalTransactions(prev => [newTx, ...prev]);
+            }
+          } catch (err) {
+            console.error("Failed to insert AI transaction:", err);
+            setLocalTransactions(prev => [newTx, ...prev]);
+          }
+        };
+
+        saveTransactionToState();
+
+        toast.success(
+          language === "id"
+            ? `Berhasil mencatat transaksi: ${notesValue} (Rp ${nominalValue.toLocaleString("id-ID")})`
+            : `Successfully recorded transaction: ${notesValue} (Rp ${nominalValue.toLocaleString("id-ID")})`
+        );
+
+        setMessages((prev) => [
+          ...prev,
+          { 
+            text: cleanText, 
+            isAi: true, 
+            isTransactionSuccess: true, 
+            transactionDetails: { 
+              type: transactionData.type, 
+              amount: nominalValue, 
+              category: categoryValue, 
+              notes: notesValue 
+            } 
+          }
+        ]);
+      } else {
+        setMessages((prev) => [...prev, { text: dataText, isAi: true }]);
+      }
     } else {
       const lastErrorLower = lastError.toLowerCase();
       if (
@@ -1383,10 +1496,10 @@ export default function Dashboard({
                   className={`border-0 rounded-full p-1.5 transition-all text-sm leading-none flex items-center justify-center cursor-pointer ${
                     showApiKeyPanel ? "bg-amber-500 text-slate-950 scale-110" : "bg-white/10 hover:bg-white/20 text-white"
                   }`}
-                  title="Set API Key (Local Test)"
+                  title="Pengaturan API Key AI"
                   style={{ outline: "none" }}
                 >
-                  🔑
+                  <Settings size={16} />
                 </button>
               </div>
               <button 
@@ -1455,6 +1568,22 @@ export default function Dashboard({
                     className="small mb-0 fw-medium leading-relaxed font-sans"
                     dangerouslySetInnerHTML={renderMarkdown(msg.text)}
                   />
+                  {msg.isTransactionSuccess && msg.transactionDetails && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 mt-2.5 flex items-center gap-2.5 font-sans animate-fade-in text-slate-800 dark:text-slate-100">
+                      <span className="text-xl">✅</span>
+                      <div className="text-left">
+                        <div className="font-extrabold text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm">
+                          {language === "id" ? "Transaksi Berhasil Dicatat!" : "Transaction Successfully Recorded!"}
+                        </div>
+                        <div className="text-emerald-700 dark:text-emerald-300 text-xs font-semibold mt-0.5">
+                          {msg.transactionDetails.type === "income" ? (language === "id" ? "Pemasukan" : "Income") : (language === "id" ? "Pengeluaran" : "Expense")} • Rp {msg.transactionDetails.amount.toLocaleString("id-ID")} ({msg.transactionDetails.category})
+                        </div>
+                        <div className="text-emerald-600 dark:text-emerald-400 text-[11px] mt-0.5 italic">
+                          "{msg.transactionDetails.notes}"
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ))}
               {isTyping && (
