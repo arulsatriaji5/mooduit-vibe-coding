@@ -168,11 +168,21 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
             {/* Profil User di Kanan Atas - Dijadikan Tombol ke Pengaturan */}
             <div 
               onClick={() => onNavigate('settings')}
-              className="p-2 text-white hover:bg-white/10 rounded-full cursor-pointer transition-colors active:scale-95"
+              className="p-1 cursor-pointer transition-transform active:scale-95 flex items-center justify-center rounded-full"
               title="Buka Pengaturan"
               id="header_profile_btn"
             >
-              <SettingsIcon size={24} />
+              {userAvatar ? (
+                <img 
+                  src={userAvatar} 
+                  alt="Profile" 
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-transparent hover:border-blue-200 shadow-sm transition-all" 
+                />
+              ) : (
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-[#001F3F] font-bold flex items-center justify-center shadow-sm border border-blue-200">
+                  {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
             </div>
           </div>
           
