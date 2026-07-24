@@ -733,7 +733,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                     <div className="mt-2 text-left">
                       <button
                         onClick={() => setIsEditingPassword(true)}
-                        className="w-full bg-[#112F58] hover:bg-[#0c2444] text-white font-bold py-3 px-5 rounded-full transition-all text-sm flex items-center justify-center gap-2 cursor-pointer border-0 shadow-md"
+                        className="w-full py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border-0"
                       >
                         🔑 {t("Ubah Kata Sandi", "Change Password")}
                       </button>
@@ -755,7 +755,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                             type={showOld ? "text" : "password"} 
                             value={oldPassword}
                             onChange={(e) => setOldPassword(e.target.value)}
-                            className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                            className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
                             placeholder={t("Masukkan kata sandi lama", "Enter old password")}
                           />
                           <button 
@@ -777,7 +777,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                           type={showNew ? "text" : "password"} 
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
                           placeholder={t("Masukkan kata sandi baru", "Enter new password")}
                         />
                         <button 
@@ -798,7 +798,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                           type={showConfirm ? "text" : "password"} 
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pr-12 pl-4 py-2.5 border rounded-xl bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-mooduit focus:border-primary-mooduit text-sm"
+                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
                           placeholder={t("Ulangi kata sandi baru", "Repeat new password")}
                         />
                         <button 
@@ -819,22 +819,22 @@ export default function Settings({ onLogout }: SettingsProps) {
                 {!isEditingPassword ? (
                   <button 
                     onClick={() => setIsSecurityModalOpen(false)}
-                    className="security-modal-btn"
+                    className="px-5 py-2.5 rounded-xl bg-[#001F3F] hover:bg-[#00172E] text-white font-semibold text-sm transition-all border-0 cursor-pointer shadow-sm"
                     type="button"
                   >
                     {t("Tutup", "Close")}
                   </button>
                 ) : (
                   <div className="flex gap-2.5 w-full justify-end">
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
                         setIsEditingPassword(false);
                         setOldPassword('');
                         setNewPassword('');
                         setConfirmPassword('');
                       }}
-                      className="px-5 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
-                      type="button"
+                      className="px-6 py-3.5 bg-white border-2 border-gray-300 text-gray-800 font-bold rounded-xl hover:bg-gray-100 hover:text-black transition-all cursor-pointer shadow-sm text-center"
                     >
                       {t("Batal", "Cancel")}
                     </button>
@@ -898,7 +898,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                           toast.error(err.message || 'Error occurred');
                         });
                       }}
-                      className="px-5 py-2.5 rounded-full bg-[#112F58] hover:bg-[#0c2444] text-white font-bold text-sm transition-colors border-0 cursor-pointer shadow-md"
+                      className="px-6 py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-bold text-sm rounded-xl transition-all border-0 cursor-pointer shadow-md flex-1 sm:flex-none text-center"
                       type="button"
                     >
                       {t("Simpan Kata Sandi", "Save Password")}
