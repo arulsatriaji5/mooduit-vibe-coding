@@ -1037,28 +1037,30 @@ app.post("/api/reset-password", async (req, res) => {
 });
 
 // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
-function getGeminiApiKey(): string {
+function getGeminiApiKey(customKey?: string): string {
   if (typeof process !== "undefined" && process.env) {
-    // Standard Google Gemini API keys start with AIza. Prioritize these first.
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza")) {
-      return process.env.GEMINI_API_KEY;
+    // Strictly prioritize process.env.GEMINI_API_KEY first
+    const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (envKey && typeof envKey === "string" && envKey.trim().length > 0 && envKey !== "MY_GEMINI_API_KEY") {
+      return envKey.trim();
     }
-    if (process.env.VITE_GEMINI_API_KEY && process.env.VITE_GEMINI_API_KEY.startsWith("AIza")) {
-      return process.env.VITE_GEMINI_API_KEY;
-    }
-
-    // Fallbacks
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY") {
-      return process.env.GEMINI_API_KEY;
-    }
-    if (process.env.VITE_GEMINI_API_KEY) {
-      return process.env.VITE_GEMINI_API_KEY;
+  }
+  if (customKey && typeof customKey === "string" && customKey.trim().length > 0) {
+    return customKey.trim();
+  }
+  if (typeof process !== "undefined" && process.env) {
+    const viteKey = process.env.VITE_GEMINI_API_KEY;
+    if (viteKey && typeof viteKey === "string" && viteKey.trim().length > 0 && !viteKey.startsWith("gen-lang-client-")) {
+      return viteKey.trim();
     }
   }
   try {
     const metaEnv = (import.meta as any).env;
     if (metaEnv && metaEnv.VITE_GEMINI_API_KEY) {
-      return metaEnv.VITE_GEMINI_API_KEY;
+      const metaKey = String(metaEnv.VITE_GEMINI_API_KEY).trim();
+      if (metaKey.length > 0 && !metaKey.startsWith("gen-lang-client-")) {
+        return metaKey;
+      }
     }
   } catch (e) {
     // ignore
@@ -1070,19 +1072,9 @@ let aiInstance: GoogleGenAI | null = null;
 let cachedApiKey: string = "";
 
 function getAiClient(customKey?: string): GoogleGenAI {
-  const apiKey = customKey || getGeminiApiKey();
+  const apiKey = getGeminiApiKey(customKey);
   if (!apiKey) {
-    throw new Error("Sistem: VITE_GEMINI_API_KEY belum dipasang di Secrets/Environment Variables.");
-  }
-  if (customKey) {
-    return new GoogleGenAI({
-      apiKey: customKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+    throw new Error("API Key tidak ditemukan di process.env.GEMINI_API_KEY");
   }
   if (aiInstance && cachedApiKey === apiKey) {
     return aiInstance;
@@ -1115,7 +1107,7 @@ app.post("/api/scan-receipt", async (req, res) => {
 
     const ai = getAiClient(tempGeminiKey);
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: {
         parts: [
           {
@@ -1287,6 +1279,13 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
+    // Direct check for API Key before embarking on model calls to prevent wasteful retry loops
+    const apiKey = (typeof process !== "undefined" && process.env && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) || getGeminiApiKey(tempGeminiKey);
+    if (!apiKey) {
+      console.error("[Gemini API Error Details]: API Key tidak ditemukan di process.env.GEMINI_API_KEY");
+      return res.status(500).json({ error: "API Key Gemini belum dikonfigurasi di Environment Variable Vercel." });
+    }
+
     let financialContext = body.financialContext;
     if (!financialContext) {
       // Build server-side fallback
@@ -1400,7 +1399,7 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       };
     });
 
-    // Generate response from gemini-3.5-flash with server-side retry logic
+    // Generate response from gemini-1.5-flash with server-side retry logic
     const ai = getAiClient(tempGeminiKey);
     let responseText = "";
     let attempts = 0;
@@ -1409,7 +1408,7 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
     while (attempts < maxAttempts) {
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-1.5-flash",
           contents: contents,
           config: {
             systemInstruction: systemInstruction,
@@ -1424,7 +1423,10 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
         }
       } catch (err: any) {
         attempts++;
-        const errMsg = String(err.message || err).toLowerCase();
+        const rawErrStr = err?.message || String(err);
+        console.error(`[Gemini API Error Details - Attempt ${attempts}]:`, err);
+
+        const errMsg = rawErrStr.toLowerCase();
         const isRetryable = errMsg.includes("503") || 
                             errMsg.includes("high demand") || 
                             errMsg.includes("overloaded") || 
@@ -1434,10 +1436,8 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
                             errMsg.includes("temp") ||
                             errMsg.includes("limit exceeded");
 
-        console.log(`[AI Chat Backend] Attempt ${attempts} encountered an API issue.`);
-
         if (isRetryable && attempts < maxAttempts) {
-          console.log(`[AI Chat Backend] Retrying in 1.5 seconds...`);
+          console.log(`[AI Chat Backend] Retrying attempt ${attempts + 1} in 1.5 seconds...`);
           await new Promise((resolve) => setTimeout(resolve, 1500));
         } else {
           throw err;
@@ -1447,7 +1447,9 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
 
     res.json({ text: responseText });
   } catch (error: any) {
-    const errMsg = String(error.message || error).toLowerCase();
+    console.error("[Gemini API Error Details]:", error);
+    const rawErrStr = error?.message || String(error);
+    const errMsg = rawErrStr.toLowerCase();
     const isKeyError = errMsg.includes("api_key") || 
                         errMsg.includes("403") || 
                         errMsg.includes("401") || 
@@ -1455,16 +1457,17 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
                         errMsg.includes("key") ||
                         errMsg.includes("invalid") ||
                         errMsg.includes("unauthorized") ||
-                        errMsg.includes("belum dipasang");
+                        errMsg.includes("belum dipasang") ||
+                        errMsg.includes("belum dikonfigurasi");
 
     if (isKeyError) {
-      console.log("[AI Chat Backend] API Key related issue handled, returning 200 with custom warning payload.");
-      return res.json({ error: "API Key Gemini belum terpasang atau tidak valid!" });
+      console.error("[AI Chat Backend] Returning API Key configuration error.");
+      return res.status(500).json({ error: "API Key Gemini belum dikonfigurasi di Environment Variable Vercel." });
     }
 
-    console.log("[AI Chat Backend] Gemini API issue handled, returning friendly user response via 200 OK.");
+    console.error("[AI Chat Backend] Gemini API issue handled, returning friendly user response.");
     const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
-    res.json({ error: friendlyMsg });
+    return res.status(500).json({ error: friendlyMsg });
   }
 });
 

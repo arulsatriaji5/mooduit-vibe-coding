@@ -843,38 +843,53 @@ export default function Dashboard({
       let cleanText = dataText;
       let transactionData: any = null;
 
-      // Extract JSON block using standard markdown regex or raw JSON match
-      const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
-      const match = dataText.match(jsonRegex);
-      if (match) {
-        try {
-          const parsed = JSON.parse(match[1].trim());
-          if (parsed && parsed.action === "ADD_TRANSACTION") {
+      // Safe JSON Extraction Strategies
+      try {
+        // Strategy 1: ```json ... ``` markdown block
+        const markdownMatch = dataText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (markdownMatch && markdownMatch[1]) {
+          const parsed = JSON.parse(markdownMatch[1].trim());
+          if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount)) {
             transactionData = parsed;
-            cleanText = dataText.replace(jsonRegex, "").trim();
+            cleanText = dataText.replace(markdownMatch[0], "").trim();
+          }
+        }
+      } catch (e) {
+        console.warn("Strategy 1 (Markdown JSON) parse attempt:", e);
+      }
+
+      if (!transactionData) {
+        try {
+          // Strategy 2: Direct raw JSON object match containing "ADD_TRANSACTION" or "action"
+          const rawMatch = dataText.match(/\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i) ||
+                           dataText.match(/\{\s*"type"\s*:[\s\S]*?"amount"\s*:[\s\S]*?\}/i);
+          if (rawMatch) {
+            const parsed = JSON.parse(rawMatch[0]);
+            if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount)) {
+              transactionData = parsed;
+              cleanText = dataText.replace(rawMatch[0], "").trim();
+            }
           }
         } catch (e) {
-          console.error("Failed to parse ADD_TRANSACTION JSON from AI response:", e);
-        }
-      } else {
-        const rawJsonRegex = /\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/;
-        const rawMatch = dataText.match(rawJsonRegex);
-        if (rawMatch) {
-          try {
-            const parsed = JSON.parse(rawMatch[0]);
-            transactionData = parsed;
-            cleanText = dataText.replace(rawJsonRegex, "").trim();
-          } catch (e) {
-            console.error("Failed to parse raw ADD_TRANSACTION JSON:", e);
-          }
+          console.warn("Strategy 2 (Raw JSON) parse attempt:", e);
         }
       }
 
       if (transactionData) {
-        const nominalValue = Number(transactionData.amount) || 0;
-        const typeValue = transactionData.type === "income" ? "pemasukan" : "pengeluaran";
-        const categoryValue = transactionData.category || "Lainnya";
-        const notesValue = transactionData.notes || "Transaksi Pintar MOODUIT AI";
+        // Robust numeric parsing for amount (handles string "25000", "25.000", "Rp 25.000", or number 25000)
+        let rawAmount = transactionData.amount;
+        let nominalValue = 0;
+        if (typeof rawAmount === "number") {
+          nominalValue = Math.abs(rawAmount);
+        } else if (typeof rawAmount === "string") {
+          const digitsOnly = rawAmount.replace(/[^0-9]/g, "");
+          nominalValue = Number(digitsOnly) || 0;
+        }
+
+        const typeStr = String(transactionData.type || "expense").toLowerCase();
+        const typeValue = (typeStr === "income" || typeStr === "pemasukan") ? "pemasukan" : "pengeluaran";
+        const categoryValue = transactionData.category || transactionData.kategori || "Lainnya";
+        const notesValue = transactionData.notes || transactionData.catatan || "Transaksi Pintar MOODUIT AI";
 
         const categoryIcons: Record<string, string> = {
           "Kebutuhan Pokok": "🛒", 
