@@ -469,7 +469,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <div>© 2026 MOODUIT. All rights reserved.</div>
           <div>
             {language === 'id' ? 'Dirancang & Dikembangkan oleh ' : 'Designed & Developed by '}
-            <span className="font-bold text-white">Arul Satriaji</span>.
+            <span className="font-bold text-white">AS</span>.
           </div>
         </div>
       </footer>
