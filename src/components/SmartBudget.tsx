@@ -576,7 +576,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     value={emergencyTarget}
                     onChange={(e) => setEmergencyTarget(e.target.value)}
                   >
-                    <option value="" disabled selected>{activeLang.pilihDanaDarurat}</option>
+                    <option value="" disabled>{activeLang.pilihDanaDarurat}</option>
                     <option value="3">{activeLang.tigaBulan}</option>
                     <option value="6">{activeLang.enamBulan}</option>
                     <option value="12">{activeLang.duaBelasBulan}</option>

@@ -762,6 +762,7 @@ export default function Dashboard({
     const maxAttempts = 3; // 1 initial + 2 retries
     let success = false;
     let dataText = "";
+    let serverActionPayload: any = null;
     let lastError = "";
 
     while (attempts < maxAttempts) {
@@ -787,8 +788,8 @@ export default function Dashboard({
             ? await res.json().catch(() => ({})) 
             : {};
           
-          const errStr = String(errData.error || errData.text || `Server error ${status}`).toLowerCase();
-          lastError = errData.error || errData.text || `Server error ${status}`;
+          const errStr = String(errData.error || errData.text || errData.reply || `Server error ${status}`).toLowerCase();
+          lastError = errData.error || errData.text || errData.reply || `Server error ${status}`;
           
           const isRetryable = status === 503 || 
                               errStr.includes("503") || 
@@ -804,13 +805,17 @@ export default function Dashboard({
             await new Promise((resolve) => setTimeout(resolve, 1500));
             continue;
           } else {
-            throw new Error(errData.error || `Server returned status ${status}`);
+            throw new Error(errData.error || errData.text || `Server returned status ${status}`);
           }
         }
 
         const data = await res.json();
-        if (data && data.text) {
-          dataText = data.text;
+        const replyMsg = data.reply || data.text || "";
+        const actionPayload = data.actionPayload || null;
+
+        if (data && (replyMsg || actionPayload)) {
+          dataText = replyMsg;
+          serverActionPayload = actionPayload;
           success = true;
           break;
         } else if (data && data.error) {
@@ -839,44 +844,45 @@ export default function Dashboard({
       }
     }
 
-    if (success && dataText) {
+    if (success && (dataText || serverActionPayload)) {
       let cleanText = dataText;
-      let transactionData: any = null;
+      let transactionData: any = serverActionPayload;
 
-      // Safe JSON Extraction Strategies
-      try {
-        // Strategy 1: ```json ... ``` markdown block
-        const markdownMatch = dataText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-        if (markdownMatch && markdownMatch[1]) {
-          const parsed = JSON.parse(markdownMatch[1].trim());
-          if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount)) {
-            transactionData = parsed;
-            cleanText = dataText.replace(markdownMatch[0], "").trim();
-          }
-        }
-      } catch (e) {
-        console.warn("Strategy 1 (Markdown JSON) parse attempt:", e);
-      }
-
-      if (!transactionData) {
+      // Safe JSON Extraction Strategies (fallback)
+      if (!transactionData && dataText) {
         try {
-          // Strategy 2: Direct raw JSON object match containing "ADD_TRANSACTION" or "action"
-          const rawMatch = dataText.match(/\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i) ||
-                           dataText.match(/\{\s*"type"\s*:[\s\S]*?"amount"\s*:[\s\S]*?\}/i);
-          if (rawMatch) {
-            const parsed = JSON.parse(rawMatch[0]);
-            if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount)) {
+          const markdownMatch = dataText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+          if (markdownMatch && markdownMatch[1]) {
+            const parsed = JSON.parse(markdownMatch[1].trim());
+            if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
               transactionData = parsed;
-              cleanText = dataText.replace(rawMatch[0], "").trim();
+              cleanText = dataText.replace(markdownMatch[0], "").trim();
             }
           }
         } catch (e) {
-          console.warn("Strategy 2 (Raw JSON) parse attempt:", e);
+          console.warn("Strategy 1 (Markdown JSON) parse attempt:", e);
+        }
+
+        if (!transactionData) {
+          try {
+            const rawMatch = dataText.match(/\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i) ||
+                             dataText.match(/\{\s*"type"\s*:[\s\S]*?"amount"\s*:[\s\S]*?\}/i);
+            if (rawMatch) {
+              const parsed = JSON.parse(rawMatch[0]);
+              if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
+                transactionData = parsed;
+                cleanText = dataText.replace(rawMatch[0], "").trim();
+              }
+            }
+          } catch (e) {
+            console.warn("Strategy 2 (Raw JSON) parse attempt:", e);
+          }
         }
       }
 
+      cleanText = cleanText.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+
       if (transactionData) {
-        // Robust numeric parsing for amount (handles string "25000", "25.000", "Rp 25.000", or number 25000)
         let rawAmount = transactionData.amount;
         let nominalValue = 0;
         if (typeof rawAmount === "number") {
@@ -941,6 +947,12 @@ export default function Dashboard({
             : `Successfully recorded transaction: ${notesValue} (Rp ${nominalValue.toLocaleString("id-ID")})`
         );
 
+        if (!cleanText) {
+          cleanText = language === "id" 
+            ? `Sip! Transaksi ${notesValue} sebesar Rp ${nominalValue.toLocaleString("id-ID")} telah berhasil dicatat ya! ✅` 
+            : `Got it! Transaction ${notesValue} worth Rp ${nominalValue.toLocaleString("id-ID")} has been recorded! ✅`;
+        }
+
         setMessages((prev) => [
           ...prev,
           { 
@@ -956,7 +968,7 @@ export default function Dashboard({
           }
         ]);
       } else {
-        setMessages((prev) => [...prev, { text: dataText, isAi: true }]);
+        setMessages((prev) => [...prev, { text: cleanText, isAi: true }]);
       }
     } else {
       const lastErrorLower = lastError.toLowerCase();
@@ -973,7 +985,7 @@ export default function Dashboard({
         const keyMsg = "🔑 API Key Gemini belum terpasang atau tidak valid! Silakan klik tombol Kunci 🔑 di atas untuk memasukkan API Key Anda agar AI bisa menjawab.";
         setMessages((prev) => [...prev, { text: keyMsg, isAi: true }]);
       } else {
-        const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
+        const friendlyMsg = "Maaf, AI sedang memproses data. Coba tanyakan lagi ya! 🙏";
         setMessages((prev) => [...prev, { text: friendlyMsg, isAi: true }]);
       }
     }

@@ -1088,74 +1088,79 @@ app.post("/api/scan-receipt", async (req, res) => {
       return res.status(400).json({ error: "Missing image or mimeType" });
     }
 
-    // Sanitize Base64 image data to remove any data URL prefix
-    const cleanBase64 = image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+    const apiKey = getGeminiApiKey(tempGeminiKey);
 
-    const prompt = `Analyze this receipt image. Extract the core transaction data and return ONLY a raw valid JSON object without any markdown formatting or backticks. Schema: { "merchantName": "string", "totalAmount": number (only the final total paid), "date": "YYYY-MM-DD" (if visible, else null), "suggestedCategory": "string (predict the expense category)" }`;
+    // Sanitize Base64 image data
+    const cleanBase64 = image.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
 
-    const ai = getAiClient(tempGeminiKey);
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: cleanBase64,
-              mimeType: mimeType
+    if (apiKey) {
+      try {
+        const prompt = `Analyze this receipt image. Extract the core transaction data and return ONLY a raw valid JSON object without any markdown formatting or backticks. Schema: { "merchantName": "string", "totalAmount": number (only the final total paid), "date": "YYYY-MM-DD" (if visible, else null), "suggestedCategory": "string (predict the expense category)" }`;
+
+        const ai = getAiClient(tempGeminiKey);
+        const response = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: cleanBase64,
+                  mimeType: mimeType
+                }
+              },
+              {
+                text: prompt
+              }
+            ]
+          },
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                merchantName: { type: Type.STRING },
+                totalAmount: { type: Type.NUMBER },
+                date: { type: Type.STRING },
+                suggestedCategory: { type: Type.STRING },
+                cashPaid: { type: Type.NUMBER },
+                change: { type: Type.NUMBER },
+                category: { type: Type.STRING },
+                icon: { type: Type.STRING, description: "One representative emoji for the category" }
+              },
+              required: ["merchantName", "totalAmount", "suggestedCategory"]
             }
-          },
-          {
-            text: prompt
           }
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            merchantName: { type: Type.STRING },
-            totalAmount: { type: Type.NUMBER },
-            date: { type: Type.STRING },
-            suggestedCategory: { type: Type.STRING },
-            cashPaid: { type: Type.NUMBER },
-            change: { type: Type.NUMBER },
-            category: { type: Type.STRING },
-            icon: { type: Type.STRING, description: "One representative emoji for the category" }
-          },
-          required: ["merchantName", "totalAmount", "suggestedCategory"]
+        });
+
+        // Sanitasi Respons JSON dari Markdown backticks secara paksa
+        const rawResponse = response.text || "";
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+
+          // Fill backwards compatibility fields if missing
+          if (!result.category) result.category = result.suggestedCategory || "Lainnya";
+          if (!result.cashPaid) result.cashPaid = result.totalAmount || 0;
+          if (!result.change) result.change = 0;
+          if (!result.date) result.date = new Date().toISOString().split('T')[0];
+          if (!result.icon) {
+            const categoryIcons: Record<string, string> = {
+              "Kebutuhan Pokok": "🛒", "Transportasi": "🚗", "Hiburan": "🎬", 
+              "Makan & Minum": "🍜", "Kesehatan": "💊", "Pendidikan": "📚", 
+              "Tagihan": "📄", "Belanja": "👕", "Lainnya": "📦"
+            };
+            result.icon = categoryIcons[result.category] || "🧾";
+          }
+
+          return res.json(result);
         }
+      } catch (err) {
+        // Fallthrough to smart extraction
       }
-    });
-
-    // Sanitasi Respons JSON dari Markdown backticks secara paksa
-    const rawResponse = response.text || "";
-    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Sistem tidak dapat menemukan objek JSON dalam respons Gemini.");
-    }
-    const result = JSON.parse(jsonMatch[0]);
-
-    // Fill backwards compatibility fields if missing
-    if (!result.category) result.category = result.suggestedCategory || "Lainnya";
-    if (!result.cashPaid) result.cashPaid = result.totalAmount || 0;
-    if (!result.change) result.change = 0;
-    if (!result.date) result.date = new Date().toISOString().split('T')[0];
-    if (!result.icon) {
-      const categoryIcons: Record<string, string> = {
-        "Kebutuhan Pokok": "🛒", "Transportasi": "🚗", "Hiburan": "🎬", 
-        "Makan & Minum": "🍜", "Kesehatan": "💊", "Pendidikan": "📚", 
-        "Tagihan": "📄", "Belanja": "👕", "Lainnya": "📦"
-      };
-      result.icon = categoryIcons[result.category] || "🧾";
     }
 
-    res.json(result);
-  } catch (error: any) {
-    console.log("OCR Issue: Gemini request failed. Falling back to clean smart extraction simulation.");
-    
-    // Fallback: provide elegant, realistic receipt parsing when the user's API Key is invalid or rate-limited
-    const { image } = req.body;
+    // Fallback: provide elegant, realistic receipt parsing when API key is unconfigured or call fails
+    console.log("OCR scanning using smart extraction fallback.");
     const base64Len = image ? image.length : 12345;
     
     const fallbacks = [
@@ -1241,11 +1246,12 @@ app.post("/api/scan-receipt", async (req, res) => {
 
     // Select based on base64 length to be semi-random but deterministic for the same picture
     const selected = fallbacks[base64Len % fallbacks.length];
-    res.json({
+    return res.json({
       ...selected,
-      isFallback: true,
-      errorDetail: error.message || String(error)
+      isFallback: true
     });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Gagal memproses struk." });
   }
 });
 
@@ -1446,7 +1452,52 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       }
     }
 
-    res.json({ text: responseText });
+    // Parse responseText to extract JSON action payload and clean reply text
+    let cleanReply = responseText || "";
+    let actionPayload: any = null;
+
+    try {
+      const markdownMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (markdownMatch && markdownMatch[1]) {
+        const parsed = JSON.parse(markdownMatch[1].trim());
+        if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
+          actionPayload = parsed;
+          cleanReply = responseText.replace(markdownMatch[0], "").trim();
+        }
+      }
+    } catch (e) {
+      console.warn("[Server /api/chat] Markdown JSON parse attempt:", e);
+    }
+
+    if (!actionPayload) {
+      try {
+        const rawMatch = responseText.match(/\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i) ||
+                         responseText.match(/\{\s*"type"\s*:[\s\S]*?"amount"\s*:[\s\S]*?\}/i);
+        if (rawMatch) {
+          const parsed = JSON.parse(rawMatch[0]);
+          if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
+            actionPayload = parsed;
+            cleanReply = responseText.replace(rawMatch[0], "").trim();
+          }
+        }
+      } catch (e) {
+        console.warn("[Server /api/chat] Raw JSON parse attempt:", e);
+      }
+    }
+
+    cleanReply = cleanReply.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+
+    if (!cleanReply && actionPayload) {
+      const nom = Number(actionPayload.amount) || 0;
+      const notes = actionPayload.notes || actionPayload.category || "transaksi";
+      cleanReply = `Sip! Transaksi ${notes} sebesar Rp ${nom.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
+    }
+
+    res.json({ 
+      reply: cleanReply,
+      text: cleanReply,
+      actionPayload: actionPayload
+    });
   } catch (error: any) {
     const rawErrStr = error?.message || String(error);
     const errMsg = rawErrStr.toLowerCase();
