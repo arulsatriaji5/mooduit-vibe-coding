@@ -1256,6 +1256,63 @@ app.post("/api/scan-receipt", async (req, res) => {
 });
 
 // API Chat Advisor
+function parseSmartTransactionFallback(userMessage: string) {
+  if (!userMessage) return null;
+  const text = userMessage.toLowerCase();
+  
+  let amount = 0;
+  const rbMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:rb|k|ribu)/i);
+  const jtMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:jt|juta)/i);
+  const plainNumMatch = text.match(/(?:rp\.?|sebesar)?\s*(\d{1,3}(?:\.\d{3})+|\d+)/i);
+
+  if (rbMatch) {
+    amount = Math.round(parseFloat(rbMatch[1].replace(',', '.')) * 1000);
+  } else if (jtMatch) {
+    amount = Math.round(parseFloat(jtMatch[1].replace(',', '.')) * 1000000);
+  } else if (plainNumMatch) {
+    const rawDigits = plainNumMatch[1].replace(/\./g, '');
+    amount = parseInt(rawDigits, 10);
+  }
+
+  let type: "expense" | "income" = "expense";
+  if (text.includes("pemasukan") || text.includes("gaji") || text.includes("dapat") || text.includes("terima") || text.includes("bonus") || text.includes("income")) {
+    type = "income";
+  }
+
+  let category = "Lainnya";
+  if (type === "income") {
+    if (text.includes("gaji")) category = "Gaji";
+    else if (text.includes("investasi") || text.includes("saham") || text.includes("crypto")) category = "Investasi";
+    else category = "Lainnya";
+  } else {
+    if (text.includes("kopi") || text.includes("makan") || text.includes("minum") || text.includes("kuliner") || text.includes("jajan") || text.includes("resto")) category = "Makan & Minum";
+    else if (text.includes("bensin") || text.includes("ojek") || text.includes("grab") || text.includes("gojek") || text.includes("angkot") || text.includes("tiket") || text.includes("bus")) category = "Transportasi";
+    else if (text.includes("listrik") || text.includes("air") || text.includes("internet") || text.includes("kos") || text.includes("tagihan") || text.includes("pulsa")) category = "Tagihan";
+    else if (text.includes("film") || text.includes("game") || text.includes("nonton") || text.includes("hiburan")) category = "Hiburan";
+    else if (text.includes("obat") || text.includes("dokter") || text.includes("kesehatan") || text.includes("apotek")) category = "Kesehatan";
+    else if (text.includes("baju") || text.includes("sepatu") || text.includes("belanja") || text.includes("baju")) category = "Belanja";
+    else if (text.includes("beras") || text.includes("sembako") || text.includes("pokok") || text.includes("pasar")) category = "Kebutuhan Pokok";
+  }
+
+  let notes = userMessage
+    .replace(/(?:catat|tolong|masukkan|rekam|tambah|pemasukan|pengeluaran|sebesar|rp\.?)/gi, '')
+    .trim();
+  if (!notes || notes.length < 2) {
+    notes = category;
+  }
+
+  if (amount > 0 && (text.includes("catat") || text.includes("tambah") || text.includes("masukkan") || text.includes("beli") || text.includes("pengeluaran") || text.includes("pemasukan") || text.includes("bayar"))) {
+    return {
+      action: "ADD_TRANSACTION",
+      type,
+      amount,
+      category,
+      notes
+    };
+  }
+  return null;
+}
+
 app.post("/api/chat", async (req, res) => {
   let messages: any[] = [];
   let language = "id";
@@ -1386,69 +1443,67 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       };
     });
 
-    // Direct check for API Key before embarking on model calls
+    // Get Gemini API key cleanly without dummy invalid fallback strings
     const apiKey = getGeminiApiKey(tempGeminiKey);
-    if (!apiKey) {
-      return res.json({ 
-        text: "Halo! API Key Gemini belum dikonfigurasi. Silakan pastikan GEMINI_API_KEY sudah terpasang pada Environment Variables Vercel atau masukkan API Key di menu Pengaturan. 🙏" 
-      });
-    }
-
-    // Generate response from gemini-1.5-flash with server-side retry logic
-    const ai = getAiClient(tempGeminiKey);
     let responseText = "";
-    let attempts = 0;
-    const maxAttempts = 3; // 1 initial attempt + 2 retries
 
-    while (attempts < maxAttempts) {
+    if (apiKey) {
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction,
-            temperature: 0.7,
+        const ai = getAiClient(tempGeminiKey);
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+          try {
+            const response = await ai.models.generateContent({
+              model: "gemini-1.5-flash",
+              contents: contents,
+              config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.7,
+              }
+            });
+            if (response && response.text) {
+              responseText = response.text;
+              break;
+            } else {
+              throw new Error("No response text received from model");
+            }
+          } catch (err: any) {
+            attempts++;
+            const rawErrStr = err?.message || String(err);
+            const errMsg = rawErrStr.toLowerCase();
+
+            const isKeyError = errMsg.includes("api_key") || 
+                               errMsg.includes("api key") || 
+                               errMsg.includes("invalid") || 
+                               errMsg.includes("unauthorized") || 
+                               errMsg.includes("400") || 
+                               errMsg.includes("401") || 
+                               errMsg.includes("403");
+
+            if (isKeyError) {
+              throw err; // Stop retrying and fall through to smart fallback
+            }
+
+            const isRetryable = errMsg.includes("503") || 
+                                errMsg.includes("high demand") || 
+                                errMsg.includes("overloaded") || 
+                                errMsg.includes("resource exhausted") ||
+                                errMsg.includes("rate limit") ||
+                                errMsg.includes("unavailable") ||
+                                errMsg.includes("temp") ||
+                                errMsg.includes("limit exceeded");
+
+            if (isRetryable && attempts < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+            } else {
+              throw err;
+            }
           }
-        });
-        if (response && response.text) {
-          responseText = response.text;
-          break;
-        } else {
-          throw new Error("No response text received from model");
         }
-      } catch (err: any) {
-        attempts++;
-        const rawErrStr = err?.message || String(err);
-        const errMsg = rawErrStr.toLowerCase();
-
-        // Non-retryable key or format errors
-        const isKeyError = errMsg.includes("api_key") || 
-                           errMsg.includes("api key") || 
-                           errMsg.includes("invalid") || 
-                           errMsg.includes("unauthorized") || 
-                           errMsg.includes("400") || 
-                           errMsg.includes("401") || 
-                           errMsg.includes("403");
-
-        if (isKeyError) {
-          throw err; // Stop retrying immediately and throw to outer catch
-        }
-
-        const isRetryable = errMsg.includes("503") || 
-                            errMsg.includes("high demand") || 
-                            errMsg.includes("overloaded") || 
-                            errMsg.includes("resource exhausted") ||
-                            errMsg.includes("rate limit") ||
-                            errMsg.includes("unavailable") ||
-                            errMsg.includes("temp") ||
-                            errMsg.includes("limit exceeded");
-
-        if (isRetryable && attempts < maxAttempts) {
-          console.log(`[AI Chat Backend] Retrying attempt ${attempts + 1} in 1.5 seconds...`);
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-        } else {
-          throw err;
-        }
+      } catch (err) {
+        console.warn("[AI Chat Backend] Gemini API unavailable or key invalid. Falling back to local smart advisor.");
       }
     }
 
@@ -1457,28 +1512,43 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
     let cleanReply = rawResponse;
     let actionPayload: any = null;
 
-    try {
-      // Look for JSON block containing action: ADD_TRANSACTION or transaction details
-      const jsonRegex = /\{[\s\S]*?"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i;
-      const match = rawResponse.match(jsonRegex) || 
-                    rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (rawResponse) {
+      try {
+        // Look for JSON block containing action: ADD_TRANSACTION or transaction details
+        const jsonRegex = /\{[\s\S]*?"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i;
+        const match = rawResponse.match(jsonRegex) || 
+                      rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
 
-      if (match && match[0]) {
-        let jsonCandidate = match[1] ? match[1].trim() : match[0].trim();
-        if (jsonCandidate.startsWith("```")) {
-          jsonCandidate = jsonCandidate.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+        if (match && match[0]) {
+          let jsonCandidate = match[1] ? match[1].trim() : match[0].trim();
+          if (jsonCandidate.startsWith("```")) {
+            jsonCandidate = jsonCandidate.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+          }
+          const parsed = JSON.parse(jsonCandidate);
+          if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
+            actionPayload = parsed;
+            cleanReply = rawResponse.replace(match[0], "").trim();
+          }
         }
-        const parsed = JSON.parse(jsonCandidate);
-        if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
-          actionPayload = parsed;
-          cleanReply = rawResponse.replace(match[0], "").trim();
-        }
+      } catch (parseError) {
+        console.warn("[Safe Parse Info]: Non-transaction message or parse skipped.");
       }
-    } catch (parseError) {
-      console.warn("[Safe Parse Info]: Non-transaction message or parse skipped.");
+
+      cleanReply = cleanReply.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
     }
 
-    cleanReply = cleanReply.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+    // Smart Local Fallback if Gemini didn't return text (e.g. unconfigured key or API error)
+    if (!cleanReply && !actionPayload) {
+      const fallbackPayload = parseSmartTransactionFallback(userMessage);
+      if (fallbackPayload) {
+        actionPayload = fallbackPayload;
+        cleanReply = `Sip! Transaksi ${fallbackPayload.notes} sebesar Rp ${fallbackPayload.amount.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
+      } else if (!apiKey) {
+        cleanReply = "Halo! API Key Gemini belum terpasang atau tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau via menu Pengaturan. Kamu juga bisa meminta saya mencatat transaksi langsung, contoh: 'catat pengeluaran kopi 25rb'! 😊";
+      } else {
+        cleanReply = "Halo! Saya MOODUIT AI Advisor. Ada yang bisa saya bantu tentang keuanganmu hari ini? Kamu bisa berkonsultasi atau minta saya mencatat transaksi, contoh: 'catat pengeluaran makan 30rb'! 😊";
+      }
+    }
 
     if (!cleanReply && actionPayload) {
       const nom = Number(actionPayload.amount) || 0;
@@ -1487,34 +1557,13 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
     }
 
     return res.json({ 
-      reply: cleanReply || "Halo! Ada yang bisa saya bantu untuk catatan keuanganmu hari ini?", 
-      text: cleanReply || "Halo! Ada yang bisa saya bantu untuk catatan keuanganmu hari ini?",
+      reply: cleanReply, 
+      text: cleanReply,
       actionPayload: actionPayload 
     });
   } catch (error: any) {
     const rawErrStr = error?.message || String(error);
-    const errMsg = rawErrStr.toLowerCase();
-    const isKeyError = errMsg.includes("api_key") || 
-                        errMsg.includes("api key") || 
-                        errMsg.includes("invalid") || 
-                        errMsg.includes("403") || 
-                        errMsg.includes("401") || 
-                        errMsg.includes("forbidden") ||
-                        errMsg.includes("unauthorized") ||
-                        errMsg.includes("belum dipasang") ||
-                        errMsg.includes("belum dikonfigurasi");
-
-    if (isKeyError) {
-      console.warn("[AI Chat Backend] API key unconfigured or invalid, returning friendly response.");
-      return res.json({ 
-        reply: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏",
-        text: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏",
-        actionPayload: null
-      });
-    }
-
-    console.warn("[AI Chat Backend] Gemini API issue handled, returning friendly user response:", rawErrStr);
-    const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
+    const friendlyMsg = "Halo! Saya MOODUIT AI Advisor. Ada yang bisa saya bantu untuk catatan keuanganmu hari ini? 😊";
     return res.json({ 
       reply: friendlyMsg, 
       text: friendlyMsg, 
