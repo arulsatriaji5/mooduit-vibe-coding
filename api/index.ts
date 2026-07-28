@@ -1038,32 +1038,20 @@ app.post("/api/reset-password", async (req, res) => {
 
 // Helper to fetch the Gemini API key dynamically, supporting multiple environment formats securely
 function getGeminiApiKey(customKey?: string): string {
+  // 1. Prioritize custom key explicitly passed from frontend/user settings if provided
+  if (customKey && typeof customKey === "string" && customKey.trim().length > 0) {
+    return customKey.trim();
+  }
+  // 2. Read from backend environment variables
   if (typeof process !== "undefined" && process.env) {
-    // Strictly prioritize process.env.GEMINI_API_KEY first
     const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (envKey && typeof envKey === "string" && envKey.trim().length > 0 && envKey !== "MY_GEMINI_API_KEY") {
       return envKey.trim();
     }
-  }
-  if (customKey && typeof customKey === "string" && customKey.trim().length > 0) {
-    return customKey.trim();
-  }
-  if (typeof process !== "undefined" && process.env) {
     const viteKey = process.env.VITE_GEMINI_API_KEY;
     if (viteKey && typeof viteKey === "string" && viteKey.trim().length > 0 && !viteKey.startsWith("gen-lang-client-")) {
       return viteKey.trim();
     }
-  }
-  try {
-    const metaEnv = (import.meta as any).env;
-    if (metaEnv && metaEnv.VITE_GEMINI_API_KEY) {
-      const metaKey = String(metaEnv.VITE_GEMINI_API_KEY).trim();
-      if (metaKey.length > 0 && !metaKey.startsWith("gen-lang-client-")) {
-        return metaKey;
-      }
-    }
-  } catch (e) {
-    // ignore
   }
   return "";
 }
@@ -1074,7 +1062,7 @@ let cachedApiKey: string = "";
 function getAiClient(customKey?: string): GoogleGenAI {
   const apiKey = getGeminiApiKey(customKey);
   if (!apiKey) {
-    throw new Error("API Key tidak ditemukan di process.env.GEMINI_API_KEY");
+    throw new Error("API Key Gemini tidak ditemukan atau belum dikonfigurasi");
   }
   if (aiInstance && cachedApiKey === apiKey) {
     return aiInstance;
@@ -1279,13 +1267,6 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
-    // Direct check for API Key before embarking on model calls to prevent wasteful retry loops
-    const apiKey = (typeof process !== "undefined" && process.env && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) || getGeminiApiKey(tempGeminiKey);
-    if (!apiKey) {
-      console.error("[Gemini API Error Details]: API Key tidak ditemukan di process.env.GEMINI_API_KEY");
-      return res.status(500).json({ error: "API Key Gemini belum dikonfigurasi di Environment Variable Vercel." });
-    }
-
     let financialContext = body.financialContext;
     if (!financialContext) {
       // Build server-side fallback
@@ -1399,6 +1380,14 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       };
     });
 
+    // Direct check for API Key before embarking on model calls
+    const apiKey = getGeminiApiKey(tempGeminiKey);
+    if (!apiKey) {
+      return res.json({ 
+        text: "Halo! API Key Gemini belum dikonfigurasi. Silakan pastikan GEMINI_API_KEY sudah terpasang pada Environment Variables Vercel atau masukkan API Key di menu Pengaturan. 🙏" 
+      });
+    }
+
     // Generate response from gemini-1.5-flash with server-side retry logic
     const ai = getAiClient(tempGeminiKey);
     let responseText = "";
@@ -1424,9 +1413,21 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       } catch (err: any) {
         attempts++;
         const rawErrStr = err?.message || String(err);
-        console.error(`[Gemini API Error Details - Attempt ${attempts}]:`, err);
-
         const errMsg = rawErrStr.toLowerCase();
+
+        // Non-retryable key or format errors
+        const isKeyError = errMsg.includes("api_key") || 
+                           errMsg.includes("api key") || 
+                           errMsg.includes("invalid") || 
+                           errMsg.includes("unauthorized") || 
+                           errMsg.includes("400") || 
+                           errMsg.includes("401") || 
+                           errMsg.includes("403");
+
+        if (isKeyError) {
+          throw err; // Stop retrying immediately and throw to outer catch
+        }
+
         const isRetryable = errMsg.includes("503") || 
                             errMsg.includes("high demand") || 
                             errMsg.includes("overloaded") || 
@@ -1447,27 +1448,28 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
 
     res.json({ text: responseText });
   } catch (error: any) {
-    console.error("[Gemini API Error Details]:", error);
     const rawErrStr = error?.message || String(error);
     const errMsg = rawErrStr.toLowerCase();
     const isKeyError = errMsg.includes("api_key") || 
+                        errMsg.includes("api key") || 
+                        errMsg.includes("invalid") || 
                         errMsg.includes("403") || 
                         errMsg.includes("401") || 
                         errMsg.includes("forbidden") ||
-                        errMsg.includes("key") ||
-                        errMsg.includes("invalid") ||
                         errMsg.includes("unauthorized") ||
                         errMsg.includes("belum dipasang") ||
                         errMsg.includes("belum dikonfigurasi");
 
     if (isKeyError) {
-      console.error("[AI Chat Backend] Returning API Key configuration error.");
-      return res.status(500).json({ error: "API Key Gemini belum dikonfigurasi di Environment Variable Vercel." });
+      console.warn("[AI Chat Backend] API key unconfigured or invalid, returning friendly response.");
+      return res.json({ 
+        text: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏" 
+      });
     }
 
-    console.error("[AI Chat Backend] Gemini API issue handled, returning friendly user response.");
+    console.warn("[AI Chat Backend] Gemini API issue handled, returning friendly user response:", rawErrStr);
     const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
-    return res.status(500).json({ error: friendlyMsg });
+    return res.json({ text: friendlyMsg });
   }
 });
 
