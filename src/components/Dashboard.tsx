@@ -735,6 +735,10 @@ export default function Dashboard({
 
     // Build the rich financial context payload from real-time frontend states
     const financialContext = {
+      totalBalance: totalSaldo,
+      totalIncome: totalPemasukan,
+      totalExpense: totalPengeluaran,
+      currency: "IDR",
       summary: { 
         balance: totalSaldo, 
         totalIncome: totalPemasukan, 
@@ -771,6 +775,7 @@ export default function Dashboard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
+            message: userMessage,
             messages: updatedMessages.map(m => ({ text: m.text, isAi: m.isAi })), 
             language, 
             user_email,

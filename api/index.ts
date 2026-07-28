@@ -1357,35 +1357,52 @@ function generateSmartConsultationFallback(userMessage: string, financialContext
   }
 
   const formattedAmount = amount > 0 ? `Rp ${amount.toLocaleString("id-ID")}` : "barang tersebut";
+  const balance = financialContext?.totalBalance ?? financialContext?.summary?.balance ?? 0;
+  const income = financialContext?.totalIncome ?? financialContext?.summary?.totalIncome ?? 0;
+  const expense = financialContext?.totalExpense ?? financialContext?.summary?.totalExpense ?? 0;
 
   // Inquiry about buying something or expenses
   if (amount > 0 || text.includes("beli") || text.includes("jam") || text.includes("barang") || text.includes("sepatu") || text.includes("baju") || text.includes("hp") || text.includes("gadget")) {
-    return `Mengenai rencana pembelian ${formattedAmount}, berikut beberapa pertimbangan finansial yang bisa kamu cek:\n\n` +
-           `1. 💡 **Aturan Budget 50/30/20**: Pastikan pengeluaran ini masuk dalam alokasi 30% untuk Keinginan/Jajan, dan tidak mengganggu 50% Kebutuhan Pokok.\n` +
-           `2. 🛡️ **Dana Darurat**: Pastikan kamu sudah memiliki simpanan dana darurat yang cukup sebelum membeli barang non-esensial.\n` +
-           `3. ⏳ **Aturan 24 Jam**: Coba beri waktu 24-48 jam. Jika setelahnya kamu masih merasa sangat butuh dan sisa budget-mu aman, silakan beli dengan tenang!\n\n` +
+    let balanceAnalysis = "";
+    if (amount > 0) {
+      const remaining = balance - amount;
+      if (balance <= 0) {
+        balanceAnalysis = `\n\n⚠️ **Analisa Dompetmu**: Saldo aktifmu saat ini Rp 0 atau belum tercatat. Membeli ${formattedAmount} mungkin akan memicu defisit atau menghabiskan tabunganmu!`;
+      } else if (remaining < 0) {
+        balanceAnalysis = `\n\n⚠️ **Peringatan Saldo**: Total saldomu saat ini adalah Rp ${balance.toLocaleString("id-ID")}. Pembelian ${formattedAmount} ini melebihi total saldomu sebesar Rp ${Math.abs(remaining).toLocaleString("id-ID")}! Sangat disarankan untuk menunda pembelian ini.`;
+      } else {
+        const percentage = Math.round((amount / balance) * 100);
+        balanceAnalysis = `\n\n📊 **Analisa Saldo Dompetmu Real-time**:\n` +
+                          `- Total Saldo Aktif Saat Ini: Rp ${balance.toLocaleString("id-ID")}\n` +
+                          `- Harga Barang: ${formattedAmount} (${percentage}% dari total saldomu)\n` +
+                          `- Sisa Saldo Setelah Pembelian: Rp ${remaining.toLocaleString("id-ID")}\n\n` +
+                          `${percentage >= 50 ? `⚠️ Pembelian ini menguras sekitar ${percentage}% dari sisa saldomu (sisa tinggal Rp ${remaining.toLocaleString("id-ID")}). Pertimbangkan kembali apakah barang ini benar-benar esensial!` : '✅ Sisa saldomu masih relatif aman, tapi pastikan kebutuhan pokokmu bulan ini sudah terpenuhi!'}`;
+      }
+    }
+
+    return `Mengenai rencana pembelian ${formattedAmount}, berikut beberapa pertimbangan berdasarkan data keuanganmu:${balanceAnalysis}\n\n` +
+           `1. 💡 **Aturan Budget 50/30/20**: Pastikan pengeluaran ini masuk dalam alokasi 30% Keinginan/Jajan, dan tidak mengganggu 50% Kebutuhan Pokok.\n` +
+           `2. 🛡️ **Dana Darurat**: Pastikan simpanan dana daruratmu tetap aman sebelum membeli barang non-esensial.\n` +
+           `3. ⏳ **Aturan 24 Jam**: Berikan jeda 24-48 jam. Jika setelahnya kamu masih merasa butuh dan sisa budget-mu aman, silakan beli dengan tenang!\n\n` +
            `Kalau mau dicatat langsung ke pengeluaran, kamu tinggal ketik: *"catat pengeluaran beli ${amount > 0 ? formattedAmount : 'barang'} "* ya! 😉`;
   }
 
   // Financial condition or health check
   if (text.includes("kondisi") || text.includes("sehat") || text.includes("keuangan saya") || text.includes("analisa") || text.includes("ringkasan") || text.includes("bagaimana")) {
-    const balance = financialContext?.summary?.balance || 0;
-    const income = financialContext?.summary?.totalIncome || 0;
-    const expense = financialContext?.summary?.totalExpense || 0;
-    return `Berikut ringkasan analisa kondisi keuanganmu saat ini:\n\n` +
-           `- 💵 Total Pemasukan: Rp ${income.toLocaleString("id-ID")}\n` +
-           `- 💸 Total Pengeluaran: Rp ${expense.toLocaleString("id-ID")}\n` +
-           `- 🏦 Sisa Saldo saat ini: Rp ${balance.toLocaleString("id-ID")}\n\n` +
+    return `Berikut ringkasan analisa kondisi keuanganmu saat ini berdasarkan data real-time:\n\n` +
+           `- 💵 Total Pemasukan Bulan Ini: Rp ${income.toLocaleString("id-ID")}\n` +
+           `- 💸 Total Pengeluaran Bulan Ini: Rp ${expense.toLocaleString("id-ID")}\n` +
+           `- 🏦 Total Saldo Aktif: Rp ${balance.toLocaleString("id-ID")}\n\n` +
            `Saran dari MOODUIT AI Advisor: Jaga pengeluaran rutin agar tetap berada di bawah 50% dari total pemasukan, dan alokasikan minimal 20% untuk tabungan/dana darurat! 👍`;
   }
 
   // Savings / Investment / Goals
   if (text.includes("nabung") || text.includes("tabungan") || text.includes("investasi") || text.includes("impian") || text.includes("wishlist") || text.includes("cepat")) {
     return `Berikut tips menabung efektif dari MOODUIT AI Advisor:\n\n` +
-           `1. 🎯 **Prinsip Pay Yourself First**: Sisihkan minimal 20% begitu menerima pemasukan sebelum dipakai untuk jajan.\n` +
+           `1. 🎯 **Prinsip Pay Yourself First**: Sisihkan minimal 20% dari total pemasukanmu (Rp ${income > 0 ? income.toLocaleString("id-ID") : 'pemasukanmu'}) begitu cair.\n` +
            `2. 📌 **Gunakan Target Impian**: Buat target spesifik di menu Wishlist MOODUIT untuk memantau progres secara berkala.\n` +
            `3. 📉 **Evaluasi Kebocoran Halus**: Cek transaksi rutin seperti jajan kopi harian atau langganan yang jarang dipakai.\n\n` +
-           `Konsistensi kecil setiap hari akan membawa hasil besar dalam jangka panjang! 🚀`;
+           `Total saldomu saat ini Rp ${balance.toLocaleString("id-ID")}. Konsistensi kecil setiap hari akan membawa hasil besar! 🚀`;
   }
 
   return `Sebagai MOODUIT AI Advisor, saya siap membantumu mengelola keuangan secara bijak! Kamu bisa berkonsultasi mengenai alokasi budget 50/30/20, evaluasi rencana belanja, tips menabung, atau meminta saya mencatat transaksi baru secara langsung. Ada yang ingin kamu diskusikan lagi? 😊`;
@@ -1477,10 +1494,27 @@ app.post("/api/chat", async (req, res) => {
       };
     }
 
+    const totalBalance = financialContext?.totalBalance ?? financialContext?.summary?.balance ?? 0;
+    const totalIncome = financialContext?.totalIncome ?? financialContext?.summary?.totalIncome ?? 0;
+    const totalExpense = financialContext?.totalExpense ?? financialContext?.summary?.totalExpense ?? 0;
+
+    const userStats = `
+[DATA KEUANGAN AKTUAL PENGGUNA SAAT INI]:
+- Total Saldo Aktif: Rp ${totalBalance.toLocaleString('id-ID')}
+- Total Pemasukan Bulan Ini: Rp ${totalIncome.toLocaleString('id-ID')}
+- Total Pengeluaran Bulan Ini: Rp ${totalExpense.toLocaleString('id-ID')}
+`;
+
     const systemInstruction = 
       `Kamu adalah MOODUIT AI Advisor, konsultan keuangan pribadi Gen Z yang cerdas dan santai.\n\n` +
-      `ATURAN KERJA:\n` +
-      `- KASUS 1 (Konsultasi / Tanya Jawab / Diskusi): Jika user bertanya opini, tips, atau diskusi (misal: "boleh gak beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), berikan analisa finansial yang logis, santai, dan langsung menjawab pertanyaannya. JANGAN keluarkan format JSON sama sekali!\n` +
+      `${userStats}\n\n` +
+      `ATURAN KHUSUS ANALISA KEUANGAN:\n` +
+      `- Kamu WAJIB membaca [DATA KEUANGAN AKTUAL PENGGUNA SAAT INI] sebelum menjawab pertanyaan konsultasi.\n` +
+      `- JIKA pengguna bertanya apakah boleh membeli barang/jasa seharga X (misal: "gimana kalau beli jam 200rb?"), langsung bandingkan harga barang X tersebut dengan Total Saldo Aktif mereka! Hitung persentase nominal X terhadap Total Saldo Aktif dan sebutkan berapa sisa saldo mereka jika dibeli.\n` +
+      `- Berikan jawaban yang praktis dan empatik. Contoh: Jika saldo tinggal Rp 350.000 dan pengguna ingin beli barang Rp 200.000, peringatkan dengan ramah bahwa pembelian itu akan menguras sekitar 57% dari sisa saldo mereka (sisa tinggal Rp 150.000), dan berikan saran apakah itu aman atau sebaiknya ditunda.\n` +
+      `- Hindari jawaban teori umum yang terlalu panjang jika kamu sudah tahu angka pasti uang pengguna. Bicara langsung berdasarkan angka nyata dompet mereka!\n\n` +
+      `ATURAN KERJA UTAMA:\n` +
+      `- KASUS 1 (Konsultasi / Tanya Jawab / Diskusi): Jika user bertanya opini, tips, atau diskusi (misal: "boleh gak beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), berikan analisa finansial yang logis, santai, dan langsung menjawab pertanyaannya berdasarkan data keuangan aktual. JANGAN keluarkan format JSON sama sekali!\n` +
       `- KASUS 2 (Perintah Catat Transaksi): HANYA JIKA user menyuruh mencatat pemasukan/pengeluaran, balas dengan konfirmasi ramah DAN sertakan blok JSON di akhir teks berformat persis seperti ini:\n\n` +
       `\`\`\`json\n` +
       `{\n` +
