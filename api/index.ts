@@ -1452,37 +1452,30 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       }
     }
 
-    // Parse responseText to extract JSON action payload and clean reply text
-    let cleanReply = responseText || "";
+    // Safe JSON extraction: parse Gemini response on server side safely
+    let rawResponse = responseText || "";
+    let cleanReply = rawResponse;
     let actionPayload: any = null;
 
     try {
-      const markdownMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-      if (markdownMatch && markdownMatch[1]) {
-        const parsed = JSON.parse(markdownMatch[1].trim());
+      // Look for JSON block containing action: ADD_TRANSACTION or transaction details
+      const jsonRegex = /\{[\s\S]*?"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i;
+      const match = rawResponse.match(jsonRegex) || 
+                    rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+
+      if (match && match[0]) {
+        let jsonCandidate = match[1] ? match[1].trim() : match[0].trim();
+        if (jsonCandidate.startsWith("```")) {
+          jsonCandidate = jsonCandidate.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+        }
+        const parsed = JSON.parse(jsonCandidate);
         if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
           actionPayload = parsed;
-          cleanReply = responseText.replace(markdownMatch[0], "").trim();
+          cleanReply = rawResponse.replace(match[0], "").trim();
         }
       }
-    } catch (e) {
-      console.warn("[Server /api/chat] Markdown JSON parse attempt:", e);
-    }
-
-    if (!actionPayload) {
-      try {
-        const rawMatch = responseText.match(/\{\s*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i) ||
-                         responseText.match(/\{\s*"type"\s*:[\s\S]*?"amount"\s*:[\s\S]*?\}/i);
-        if (rawMatch) {
-          const parsed = JSON.parse(rawMatch[0]);
-          if (parsed && (parsed.action === "ADD_TRANSACTION" || parsed.amount || parsed.type)) {
-            actionPayload = parsed;
-            cleanReply = responseText.replace(rawMatch[0], "").trim();
-          }
-        }
-      } catch (e) {
-        console.warn("[Server /api/chat] Raw JSON parse attempt:", e);
-      }
+    } catch (parseError) {
+      console.warn("[Safe Parse Info]: Non-transaction message or parse skipped.");
     }
 
     cleanReply = cleanReply.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
@@ -1493,10 +1486,10 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       cleanReply = `Sip! Transaksi ${notes} sebesar Rp ${nom.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
     }
 
-    res.json({ 
-      reply: cleanReply,
-      text: cleanReply,
-      actionPayload: actionPayload
+    return res.json({ 
+      reply: cleanReply || "Halo! Ada yang bisa saya bantu untuk catatan keuanganmu hari ini?", 
+      text: cleanReply || "Halo! Ada yang bisa saya bantu untuk catatan keuanganmu hari ini?",
+      actionPayload: actionPayload 
     });
   } catch (error: any) {
     const rawErrStr = error?.message || String(error);
@@ -1514,13 +1507,19 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
     if (isKeyError) {
       console.warn("[AI Chat Backend] API key unconfigured or invalid, returning friendly response.");
       return res.json({ 
-        text: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏" 
+        reply: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏",
+        text: "Halo! API Key Gemini belum terpasang atau API Key tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau melalui menu Pengaturan aplikasi ya! 🙏",
+        actionPayload: null
       });
     }
 
     console.warn("[AI Chat Backend] Gemini API issue handled, returning friendly user response:", rawErrStr);
     const friendlyMsg = "Waduh Mas Arul, server AI sedang antre ramai banget nih! 😅 Coba kirim ulang pertanyaanmu beberapa detik lagi ya 🙏";
-    return res.json({ text: friendlyMsg });
+    return res.json({ 
+      reply: friendlyMsg, 
+      text: friendlyMsg, 
+      actionPayload: null 
+    });
   }
 });
 
