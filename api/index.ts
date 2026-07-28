@@ -1260,6 +1260,31 @@ function parseSmartTransactionFallback(userMessage: string) {
   if (!userMessage) return null;
   const text = userMessage.toLowerCase();
   
+  // If message looks like a question or consultation rather than an explicit command to record a transaction, do not auto-record
+  const isQuestionOrConsultation = 
+    text.includes("?") || 
+    text.includes("gimana") || 
+    text.includes("bagaimana") || 
+    text.includes("boleh") || 
+    text.includes("haruskah") || 
+    text.includes("apakah") || 
+    text.includes("saran") || 
+    text.includes("konsultasi") || 
+    text.includes("menurut") || 
+    text.includes("kenapa") ||
+    text.includes("saranmu");
+
+  const isExplicitRecordCommand = 
+    text.includes("catat") || 
+    text.includes("rekam") || 
+    text.includes("masukkan") || 
+    text.includes("tambah") || 
+    text.includes("input");
+
+  if (isQuestionOrConsultation && !isExplicitRecordCommand) {
+    return null;
+  }
+
   let amount = 0;
   const rbMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:rb|k|ribu)/i);
   const jtMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:jt|juta)/i);
@@ -1290,7 +1315,7 @@ function parseSmartTransactionFallback(userMessage: string) {
     else if (text.includes("listrik") || text.includes("air") || text.includes("internet") || text.includes("kos") || text.includes("tagihan") || text.includes("pulsa")) category = "Tagihan";
     else if (text.includes("film") || text.includes("game") || text.includes("nonton") || text.includes("hiburan")) category = "Hiburan";
     else if (text.includes("obat") || text.includes("dokter") || text.includes("kesehatan") || text.includes("apotek")) category = "Kesehatan";
-    else if (text.includes("baju") || text.includes("sepatu") || text.includes("belanja") || text.includes("baju")) category = "Belanja";
+    else if (text.includes("baju") || text.includes("sepatu") || text.includes("belanja")) category = "Belanja";
     else if (text.includes("beras") || text.includes("sembako") || text.includes("pokok") || text.includes("pasar")) category = "Kebutuhan Pokok";
   }
 
@@ -1301,7 +1326,7 @@ function parseSmartTransactionFallback(userMessage: string) {
     notes = category;
   }
 
-  if (amount > 0 && (text.includes("catat") || text.includes("tambah") || text.includes("masukkan") || text.includes("beli") || text.includes("pengeluaran") || text.includes("pemasukan") || text.includes("bayar"))) {
+  if (amount > 0 && (isExplicitRecordCommand || text.includes("pengeluaran") || text.includes("pemasukan"))) {
     return {
       action: "ADD_TRANSACTION",
       type,
@@ -1397,21 +1422,17 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const systemInstruction = 
-      `Kamu adalah MOODUIT AI Advisor, penasihat keuangan pribadi yang empatik, cerdas, dan jujur. ` +
-      `Gaya bicaramu suportif, sedikit jenaka, dan sangat mengedukasi tentang keuangan sehat. ` +
-      `Gunakan alokasi anggaran 50/30/20 (50% Kebutuhan, 30% Keinginan, 20% Tabungan/Investasi) sebagai landasan saranmu. ` +
-      `Selalu analisa pertanyaan user secara mendalam berdasarkan data financialContext yang diberikan. ` +
-      `Jika user bertanya "bagaimana kondisi keuangan saya?" (atau pertanyaan serupa tentang kesehatan keuangan mereka), kamu WAJIB menganalisa data asli tersebut secara konkret dan menyebutkan sisa alokasi budget asli mereka (Kebutuhan Pokok, Jajan, Dana Darurat), pengeluaran terbesar dari daftar transaksi terakhir (recentTransactions), dan progres tabungan/wishlist mereka (savingsGoals), BUKAN sekadar teori umum. ` +
-      `Selalulah menjawab sesuai bahasa yang dipilih pengguna (Bahasa Indonesia atau English). Default: Bahasa Indonesia.\n\n` +
-      `SISTEM PENCATATAN TRANSAKSI PINTAR (SMART ACTION TRIGGER):\n` +
-      `Jika user meminta untuk mencatat, merekam, memasukkan, atau menambah transaksi baru (seperti "tolong catat pengeluaran beli kopi 25rb hari ini" atau "catat pemasukan freelance 500.000"), kamu wajib memproses data nominal, kategori, jenis transaksi (income/expense), dan deskripsi catatan, kemudian di bagian PALING AKHIR responsmu wajib menyertakan blok JSON berformat persis seperti ini:\n\n` +
+      `Kamu adalah MOODUIT AI Advisor, asisten dan konsultan keuangan pribadi khas Gen Z yang ramah, santai, empatik, dan cerdas.\n\n` +
+      `ATURAN KERJA:\n` +
+      `a. JIKA pengguna mengajak berdiskusi, meminta tips, atau bertanya opini keuangan (misal: "boleh gak aku beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), JAWABLAH dengan nasehat finansial yang bijak, analitis, santai, dan berikan pertimbangan (misal: ingatkan soal aturan 50/30/20 atau cek apakah dana darurat sudah aman, gunakan data financialContext jika relevan). JANGAN keluarkan format JSON sama sekali!\n` +
+      `b. JIKA DAN HANYA JIKA pengguna secara eksplisit menyuruh mencatat, menambah, merekam, atau memasukkan transaksi pemasukan/pengeluaran (misal: "tolong catat pengeluaran beli kopi 25rb", "catat gajian 5jt"), balas dengan konfirmasi ramah DAN sertakan blok JSON di bagian PALING AKHIR responsmu berformat persis seperti ini:\n\n` +
       `\`\`\`json\n` +
       `{\n` +
       `  "action": "ADD_TRANSACTION",\n` +
       `  "type": "expense" atau "income",\n` +
       `  "amount": <angka integer nominal tanpa tanda titik/koma/simbol>,\n` +
-      `  "category": "<Kategori standar paling sesuai>\",\n` +
-      `  "notes": "<deskripsi singkat catatan transaksi>\"\n` +
+      `  "category": "<Kategori standar paling sesuai>",\n` +
+      `  "notes": "<deskripsi singkat catatan transaksi>"\n` +
       `}\n` +
       `\`\`\`\n\n` +
       `Aturan Kategori Standar MOODUIT:\n` +
@@ -1426,7 +1447,7 @@ app.post("/api/chat", async (req, res) => {
       `- "Gaji" (untuk pemasukan utama bulanan)\n` +
       `- "Investasi" (untuk saham, emas, reksa dana)\n` +
       `- "Lainnya" (jika tidak masuk ke kategori mana pun)\n\n` +
-      `Sangat penting: Jangan sertakan blok JSON ini jika pengguna hanya berkonsultasi atau mengobrol biasa tanpa meminta pencatatan transaksi baru.`;
+      `Sangat penting: Jangan sertakan blok JSON ini jika pengguna hanya berkonsultasi, bertanya saran, atau mengobrol biasa tanpa meminta pencatatan transaksi baru.`;
 
     const userMessage = messages[messages.length - 1]?.text || "";
     const prompt = "Kamu adalah MOODUIT AI Advisor, penasihat keuangan pribadi yang empatik, cerdas, dan jujur. " +
