@@ -1338,10 +1338,65 @@ function parseSmartTransactionFallback(userMessage: string) {
   return null;
 }
 
+function generateSmartConsultationFallback(userMessage: string, financialContext: any): string {
+  if (!userMessage) {
+    return "Ada yang ingin kamu diskusikan tentang keuanganmu hari ini? Kamu bisa bertanya saran alokasi budget, target impian, atau tips penghematan! 😊";
+  }
+  const text = userMessage.toLowerCase();
+
+  let amount = 0;
+  const rbMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:rb|k|ribu)/i);
+  const jtMatch = text.match(/(\d+(?:[\.,]\d+)?)\s*(?:jt|juta)/i);
+  const plainNumMatch = text.match(/(?:rp\.?|sebesar)?\s*(\d{1,3}(?:\.\d{3})+|\d+)/i);
+  if (rbMatch) {
+    amount = Math.round(parseFloat(rbMatch[1].replace(',', '.')) * 1000);
+  } else if (jtMatch) {
+    amount = Math.round(parseFloat(jtMatch[1].replace(',', '.')) * 1000000);
+  } else if (plainNumMatch) {
+    amount = parseInt(plainNumMatch[1].replace(/\./g, ''), 10) || 0;
+  }
+
+  const formattedAmount = amount > 0 ? `Rp ${amount.toLocaleString("id-ID")}` : "barang tersebut";
+
+  // Inquiry about buying something or expenses
+  if (amount > 0 || text.includes("beli") || text.includes("jam") || text.includes("barang") || text.includes("sepatu") || text.includes("baju") || text.includes("hp") || text.includes("gadget")) {
+    return `Mengenai rencana pembelian ${formattedAmount}, berikut beberapa pertimbangan finansial yang bisa kamu cek:\n\n` +
+           `1. 💡 **Aturan Budget 50/30/20**: Pastikan pengeluaran ini masuk dalam alokasi 30% untuk Keinginan/Jajan, dan tidak mengganggu 50% Kebutuhan Pokok.\n` +
+           `2. 🛡️ **Dana Darurat**: Pastikan kamu sudah memiliki simpanan dana darurat yang cukup sebelum membeli barang non-esensial.\n` +
+           `3. ⏳ **Aturan 24 Jam**: Coba beri waktu 24-48 jam. Jika setelahnya kamu masih merasa sangat butuh dan sisa budget-mu aman, silakan beli dengan tenang!\n\n` +
+           `Kalau mau dicatat langsung ke pengeluaran, kamu tinggal ketik: *"catat pengeluaran beli ${amount > 0 ? formattedAmount : 'barang'} "* ya! 😉`;
+  }
+
+  // Financial condition or health check
+  if (text.includes("kondisi") || text.includes("sehat") || text.includes("keuangan saya") || text.includes("analisa") || text.includes("ringkasan") || text.includes("bagaimana")) {
+    const balance = financialContext?.summary?.balance || 0;
+    const income = financialContext?.summary?.totalIncome || 0;
+    const expense = financialContext?.summary?.totalExpense || 0;
+    return `Berikut ringkasan analisa kondisi keuanganmu saat ini:\n\n` +
+           `- 💵 Total Pemasukan: Rp ${income.toLocaleString("id-ID")}\n` +
+           `- 💸 Total Pengeluaran: Rp ${expense.toLocaleString("id-ID")}\n` +
+           `- 🏦 Sisa Saldo saat ini: Rp ${balance.toLocaleString("id-ID")}\n\n` +
+           `Saran dari MOODUIT AI Advisor: Jaga pengeluaran rutin agar tetap berada di bawah 50% dari total pemasukan, dan alokasikan minimal 20% untuk tabungan/dana darurat! 👍`;
+  }
+
+  // Savings / Investment / Goals
+  if (text.includes("nabung") || text.includes("tabungan") || text.includes("investasi") || text.includes("impian") || text.includes("wishlist") || text.includes("cepat")) {
+    return `Berikut tips menabung efektif dari MOODUIT AI Advisor:\n\n` +
+           `1. 🎯 **Prinsip Pay Yourself First**: Sisihkan minimal 20% begitu menerima pemasukan sebelum dipakai untuk jajan.\n` +
+           `2. 📌 **Gunakan Target Impian**: Buat target spesifik di menu Wishlist MOODUIT untuk memantau progres secara berkala.\n` +
+           `3. 📉 **Evaluasi Kebocoran Halus**: Cek transaksi rutin seperti jajan kopi harian atau langganan yang jarang dipakai.\n\n` +
+           `Konsistensi kecil setiap hari akan membawa hasil besar dalam jangka panjang! 🚀`;
+  }
+
+  return `Sebagai MOODUIT AI Advisor, saya siap membantumu mengelola keuangan secara bijak! Kamu bisa berkonsultasi mengenai alokasi budget 50/30/20, evaluasi rencana belanja, tips menabung, atau meminta saya mencatat transaksi baru secara langsung. Ada yang ingin kamu diskusikan lagi? 😊`;
+}
+
 app.post("/api/chat", async (req, res) => {
   let messages: any[] = [];
   let language = "id";
   let targetImpian: any[] = [];
+  let userMessage = "";
+  let financialContext: any = null;
 
   try {
     const db = getDb();
@@ -1350,12 +1405,13 @@ app.post("/api/chat", async (req, res) => {
     language = body.language || "id";
     targetImpian = body.targetImpian || [];
     const tempGeminiKey = body.tempGeminiKey || "";
+    userMessage = messages[messages.length - 1]?.text || "";
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
-    let financialContext = body.financialContext;
+    financialContext = body.financialContext;
     if (!financialContext) {
       // Build server-side fallback
       const user_email = body.user_email || req.headers["user-email"] || "";
@@ -1422,10 +1478,10 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const systemInstruction = 
-      `Kamu adalah MOODUIT AI Advisor, asisten dan konsultan keuangan pribadi khas Gen Z yang ramah, santai, empatik, dan cerdas.\n\n` +
+      `Kamu adalah MOODUIT AI Advisor, konsultan keuangan pribadi Gen Z yang cerdas dan santai.\n\n` +
       `ATURAN KERJA:\n` +
-      `a. JIKA pengguna mengajak berdiskusi, meminta tips, atau bertanya opini keuangan (misal: "boleh gak aku beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), JAWABLAH dengan nasehat finansial yang bijak, analitis, santai, dan berikan pertimbangan (misal: ingatkan soal aturan 50/30/20 atau cek apakah dana darurat sudah aman, gunakan data financialContext jika relevan). JANGAN keluarkan format JSON sama sekali!\n` +
-      `b. JIKA DAN HANYA JIKA pengguna secara eksplisit menyuruh mencatat, menambah, merekam, atau memasukkan transaksi pemasukan/pengeluaran (misal: "tolong catat pengeluaran beli kopi 25rb", "catat gajian 5jt"), balas dengan konfirmasi ramah DAN sertakan blok JSON di bagian PALING AKHIR responsmu berformat persis seperti ini:\n\n` +
+      `- KASUS 1 (Konsultasi / Tanya Jawab / Diskusi): Jika user bertanya opini, tips, atau diskusi (misal: "boleh gak beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), berikan analisa finansial yang logis, santai, dan langsung menjawab pertanyaannya. JANGAN keluarkan format JSON sama sekali!\n` +
+      `- KASUS 2 (Perintah Catat Transaksi): HANYA JIKA user menyuruh mencatat pemasukan/pengeluaran, balas dengan konfirmasi ramah DAN sertakan blok JSON di akhir teks berformat persis seperti ini:\n\n` +
       `\`\`\`json\n` +
       `{\n` +
       `  "action": "ADD_TRANSACTION",\n` +
@@ -1449,7 +1505,6 @@ app.post("/api/chat", async (req, res) => {
       `- "Lainnya" (jika tidak masuk ke kategori mana pun)\n\n` +
       `Sangat penting: Jangan sertakan blok JSON ini jika pengguna hanya berkonsultasi, bertanya saran, atau mengobrol biasa tanpa meminta pencatatan transaksi baru.`;
 
-    const userMessage = messages[messages.length - 1]?.text || "";
     const prompt = "Kamu adalah MOODUIT AI Advisor, penasihat keuangan pribadi yang empatik, cerdas, dan jujur. " +
 "BERIKUT ADALAH DATA KEUANGAN ASLI USER SAAT INI (Gunakan HANYA data ini untuk menjawab, JANGAN halusinasi/mengarang angka lain): \n" +
 JSON.stringify(financialContext, null, 2) + "\n\n" +
@@ -1464,7 +1519,6 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       };
     });
 
-    // Get Gemini API key cleanly without dummy invalid fallback strings
     const apiKey = getGeminiApiKey(tempGeminiKey);
     let responseText = "";
 
@@ -1504,7 +1558,7 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
                                errMsg.includes("403");
 
             if (isKeyError) {
-              throw err; // Stop retrying and fall through to smart fallback
+              throw err;
             }
 
             const isRetryable = errMsg.includes("503") || 
@@ -1535,7 +1589,6 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
 
     if (rawResponse) {
       try {
-        // Look for JSON block containing action: ADD_TRANSACTION or transaction details
         const jsonRegex = /\{[\s\S]*?"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*?\}/i;
         const match = rawResponse.match(jsonRegex) || 
                       rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -1558,16 +1611,14 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       cleanReply = cleanReply.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
     }
 
-    // Smart Local Fallback if Gemini didn't return text (e.g. unconfigured key or API error)
+    // Smart Local Fallback ONLY if Gemini didn't return text
     if (!cleanReply && !actionPayload) {
       const fallbackPayload = parseSmartTransactionFallback(userMessage);
       if (fallbackPayload) {
         actionPayload = fallbackPayload;
         cleanReply = `Sip! Transaksi ${fallbackPayload.notes} sebesar Rp ${fallbackPayload.amount.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
-      } else if (!apiKey) {
-        cleanReply = "Halo! API Key Gemini belum terpasang atau tidak valid. Silakan atur GEMINI_API_KEY yang valid di Vercel Environment Variables atau via menu Pengaturan. Kamu juga bisa meminta saya mencatat transaksi langsung, contoh: 'catat pengeluaran kopi 25rb'! 😊";
       } else {
-        cleanReply = "Halo! Saya MOODUIT AI Advisor. Ada yang bisa saya bantu tentang keuanganmu hari ini? Kamu bisa berkonsultasi atau minta saya mencatat transaksi, contoh: 'catat pengeluaran makan 30rb'! 😊";
+        cleanReply = generateSmartConsultationFallback(userMessage, financialContext);
       }
     }
 
@@ -1584,10 +1635,11 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
     });
   } catch (error: any) {
     const rawErrStr = error?.message || String(error);
-    const friendlyMsg = "Halo! Saya MOODUIT AI Advisor. Ada yang bisa saya bantu untuk catatan keuanganmu hari ini? 😊";
+    console.error("[/api/chat Error]:", rawErrStr);
+    const consultationFallback = generateSmartConsultationFallback(userMessage, financialContext);
     return res.json({ 
-      reply: friendlyMsg, 
-      text: friendlyMsg, 
+      reply: consultationFallback, 
+      text: consultationFallback, 
       actionPayload: null 
     });
   }
