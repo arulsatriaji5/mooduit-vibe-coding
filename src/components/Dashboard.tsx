@@ -716,11 +716,8 @@ export default function Dashboard({
     return { __html: escaped };
   };
 
-  React.useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [messages, isTyping]);
+  // Auto-scroll removed for AI responses so reading position remains stable.
+  // Scroll is triggered explicitly only when user sends a new message.
 
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
@@ -730,6 +727,13 @@ export default function Dashboard({
     setMessages(updatedMessages);
     setChatInput("");
     setIsTyping(true);
+
+    // Scroll to bottom only when user sends a message
+    setTimeout(() => {
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    }, 50);
 
     const user_email = localStorage.getItem("userEmail") || "";
 
