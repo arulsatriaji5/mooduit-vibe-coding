@@ -62,17 +62,30 @@ export default function App() {
         } else {
           // Sesi masih valid: Masuk otomatis ke Beranda DAN PERPANJANG durasi sesi 24 jam lagi dari sekarang (Rolling Session)
           authenticatedUser = savedSession.user;
+          const userEmail = authenticatedUser.email;
+          const savedLocalAvatar = userEmail ? localStorage.getItem(`avatar_${userEmail}`) : null;
+          const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+          const finalAvatar = authenticatedUser.picture || authenticatedUser.avatar || savedLocalAvatar || localStorage.getItem('userAvatar') || DEFAULT_AVATAR;
+          
+          authenticatedUser.picture = finalAvatar;
+          authenticatedUser.avatar = finalAvatar;
           setUser(authenticatedUser);
+
+          savedSession.user = authenticatedUser;
           savedSession.expiresAt = Date.now() + TWENTY_FOUR_HOURS;
-          localStorage.setItem('mooduit_session', JSON.stringify(savedSession));
-          localStorage.setItem('mooduit_user', JSON.stringify(authenticatedUser));
+          const safeSet = (k: string, v: string) => {
+            try { localStorage.setItem(k, v); } catch (e) { console.warn(`Storage quota exceeded for ${k}`); }
+          };
+          safeSet('mooduit_session', JSON.stringify(savedSession));
+          safeSet('mooduit_user', JSON.stringify(authenticatedUser));
           
           // Sinkronisasi data ke key lain untuk kompatibilitas penuh dengan komponen lain
-          localStorage.setItem('userName', authenticatedUser.name);
-          localStorage.setItem('userEmail', authenticatedUser.email);
-          localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
-          if (authenticatedUser.picture) {
-            localStorage.setItem('userAvatar', authenticatedUser.picture);
+          safeSet('userName', authenticatedUser.name);
+          safeSet('userEmail', authenticatedUser.email);
+          safeSet('authProvider', authenticatedUser.authProvider || 'local');
+          safeSet('userAvatar', finalAvatar);
+          if (userEmail) {
+            safeSet(`avatar_${userEmail}`, finalAvatar);
           }
         }
       } catch (e) {
@@ -229,38 +242,73 @@ export default function App() {
   };
 
   const handleAuth = (userData: any) => {
-    setUser(userData);
+    const userEmail = userData.email;
+    const savedLocalAvatar = userEmail ? localStorage.getItem(`avatar_${userEmail}`) : null;
+    const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+    const finalAvatar = userData.picture || userData.avatar || savedLocalAvatar || localStorage.getItem('userAvatar') || DEFAULT_AVATAR;
+
+    const normalizedUser = {
+      ...userData,
+      picture: finalAvatar,
+      avatar: finalAvatar
+    };
+
+    setUser(normalizedUser);
+
+    const safeSet = (k: string, v: string) => {
+      try { localStorage.setItem(k, v); } catch (e) { console.warn(`Storage quota exceeded for ${k}`); }
+    };
+
     const sessionData = {
-      user: userData,
+      user: normalizedUser,
       expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 Jam (Rolling)
     };
-    localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
-    localStorage.setItem('mooduit_user', JSON.stringify(userData));
-    localStorage.setItem('authProvider', userData.authProvider || 'local');
-    localStorage.setItem('userName', userData.name);
-    localStorage.setItem('userEmail', userData.email);
-    if (userData.picture) {
-      localStorage.setItem('userAvatar', userData.picture);
+    safeSet('mooduit_session', JSON.stringify(sessionData));
+    safeSet('mooduit_user', JSON.stringify(normalizedUser));
+    safeSet('authProvider', normalizedUser.authProvider || 'local');
+    safeSet('userName', normalizedUser.name);
+    safeSet('userEmail', normalizedUser.email);
+    safeSet('userAvatar', finalAvatar);
+    if (userEmail) {
+      safeSet(`avatar_${userEmail}`, finalAvatar);
     }
     setCurrentPage('dashboard');
-    localStorage.setItem('mooduit_current_page', 'dashboard');
+    safeSet('mooduit_current_page', 'dashboard');
   };
 
   const handleLogout = () => {
-    // Simpan preferensi tema dan bahasa agar tidak ikut terhapus
+    // Simpan preferensi tema, bahasa, serta per-user avatar agar tidak terhapus
     const savedTheme = localStorage.getItem('theme');
     const savedLanguage = localStorage.getItem('language');
     
-    // Hapus sesi secara eksplisit sesuai instruksi
+    // Backup per-user avatars (avatar_${email})
+    const savedAvatars: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('avatar_')) {
+        const val = localStorage.getItem(key);
+        if (val) savedAvatars[key] = val;
+      }
+    }
+    const currentUserEmail = user?.email || localStorage.getItem('userEmail');
+    const currentUserAvatar = localStorage.getItem('userAvatar');
+    if (currentUserEmail && currentUserAvatar) {
+      savedAvatars[`avatar_${currentUserEmail}`] = currentUserAvatar;
+    }
+
+    // Hapus sesi secara eksplisit
     localStorage.removeItem('mooduit_user');
     localStorage.removeItem('mooduit_session');
     
-    // Bersihkan seluruh data sesi (termasuk userName, profil, dll)
+    // Bersihkan seluruh data sesi
     localStorage.clear();
     
-    // Kembalikan preferensi tema dan bahasa
+    // Kembalikan preferensi tema, bahasa, dan avatar per-user
     if (savedTheme) localStorage.setItem('theme', savedTheme);
     if (savedLanguage) localStorage.setItem('language', savedLanguage);
+    Object.keys(savedAvatars).forEach(k => {
+      localStorage.setItem(k, savedAvatars[k]);
+    });
 
     // Hapus status user di state React
     setUser(null);

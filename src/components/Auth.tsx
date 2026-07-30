@@ -63,22 +63,32 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
 
           const backendUser = await syncRes.json();
 
-          localStorage.setItem('userId', backendUser.id);
-          localStorage.setItem('userName', backendUser.name);
-          localStorage.setItem('userEmail', backendUser.email);
-          localStorage.setItem('authProvider', backendUser.authProvider || 'google');
-          if (backendUser.picture) {
-            localStorage.setItem('userAvatar', backendUser.picture);
+          const savedLocalAvatar = backendUser.email ? localStorage.getItem(`avatar_${backendUser.email}`) : null;
+          const DEFAULT_ANIMATED_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+          const finalAvatar = backendUser.picture || backendUser.avatarUrl || savedLocalAvatar || localStorage.getItem('userAvatar') || DEFAULT_ANIMATED_AVATAR;
+
+          const safeSet = (k: string, v: string) => {
+            try { localStorage.setItem(k, v); } catch (e) { console.warn(`Storage quota exceeded for ${k}`); }
+          };
+
+          safeSet('userId', backendUser.id);
+          safeSet('userName', backendUser.name);
+          safeSet('userEmail', backendUser.email);
+          safeSet('authProvider', backendUser.authProvider || 'google');
+          safeSet('userAvatar', finalAvatar);
+          if (backendUser.email) {
+            safeSet(`avatar_${backendUser.email}`, finalAvatar);
           }
 
           const userData = {
             id: backendUser.id,
             name: backendUser.name,
             email: backendUser.email,
-            picture: backendUser.picture,
+            picture: finalAvatar,
+            avatar: finalAvatar,
             authProvider: backendUser.authProvider || 'google',
           };
-          localStorage.setItem('mooduit_user', JSON.stringify(userData));
+          safeSet('mooduit_user', JSON.stringify(userData));
 
           onAuth(userData);
 
@@ -266,22 +276,32 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       );
 
       // Simpan detail ke localStorage
-      localStorage.setItem('userId', data.id);
-      localStorage.setItem('userName', data.name);
-      localStorage.setItem('userEmail', data.email);
-      localStorage.setItem('authProvider', data.authProvider || 'local');
-      if (data.picture) {
-        localStorage.setItem('userAvatar', data.picture);
+      const savedLocalAvatar = data.email ? localStorage.getItem(`avatar_${data.email}`) : null;
+      const DEFAULT_ANIMATED_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+      const finalAvatar = data.picture || data.avatarUrl || savedLocalAvatar || localStorage.getItem('userAvatar') || DEFAULT_ANIMATED_AVATAR;
+
+      const safeSet = (k: string, v: string) => {
+        try { localStorage.setItem(k, v); } catch (e) { console.warn(`Storage quota exceeded for ${k}`); }
+      };
+
+      safeSet('userId', data.id);
+      safeSet('userName', data.name);
+      safeSet('userEmail', data.email);
+      safeSet('authProvider', data.authProvider || 'local');
+      safeSet('userAvatar', finalAvatar);
+      if (data.email) {
+        safeSet(`avatar_${data.email}`, finalAvatar);
       }
 
       const loginUserData = {
         id: data.id,
         name: data.name,
         email: data.email,
-        picture: data.picture,
+        picture: finalAvatar,
+        avatar: finalAvatar,
         authProvider: data.authProvider || 'local'
       };
-      localStorage.setItem('mooduit_user', JSON.stringify(loginUserData));
+      safeSet('mooduit_user', JSON.stringify(loginUserData));
 
       setTimeout(() => {
         onAuth(loginUserData);

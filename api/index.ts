@@ -826,6 +826,51 @@ app.post("/api/google-login", async (req, res) => {
   }
 });
 
+// Update Profile API (Name and Avatar Picture Persistence)
+app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
+  try {
+    const db = getDb();
+    const { email, name, picture, avatarUrl, profile_picture } = req.body;
+    const profilePic = picture || avatarUrl || profile_picture || "";
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const result = await db.execute({
+      sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+      args: [email]
+    });
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const existing = result.rows[0];
+    const updatedName = (name !== undefined && name !== null && String(name).trim() !== "") ? String(name).trim() : existing.name;
+    const updatedPic = (profilePic !== undefined && profilePic !== null && String(profilePic).trim() !== "") ? String(profilePic).trim() : existing.picture;
+
+    await db.execute({
+      sql: "UPDATE users SET name = ?, picture = ? WHERE LOWER(email) = LOWER(?)",
+      args: [updatedName, updatedPic, email]
+    });
+
+    res.json({
+      success: true,
+      user: {
+        id: existing.id,
+        name: updatedName,
+        email: existing.email,
+        picture: updatedPic,
+        authProvider: existing.authProvider
+      }
+    });
+  } catch (err: any) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/change-password", async (req, res) => {
   try {
     const db = getDb();

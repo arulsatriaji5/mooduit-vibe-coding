@@ -30,7 +30,9 @@ export default function Settings({ onLogout }: SettingsProps) {
   const darkMode = theme === 'dark';
 
   const [currentAvatar, setCurrentAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+    const email = localStorage.getItem('userEmail');
+    const savedLocalAvatar = email ? localStorage.getItem(`avatar_${email}`) : null;
+    return localStorage.getItem('userAvatar') || savedLocalAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
   });
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
@@ -66,23 +68,119 @@ export default function Settings({ onLogout }: SettingsProps) {
   // AVATAR FILE REF
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const safeStorageSet = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`localStorage quota exceeded or failed setting key '${key}':`, e);
+    }
+  };
+
+  const compressImage = (file: File, maxWidth = 256, maxHeight = 256, quality = 0.85): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(dataUrl);
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const syncProfileAndSession = async (newAvatar: string, newName: string) => {
+    safeStorageSet('userAvatar', newAvatar);
+    if (userEmail) {
+      safeStorageSet(`avatar_${userEmail}`, newAvatar);
+    }
+    safeStorageSet('userName', newName);
+
+    try {
+      const savedUserStr = localStorage.getItem('mooduit_user');
+      if (savedUserStr) {
+        const u = JSON.parse(savedUserStr);
+        u.picture = newAvatar;
+        u.avatar = newAvatar;
+        u.name = newName;
+        safeStorageSet('mooduit_user', JSON.stringify(u));
+      }
+      const savedSessionStr = localStorage.getItem('mooduit_session');
+      if (savedSessionStr) {
+        const s = JSON.parse(savedSessionStr);
+        if (s.user) {
+          s.user.picture = newAvatar;
+          s.user.avatar = newAvatar;
+          s.user.name = newName;
+          safeStorageSet('mooduit_session', JSON.stringify(s));
+        }
+      }
+    } catch (e) {
+      console.error('Error updating local session data:', e);
+    }
+
+    window.dispatchEvent(new Event('avatarChanged'));
+    window.dispatchEvent(new Event('profileUpdated'));
+
+    if (userEmail) {
+      try {
+        await fetch('/api/update-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar })
+        });
+      } catch (err) {
+        console.error('Failed to update profile to backend database:', err);
+      }
+    }
+  };
+
   const handleAvatarClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const resultStr = reader.result as string;
-        setCurrentAvatar(resultStr);
-        localStorage.setItem('userAvatar', resultStr);
-        window.dispatchEvent(new Event('avatarChanged'));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedDataUrl = await compressImage(file, 256, 256, 0.85);
+        if (compressedDataUrl) {
+          setCurrentAvatar(compressedDataUrl);
+          await syncProfileAndSession(compressedDataUrl, userName);
+        }
+      } catch (err) {
+        console.error('Error compressing image:', err);
+      }
     }
   };
 
@@ -469,17 +567,9 @@ export default function Settings({ onLogout }: SettingsProps) {
 
               {/* SAVE BUTTON */}
               <button 
-                onClick={() => {
-                  localStorage.setItem('userName', userName);
-                  localStorage.setItem('userAvatar', currentAvatar);
-                  
-                  // Fire custom event to notify Sidebar/Header/Layout of changes
-                  window.dispatchEvent(new Event('avatarChanged'));
-                  window.dispatchEvent(new Event('profileUpdated'));
-                  
+                onClick={async () => {
+                  await syncProfileAndSession(currentAvatar, userName);
                   toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
-
-                  // Return back to main settings
                   setActiveView('main');
                 }}
                 className="w-full mooduit-save-profile-btn"
@@ -550,9 +640,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                       key={idx}
                       onClick={() => {
                         setCurrentAvatar(avatar);
-                        localStorage.setItem('userAvatar', avatar);
-                        // Trigger event to notify layout/header to update avatar in real time
-                        window.dispatchEvent(new Event('avatarChanged'));
+                        syncProfileAndSession(avatar, userName);
                       }}
                       className={`relative flex items-center justify-center p-2 rounded-2xl transition-all duration-200 border-2 bg-slate-50 dark:bg-slate-700/50 hover:scale-105 active:scale-95 ${
                         isSelected 

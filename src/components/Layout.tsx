@@ -78,14 +78,18 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   });
 
   const [userAvatar, setUserAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`;
+    const email = localStorage.getItem('userEmail');
+    const savedLocalAvatar = email ? localStorage.getItem(`avatar_${email}`) : null;
+    return localStorage.getItem('userAvatar') || savedLocalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`;
   });
 
   React.useEffect(() => {
     const handleProfileChange = () => {
       const updatedName = localStorage.getItem('userName') || 'Arul Satriaji';
+      const email = localStorage.getItem('userEmail');
+      const savedLocalAvatar = email ? localStorage.getItem(`avatar_${email}`) : null;
       setUserName(updatedName);
-      setUserAvatar(localStorage.getItem('userAvatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`);
+      setUserAvatar(localStorage.getItem('userAvatar') || savedLocalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Arul`);
     };
     window.addEventListener('avatarChanged', handleProfileChange);
     window.addEventListener('profileUpdated', handleProfileChange);
