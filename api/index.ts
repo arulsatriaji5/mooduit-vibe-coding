@@ -551,21 +551,40 @@ app.post("/api/register", async (req, res) => {
       return res.status(400).json({ error: "Kolom wajib diisi" });
     }
 
-    const existingUser = await db.execute({
+    const cleanEmail = String(email).trim();
+    const existingUserRes = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-      args: [email]
+      args: [cleanEmail]
     });
-    if (existingUser.rows.length > 0) {
+
+    if (existingUserRes.rows.length > 0) {
+      const existingUser = existingUserRes.rows[0];
+      // Account Linking: If user exists without a password (e.g. Google OAuth user setting password)
+      if (!existingUser.password || String(existingUser.password).trim() === '') {
+        const updatedName = (existingUser.name && existingUser.name !== "Sobat Cuan") ? existingUser.name : name;
+        await db.execute({
+          sql: "UPDATE users SET password = ?, name = ?, authProvider = 'hybrid' WHERE LOWER(email) = LOWER(?)",
+          args: [password, updatedName, cleanEmail]
+        });
+        return res.status(200).json({
+          id: existingUser.id,
+          name: updatedName,
+          email: existingUser.email,
+          picture: existingUser.picture,
+          authProvider: 'hybrid',
+          message: "Akun Google Anda berhasil dihubungkan dengan kata sandi!"
+        });
+      }
       return res.status(400).json({ error: "Email sudah terdaftar!" });
     }
 
     const id = String(Date.now());
     await db.execute({
       sql: "INSERT INTO users (id, name, email, password, authProvider) VALUES (?, ?, ?, ?, 'local')",
-      args: [id, name, email, password]
+      args: [id, name, cleanEmail, password]
     });
 
-    res.status(201).json({ id, name, email, authProvider: 'local' });
+    res.status(201).json({ id, name, email: cleanEmail, authProvider: 'local' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -580,20 +599,26 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "Email dan kata sandi wajib diisi" });
     }
 
+    const cleanEmail = String(email).trim();
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-      args: [email]
+      args: [cleanEmail]
     });
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Email tidak terdaftar!" });
     }
 
     const user = result.rows[0];
-    if (user.password !== password) {
+    if (user.password && user.password !== password) {
       return res.status(401).json({ error: "Kata sandi salah!" });
     }
 
-    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider });
+    if (!user.password && user.authProvider === 'google') {
+      return res.status(400).json({ error: "Akun ini terdaftar via Google. Silakan masuk menggunakan tombol Google!" });
+    }
+
+    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider || 'local' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -668,12 +693,15 @@ app.get('/api/auth/google/callback', async (req, res) => {
       }
     }
 
-    // Jika email berhasil diperoleh, simpan ke database Turso jika belum ada
+    // Jika email berhasil diperoleh, gabungkan / tautkan akun di database
     if (email) {
+      const cleanEmail = String(email).trim();
       const result = await db.execute({
         sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-        args: [email]
+        args: [cleanEmail]
       });
+
+      let dbUser: any = null;
 
       if (result.rows.length === 0) {
         const id = String(Date.now());
@@ -681,15 +709,53 @@ app.get('/api/auth/google/callback', async (req, res) => {
         const userName = name || "Sobat Cuan";
         await db.execute({
           sql: "INSERT INTO users (id, name, email, picture, authProvider) VALUES (?, ?, ?, ?, 'google')",
-          args: [id, userName, email, userPicture]
+          args: [id, userName, cleanEmail, userPicture]
         });
+        dbUser = { id, name: userName, email: cleanEmail, picture: userPicture, authProvider: 'google' };
+      } else {
+        // MERGE / LINK ACCOUNT: Email already exists in users table!
+        dbUser = result.rows[0];
+        let needsUpdate = false;
+        let newProvider = dbUser.authProvider || 'google';
+        if (dbUser.authProvider === 'local') {
+          newProvider = 'hybrid';
+          needsUpdate = true;
+        }
+
+        // Preserve existing custom name unless empty or default
+        let updatedName = dbUser.name;
+        if (!updatedName || updatedName === "Sobat Cuan") {
+          if (name && name !== "Sobat Cuan") {
+            updatedName = name;
+            needsUpdate = true;
+          }
+        }
+
+        // Preserve existing custom picture unless empty
+        let updatedPic = dbUser.picture;
+        if (!updatedPic || updatedPic.trim() === "") {
+          if (picture && picture.trim() !== "") {
+            updatedPic = picture;
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
+          await db.execute({
+            sql: "UPDATE users SET name = ?, picture = ?, authProvider = ? WHERE LOWER(email) = LOWER(?)",
+            args: [updatedName || "Sobat Cuan", updatedPic || "", newProvider, cleanEmail]
+          });
+          dbUser.name = updatedName || name || "Sobat Cuan";
+          dbUser.picture = updatedPic || picture || "";
+          dbUser.authProvider = newProvider;
+        }
       }
 
       // Generate a session token
       const sessionToken = crypto.randomBytes(32).toString("hex");
 
-      // Lakukan redirect ke dashboard dengan menyertakan informasi user dan token sebagai query parameter sesuai instruksi
-      const redirectUrl = `/dashboard?token=${sessionToken}&email=${encodeURIComponent(email)}&oauth_email=${encodeURIComponent(email)}&oauth_name=${encodeURIComponent(name)}&oauth_picture=${encodeURIComponent(picture)}`;
+      // Redirect to dashboard carrying the unified linked profile info
+      const redirectUrl = `/dashboard?token=${sessionToken}&email=${encodeURIComponent(cleanEmail)}&oauth_email=${encodeURIComponent(cleanEmail)}&oauth_name=${encodeURIComponent(dbUser.name || name)}&oauth_picture=${encodeURIComponent(dbUser.picture || picture)}&id=${encodeURIComponent(dbUser.id)}`;
       return res.redirect(redirectUrl);
     }
 
@@ -801,9 +867,10 @@ app.post("/api/google-login", async (req, res) => {
       return res.status(400).json({ error: "Email is required" });
     }
 
+    const cleanEmail = String(email).trim();
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-      args: [email]
+      args: [cleanEmail]
     });
 
     let user;
@@ -813,11 +880,46 @@ app.post("/api/google-login", async (req, res) => {
       const userName = name || "Sobat Cuan";
       await db.execute({
         sql: "INSERT INTO users (id, name, email, picture, authProvider) VALUES (?, ?, ?, ?, 'google')",
-        args: [id, userName, email, userPicture]
+        args: [id, userName, cleanEmail, userPicture]
       });
-      user = { id, name: userName, email, picture: userPicture, authProvider: 'google' };
+      user = { id, name: userName, email: cleanEmail, picture: userPicture, authProvider: 'google' };
     } else {
+      // MERGE / LINK ACCOUNT: Existing account found by email!
       user = result.rows[0];
+      let needsUpdate = false;
+      let newProvider = user.authProvider || 'google';
+      if (user.authProvider === 'local') {
+        newProvider = 'hybrid';
+        needsUpdate = true;
+      }
+
+      // Preserve existing custom name unless empty
+      let updatedName = user.name;
+      if (!updatedName || updatedName === "Sobat Cuan") {
+        if (name && name !== "Sobat Cuan") {
+          updatedName = name;
+          needsUpdate = true;
+        }
+      }
+
+      // Preserve existing custom picture unless empty
+      let updatedPic = user.picture;
+      if (!updatedPic || updatedPic.trim() === "") {
+        if (picture && picture.trim() !== "") {
+          updatedPic = picture;
+          needsUpdate = true;
+        }
+      }
+
+      if (needsUpdate) {
+        await db.execute({
+          sql: "UPDATE users SET name = ?, picture = ?, authProvider = ? WHERE LOWER(email) = LOWER(?)",
+          args: [updatedName || "Sobat Cuan", updatedPic || "", newProvider, cleanEmail]
+        });
+        user.name = updatedName || name || "Sobat Cuan";
+        user.picture = updatedPic || picture || "";
+        user.authProvider = newProvider;
+      }
     }
 
     res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider });
@@ -826,7 +928,40 @@ app.post("/api/google-login", async (req, res) => {
   }
 });
 
-// Update Profile API (Name and Avatar Picture Persistence)
+// GET Profile API (Fetch profile by email)
+app.get(["/api/users/profile", "/api/user-profile", "/api/me"], async (req, res) => {
+  try {
+    const db = getDb();
+    const email = req.query.email || req.query.user_email || req.headers["user-email"];
+
+    if (!email) {
+      return res.status(400).json({ error: "Email parameter is required" });
+    }
+
+    const cleanEmail = String(email).trim();
+    const result = await db.execute({
+      sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+      args: [cleanEmail]
+    });
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture,
+      authProvider: user.authProvider
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Profile API (Name and Avatar Picture Persistence with UPSERT)
 app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
   try {
     const db = getDb();
@@ -837,13 +972,25 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
       return res.status(400).json({ error: "Email is required" });
     }
 
+    const cleanEmail = String(email).trim();
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
-      args: [email]
+      args: [cleanEmail]
     });
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      // Upsert: Create user if not present yet
+      const id = String(Date.now());
+      const userName = (name !== undefined && name !== null && String(name).trim() !== "") ? String(name).trim() : (cleanEmail.split('@')[0] || "Sobat Cuan");
+      const userPic = profilePic || "";
+      await db.execute({
+        sql: "INSERT INTO users (id, name, email, picture, authProvider) VALUES (?, ?, ?, ?, 'local')",
+        args: [id, userName, cleanEmail, userPic]
+      });
+      return res.json({
+        success: true,
+        user: { id, name: userName, email: cleanEmail, picture: userPic, authProvider: 'local' }
+      });
     }
 
     const existing = result.rows[0];
@@ -852,7 +999,7 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
 
     await db.execute({
       sql: "UPDATE users SET name = ?, picture = ? WHERE LOWER(email) = LOWER(?)",
-      args: [updatedName, updatedPic, email]
+      args: [updatedName, updatedPic, cleanEmail]
     });
 
     res.json({
@@ -1724,43 +1871,114 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
   }
 });
 
-app.get("/api/cron/monthly-report", async (req, res) => {
-  try {
-    const db = getDb();
-    
-    // Get current year and month (YYYY-MM)
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const currentMonthStr = `${year}-${month}`; // e.g. "2026-07"
-    
-    // Fetch all transactions for the current month
-    const txResult = await db.execute({
-      sql: "SELECT * FROM transactions WHERE created_at LIKE ?",
-      args: [`${currentMonthStr}%`]
+// Shared Monthly Financial Email Report Processing Handler
+async function processMonthlyFinancialReport(targetEmail?: string) {
+  const db = getDb();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const currentMonthStr = `${year}-${month}`; // e.g. "2026-08" or "2026-07"
+
+  let userList: any[] = [];
+
+  if (targetEmail) {
+    const userRes = await db.execute({
+      sql: "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+      args: [String(targetEmail).trim()]
     });
+    if (userRes.rows && userRes.rows.length > 0) {
+      userList = userRes.rows;
+    } else {
+      userList = [{ email: String(targetEmail).trim(), name: String(targetEmail).split('@')[0] }];
+    }
+  } else {
+    const usersRes = await db.execute("SELECT * FROM users");
+    const existingUsers = usersRes.rows || [];
     
-    const transactions = txResult.rows;
-    const totalIncome = transactions.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    const totalExpense = transactions.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    const totalSaldo = totalIncome - totalExpense;
+    // Also find distinct user_email from transactions to ensure no user is missed
+    const txUsersRes = await db.execute("SELECT DISTINCT user_email FROM transactions WHERE user_email IS NOT NULL AND user_email != ''");
+    const txEmails = (txUsersRes.rows || []).map((r: any) => String(r.user_email).trim());
     
-    // Get all users
-    const usersResult = await db.execute("SELECT * FROM users");
-    const users = usersResult.rows;
-    
-    const smtpEmail = process.env.VITE_SMTP_EMAIL || process.env.SMTP_EMAIL;
-    const smtpPassword = process.env.VITE_SMTP_PASSWORD || process.env.SMTP_PASSWORD;
-    
-    let emailsSent = 0;
-    
-    // Helper function to send email
-    const sendReportEmail = async (user: any) => {
-      if (!smtpEmail || !smtpPassword) {
-        console.warn(`SMTP not configured. Skipping email send for ${user.email}`);
-        return false;
+    const userMap = new Map<string, any>();
+    for (const u of existingUsers) {
+      if (u.email) {
+        userMap.set(String(u.email).toLowerCase(), u);
       }
-      
+    }
+    for (const e of txEmails) {
+      if (e && !userMap.has(e.toLowerCase())) {
+        userMap.set(e.toLowerCase(), { email: e, name: e.split('@')[0] });
+      }
+    }
+    userList = Array.from(userMap.values());
+  }
+
+  const smtpEmail = process.env.VITE_SMTP_EMAIL || process.env.SMTP_EMAIL;
+  const smtpPassword = process.env.VITE_SMTP_PASSWORD || process.env.SMTP_PASSWORD;
+
+  const results: any[] = [];
+  let emailsSent = 0;
+
+  for (const user of userList) {
+    const userEmail = user.email || user.user_email;
+    if (!userEmail) continue;
+
+    // 1. Fetch ALL transactions for this specific user
+    const userTxResult = await db.execute({
+      sql: "SELECT * FROM transactions WHERE LOWER(user_email) = LOWER(?) ORDER BY created_at DESC",
+      args: [String(userEmail).trim()]
+    });
+
+    const userTransactions = userTxResult.rows || [];
+
+    // 2. Filter transactions for the current month
+    let monthTransactions = userTransactions.filter((t: any) => {
+      const createdAt = String(t.created_at || "").trim();
+      if (!createdAt) return true;
+      if (createdAt.startsWith(currentMonthStr)) return true;
+      if (createdAt.includes(`/${month}/${year}`) || createdAt.includes(`-${month}-${year}`) || createdAt.includes(`${year}/${month}`)) return true;
+      const d = new Date(createdAt);
+      if (!isNaN(d.getTime())) {
+        return d.getFullYear() === year && (d.getMonth() + 1) === Number(month);
+      }
+      return false;
+    });
+
+    // Fallback: If no transactions found strictly in current month string, but user has transactions in DB,
+    // use all user's transactions so the email report reflects the user's actual financial data
+    if (monthTransactions.length === 0 && userTransactions.length > 0) {
+      monthTransactions = userTransactions;
+    }
+
+    // 3. Aggregate Total Income, Total Expense, Net Balance
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    monthTransactions.forEach((t: any) => {
+      const typeStr = String(t.type || t.jenis || "").toLowerCase();
+      const isIncome = typeStr === "income" || typeStr === "pemasukan";
+      const isExpense = typeStr === "expense" || typeStr === "pengeluaran";
+      const amt = Number(t.amount !== undefined && t.amount !== null && t.amount !== "" ? t.amount : (t.nominal || 0));
+
+      if (isIncome) {
+        totalIncome += amt;
+      } else if (isExpense) {
+        totalExpense += amt;
+      }
+    });
+
+    const netBalance = totalIncome - totalExpense;
+
+    // 4. Format numbers as IDR
+    const formattedIncome = `Rp ${totalIncome.toLocaleString('id-ID')}`;
+    const formattedExpense = `Rp ${totalExpense.toLocaleString('id-ID')}`;
+    const formattedBalance = `Rp ${netBalance.toLocaleString('id-ID')}`;
+
+    const userName = user.name || String(userEmail).split('@')[0] || "Sobat Cuan";
+
+    let sentStatus = false;
+
+    if (smtpEmail && smtpPassword) {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -1768,10 +1986,10 @@ app.get("/api/cron/monthly-report", async (req, res) => {
           pass: smtpPassword,
         },
       });
-      
+
       const mailOptions = {
         from: `"MOODUIT Financial Report" <${smtpEmail}>`,
-        to: user.email,
+        to: userEmail,
         subject: `Laporan Keuangan Bulanan MOODUIT - Bulan ${month}/${year}`,
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #f1f5f9; border-radius: 16px; background-color: #ffffff; color: #1e293b;">
@@ -1781,24 +1999,24 @@ app.get("/api/cron/monthly-report", async (req, res) => {
             </div>
             
             <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #112F58;">
-              <h3 style="margin: 0 0 8px 0; color: #112F58; font-size: 16px; font-weight: 700;">Halo, ${user.name}! 👋</h3>
+              <h3 style="margin: 0 0 8px 0; color: #112F58; font-size: 16px; font-weight: 700;">Halo, ${userName}! 👋</h3>
               <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.5;">Berikut adalah rekapitulasi performa keuangan bulanan Anda untuk periode <strong>${month}/${year}</strong> yang dianalisis secara otomatis oleh sistem kami.</p>
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px;">
               <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; text-align: left;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #15803d; display: block; margin-bottom: 4px;">📈 TOTAL PEMASUKAN</span>
-                <strong style="font-size: 20px; color: #16a34a; font-family: monospace;">Rp ${totalIncome.toLocaleString('id-ID')}</strong>
+                <strong style="font-size: 20px; color: #16a34a; font-family: monospace;">${formattedIncome}</strong>
               </div>
               
               <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; text-align: left;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b91c1c; display: block; margin-bottom: 4px;">📉 TOTAL PENGELUARAN</span>
-                <strong style="font-size: 20px; color: #dc2626; font-family: monospace;">Rp ${totalExpense.toLocaleString('id-ID')}</strong>
+                <strong style="font-size: 20px; color: #dc2626; font-family: monospace;">${formattedExpense}</strong>
               </div>
               
               <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; text-align: left;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0369a1; display: block; margin-bottom: 4px;">💼 SELISIH / SALDO NETTO</span>
-                <strong style="font-size: 20px; color: ${totalSaldo >= 0 ? '#0284c7' : '#dc2626'}; font-family: monospace;">Rp ${totalSaldo.toLocaleString('id-ID')}</strong>
+                <strong style="font-size: 20px; color: ${netBalance >= 0 ? '#0284c7' : '#dc2626'}; font-family: monospace;">${formattedBalance}</strong>
               </div>
             </div>
             
@@ -1809,40 +2027,59 @@ app.get("/api/cron/monthly-report", async (req, res) => {
           </div>
         `
       };
-      
+
       try {
         await transporter.sendMail(mailOptions);
-        return true;
-      } catch (err) {
-        console.error(`Failed to send email to ${user.email}:`, err);
-        return false;
+        sentStatus = true;
+        emailsSent++;
+      } catch (err: any) {
+        console.error(`Failed to send email to ${userEmail}:`, err);
       }
-    };
-    
-    for (const user of users) {
-      if (user.email) {
-        const sent = await sendReportEmail(user);
-        if (sent) emailsSent++;
-      }
+    } else {
+      console.warn(`SMTP credentials not set. Simulated report for ${userEmail}: Income=${formattedIncome}, Expense=${formattedExpense}, Net=${formattedBalance}`);
     }
-    
+
+    results.push({
+      email: userEmail,
+      userName,
+      totalIncome,
+      totalExpense,
+      netBalance,
+      formattedIncome,
+      formattedExpense,
+      formattedBalance,
+      emailSent: sentStatus
+    });
+  }
+
+  return {
+    success: true,
+    currentMonth: currentMonthStr,
+    processedUsers: userList.length,
+    emailsSent,
+    results
+  };
+}
+
+// Endpoint handlers supporting both GET/POST and /api/cron/monthly-report / /api/send-report
+const monthlyReportHandler = async (req: any, res: any) => {
+  try {
+    const reqEmail = req.query?.email || req.body?.email || req.query?.user_email || req.body?.user_email;
+    const reportSummary = await processMonthlyFinancialReport(reqEmail ? String(reqEmail).trim() : undefined);
     res.status(200).json({
-      success: true,
       message: "Laporan bulanan sukses diproses",
-      currentMonth: currentMonthStr,
-      processedUsers: users.length,
-      emailsSent: emailsSent,
-      totals: {
-        income: totalIncome,
-        expense: totalExpense,
-        net: totalSaldo
-      }
+      ...reportSummary
     });
   } catch (err: any) {
-    console.error("Monthly report cron error:", err);
+    console.error("Monthly report processing error:", err);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+app.get("/api/cron/monthly-report", monthlyReportHandler);
+app.post("/api/cron/monthly-report", monthlyReportHandler);
+app.get("/api/send-report", monthlyReportHandler);
+app.post("/api/send-report", monthlyReportHandler);
 
 // Asynchronous background database initialization so it never blocks startup or serverless container boot
 initDB().catch(err => {

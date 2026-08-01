@@ -149,36 +149,71 @@ export default function App() {
     }
 
     if (oauthEmail) {
-      const nameToUse = oauthName || oauthEmail.split('@')[0];
-      const oauthUser = {
-        name: nameToUse,
-        email: oauthEmail,
-        picture: oauthPicture || null,
-        token: token || null,
-        authProvider: 'google'
-      };
-      
-      localStorage.setItem('userName', nameToUse);
-      localStorage.setItem('userEmail', oauthEmail);
-      localStorage.setItem('authProvider', 'google');
-      if (token) {
-        localStorage.setItem('userToken', token);
-      }
-      if (oauthPicture) {
-        localStorage.setItem('userAvatar', oauthPicture);
-      }
-      localStorage.setItem('mooduit_user', JSON.stringify(oauthUser));
-      
-      const sessionData = {
-        user: oauthUser,
-        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 Jam (Rolling)
-      };
-      localStorage.setItem('mooduit_session', JSON.stringify(sessionData));
-      
-      setUser(oauthUser);
-      setCurrentPage('dashboard');
-      localStorage.setItem('mooduit_current_page', 'dashboard');
-      
+      // Sync with backend /api/google-login to retrieve linked unified user profile
+      fetch('/api/google-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: oauthEmail,
+          name: oauthName || oauthEmail.split('@')[0],
+          picture: oauthPicture || ''
+        })
+      })
+      .then(res => res.json())
+      .then(backendUser => {
+        const finalName = backendUser.name || oauthName || oauthEmail.split('@')[0];
+        const savedLocalAvatar = oauthEmail ? localStorage.getItem(`avatar_${oauthEmail}`) : null;
+        const finalAvatar = backendUser.picture || oauthPicture || savedLocalAvatar || localStorage.getItem('userAvatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
+
+        const unifiedUser = {
+          id: backendUser.id,
+          name: finalName,
+          email: oauthEmail,
+          picture: finalAvatar,
+          avatar: finalAvatar,
+          token: token || null,
+          authProvider: backendUser.authProvider || 'google'
+        };
+
+        const safeSet = (k: string, v: string) => {
+          try { localStorage.setItem(k, v); } catch (e) { console.warn(`Storage quota exceeded for ${k}`); }
+        };
+
+        safeSet('userId', backendUser.id || '');
+        safeSet('userName', finalName);
+        safeSet('userEmail', oauthEmail);
+        safeSet('authProvider', backendUser.authProvider || 'google');
+        if (token) safeSet('userToken', token);
+        if (finalAvatar) {
+          safeSet('userAvatar', finalAvatar);
+          safeSet(`avatar_${oauthEmail}`, finalAvatar);
+        }
+        safeSet('mooduit_user', JSON.stringify(unifiedUser));
+
+        const sessionData = {
+          user: unifiedUser,
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+        };
+        safeSet('mooduit_session', JSON.stringify(sessionData));
+
+        setUser(unifiedUser);
+        setCurrentPage('dashboard');
+        localStorage.setItem('mooduit_current_page', 'dashboard');
+      })
+      .catch(err => {
+        console.error("Error syncing Google OAuth profile with backend:", err);
+        const nameToUse = oauthName || oauthEmail.split('@')[0];
+        const oauthUser = {
+          name: nameToUse,
+          email: oauthEmail,
+          picture: oauthPicture || null,
+          token: token || null,
+          authProvider: 'google'
+        };
+        setUser(oauthUser);
+        setCurrentPage('dashboard');
+      });
+
       // Bersihkan parameter dari URL
       const url = new URL(window.location.href);
       url.searchParams.delete('token');
