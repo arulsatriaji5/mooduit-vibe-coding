@@ -73,7 +73,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       >
         <div className="flex justify-between items-center px-4 py-4 md:px-[6%] box-border">
           <div className="flex items-center gap-2 md:gap-3">
-            <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/Logo_mooduit.png" alt="Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+            <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/Logo_mooduit.png" alt="Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
             <h1 className="text-lg sm:text-xl md:text-2xl font-black m-0 flex">
               <span style={{ color: darkMode ? '#ffffff' : '#112F58' }}>MOO</span>
               <span style={{ color: '#B9AB8C' }}>DUIT</span>
@@ -221,7 +221,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       
       <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 6% 40px', marginTop: '20px' }}>
         <div className="animate-float" style={{ width: '120px', height: '120px', marginBottom: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/Logo_mooduit.png" alt="Ikon Dompet" style={{ width: '200px', height: '200px', objectFit: 'contain' }} referrerPolicy="no-referrer" />
+          <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/Logo_mooduit.png" alt="Ikon Dompet" style={{ width: '200px', height: '200px', objectFit: 'contain' }} referrerPolicy="no-referrer" />
         </div>
         <h1 style={{ color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: '900', marginBottom: '24px', maxWidth: '800px', lineHeight: '1.2' }}>
           {language === 'id' ? 'Atur Uangmu, Bukan Uang yang Mengaturmu.' : 'Manage Your Money, Don\'t Let It Manage You.'}
