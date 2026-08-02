@@ -1,3 +1,20 @@
+export async function fetchUserStreak(user_email?: string): Promise<{ streakCount: number; streakActive: boolean; streakIncreasedToday: boolean }> {
+  try {
+    if (!user_email) return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
+    const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}`);
+    if (!response.ok) throw new Error("Failed to fetch streak from DB");
+    const data = await response.json();
+    return {
+      streakCount: Number(data.streakCount) || 0,
+      streakActive: Boolean(data.streakActive),
+      streakIncreasedToday: Boolean(data.streakIncreasedToday)
+    };
+  } catch (err) {
+    console.error("Error fetching streak from DB:", err);
+    return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
+  }
+}
+
 export function mapDBToFrontend(dt: any): any {
   const categoryIcons: { [key: string]: string } = {
     "Kebutuhan Pokok": "🛒",

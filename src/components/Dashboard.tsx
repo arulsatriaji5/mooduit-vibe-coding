@@ -19,6 +19,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
+import { fetchUserStreak } from "../utils/api";
 import "./Dashboard.css";
 
 interface DashboardProps {
@@ -46,32 +47,9 @@ export default function Dashboard({
   const [userName, setUserName] = React.useState("Sobat Cuan");
   const [budgetsData, setBudgetsData] = React.useState<any[]>([]);
 
-  // Daily Streak and Celebration Pop-up States
-  const [streakCount, setStreakCount] = React.useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const hasReset = localStorage.getItem("mooduit_streak_reset_v4");
-      if (!hasReset) {
-        localStorage.setItem("mooduit_streak_count", "0");
-        localStorage.setItem("mooduit_streak_active", "false");
-        localStorage.removeItem("mooduit_last_streak_date");
-        localStorage.setItem("mooduit_streak_reset_v4", "true");
-        return 0;
-      }
-      const saved = localStorage.getItem("mooduit_streak_count");
-      return saved ? parseInt(saved, 10) : 0;
-    }
-    return 0;
-  });
-  const [streakActive, setStreakActive] = React.useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const lastDate = localStorage.getItem("mooduit_last_streak_date");
-      const today = new Date().toDateString();
-      const isActive = lastDate === today;
-      localStorage.setItem("mooduit_streak_active", isActive ? "true" : "false");
-      return isActive;
-    }
-    return false;
-  });
+  // Daily Streak and Celebration Pop-up States (Sourced strictly from Database)
+  const [streakCount, setStreakCount] = React.useState<number>(0);
+  const [streakActive, setStreakActive] = React.useState<boolean>(false);
   const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
   const [streakIncreasedToday, setStreakIncreasedToday] = React.useState<boolean>(true);
 
@@ -79,38 +57,29 @@ export default function Dashboard({
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const triggerFn = (apiStreak?: number, apiIncreased?: boolean) => {
-        const todayStr = new Date().toDateString();
-        const lastStreakDate = localStorage.getItem("mooduit_last_streak_date");
-        
-        let isIncreased = false;
-        let finalStreak = streakCount;
-
-        if (apiStreak !== undefined && apiIncreased !== undefined) {
-          isIncreased = apiIncreased;
-          finalStreak = apiStreak;
-        } else {
-          // Fallback simulation
-          if (lastStreakDate === todayStr) {
-            isIncreased = false;
-            finalStreak = streakCount;
+        if (apiStreak !== undefined) {
+          setStreakCount(apiStreak);
+          setStreakActive(true);
+          const isIncreased = Boolean(apiIncreased);
+          setStreakIncreasedToday(isIncreased);
+          if (isIncreased) {
+            setShowCelebration(true);
           } else {
-            isIncreased = true;
-            finalStreak = streakCount + 1;
+            setShowCelebration(false);
           }
-        }
-
-        // Save to state and localStorage
-        setStreakCount(finalStreak);
-        localStorage.setItem("mooduit_streak_count", String(finalStreak));
-        setStreakActive(true);
-        localStorage.setItem("mooduit_streak_active", "true");
-        localStorage.setItem("mooduit_last_streak_date", todayStr);
-
-        setStreakIncreasedToday(isIncreased);
-        if (isIncreased) {
-          setShowCelebration(true);
         } else {
-          setShowCelebration(false);
+          // Re-sync directly with Backend Database
+          const email = localStorage.getItem("userEmail") || "";
+          if (email) {
+            fetchUserStreak(email).then((s) => {
+              setStreakCount(s.streakCount);
+              setStreakActive(s.streakActive);
+              if (s.streakIncreasedToday) {
+                setStreakIncreasedToday(true);
+                setShowCelebration(true);
+              }
+            });
+          }
         }
       };
 
@@ -126,7 +95,7 @@ export default function Dashboard({
         delete (window as any).showStreakCelebration;
       }
     };
-  }, [streakCount, streakActive]);
+  }, []);
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);
@@ -667,22 +636,15 @@ export default function Dashboard({
     }
   }, [propsTransactions]);
 
-  // Effect to load current streak and trigger celebration modal
+  // Effect to load current streak directly from backend database
   React.useEffect(() => {
-    // Sync streak from localStorage
-    const savedStreak = localStorage.getItem("mooduit_streak_count");
-    if (savedStreak) {
-      setStreakCount(parseInt(savedStreak, 10));
-    } else {
-      setStreakCount(0);
-      localStorage.setItem("mooduit_streak_count", "0");
+    const user_email = localStorage.getItem("userEmail") || "";
+    if (user_email) {
+      fetchUserStreak(user_email).then((s) => {
+        setStreakCount(s.streakCount);
+        setStreakActive(s.streakActive);
+      });
     }
-
-    const todayStr = new Date().toDateString();
-    const lastStreakDate = localStorage.getItem("mooduit_last_streak_date");
-    const isActive = lastStreakDate === todayStr;
-    setStreakActive(isActive);
-    localStorage.setItem("mooduit_streak_active", isActive ? "true" : "false");
   }, []);
 
   React.useEffect(() => {

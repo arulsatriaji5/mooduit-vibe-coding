@@ -8,13 +8,13 @@
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/Logo_mooduit.png",
+      "src": "https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/logo-pwa-bg.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/Logo_mooduit.png",
+      "src": "https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/logo-pwa-bg.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

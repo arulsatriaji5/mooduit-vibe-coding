@@ -106,6 +106,14 @@ async function initDB() {
       }
     }
 
+    // Gracefully add streak columns to users table for database cross-device streak persistence
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN streakCount INTEGER DEFAULT 0");
+    } catch (err) {}
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN lastActiveDate TEXT");
+    } catch (err) {}
+
     // Try migrating existing db.json to Turso/SQLite if tables are empty
     try {
       const dbJsonPath = path.join(process.cwd(), "db.json");
@@ -229,6 +237,157 @@ app.get("/api/transactions", async (req, res) => {
   }
 });
 
+// Helper to synchronize and persist Daily Streak (Fire Icon) in database across devices
+async function syncUserStreakInDB(db: any, userEmail: string) {
+  if (!userEmail) {
+    return { streakCount: 0, lastActiveDate: "", streakActive: false, streakIncreasedToday: false };
+  }
+
+  const cleanEmail = String(userEmail).trim().toLowerCase();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Calculate transaction-based streak from unique dates in transactions table
+  let txStreak = 0;
+  try {
+    const allTxResult = await db.execute({
+      sql: "SELECT DISTINCT SUBSTR(created_at, 1, 10) as tx_date FROM transactions WHERE LOWER(user_email) = ? ORDER BY tx_date DESC",
+      args: [cleanEmail]
+    });
+
+    const uniqueDates = (allTxResult.rows || [])
+      .map((row: any) => String(row.tx_date || ""))
+      .filter((d: string) => d.length === 10);
+
+    if (uniqueDates.length > 0) {
+      const parseDate = (dStr: string) => {
+        const [y, m, d] = dStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      };
+
+      const latestDateStr = uniqueDates[0];
+      const latestDate = parseDate(latestDateStr);
+      const today = parseDate(todayStr);
+
+      const diffTime = Math.abs(today.getTime() - latestDate.getTime());
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 1 || latestDateStr === todayStr) {
+        txStreak = 1;
+        let checkDate = latestDate;
+        for (let i = 1; i < uniqueDates.length; i++) {
+          const prevDate = parseDate(uniqueDates[i]);
+          const gap = Math.round(Math.abs(checkDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (gap === 1) {
+            txStreak++;
+            checkDate = prevDate;
+          } else if (gap === 0) {
+            continue;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error computing txStreak:", e);
+  }
+
+  // Fetch user row from DB
+  const userRes = await db.execute({
+    sql: "SELECT * FROM users WHERE LOWER(email) = ?",
+    args: [cleanEmail]
+  });
+
+  let streakCount = txStreak;
+  let lastActiveDate = todayStr;
+  let streakActive = true;
+  let streakIncreasedToday = false;
+
+  if (userRes.rows.length > 0) {
+    const user = userRes.rows[0];
+    const dbStreak = Number(user.streakCount || 0);
+    const dbLastActive = String(user.lastActiveDate || "").split('T')[0];
+
+    if (dbLastActive === todayStr) {
+      // Already logged active today
+      streakCount = Math.max(dbStreak, txStreak, 1);
+      streakActive = true;
+      streakIncreasedToday = false;
+    } else if (dbLastActive) {
+      const parseDate = (dStr: string) => {
+        const [y, m, d] = dStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      };
+      const todayDate = parseDate(todayStr);
+      const lastDate = parseDate(dbLastActive);
+      const diffTime = todayDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        // Active yesterday -> Increment streak
+        streakCount = Math.max(dbStreak + 1, txStreak, 1);
+        streakActive = true;
+        streakIncreasedToday = true;
+      } else if (diffDays > 1) {
+        // Gap > 1 day -> Reset streak to 1 today
+        streakCount = Math.max(1, txStreak);
+        streakActive = true;
+        streakIncreasedToday = true;
+      } else {
+        streakCount = Math.max(dbStreak, txStreak, 1);
+        streakActive = true;
+      }
+    } else {
+      // First time active
+      streakCount = Math.max(1, txStreak);
+      streakActive = true;
+      streakIncreasedToday = true;
+    }
+
+    // Persist updated streak count and last active date to database
+    await db.execute({
+      sql: "UPDATE users SET streakCount = ?, lastActiveDate = ? WHERE LOWER(email) = ?",
+      args: [streakCount, todayStr, cleanEmail]
+    });
+  }
+
+  return {
+    streakCount,
+    lastActiveDate: todayStr,
+    streakActive,
+    streakIncreasedToday
+  };
+}
+
+// Endpoint to fetch/sync daily streak from database
+app.get(["/api/users/streak", "/api/streak"], async (req, res) => {
+  try {
+    const db = getDb();
+    const email = req.query.email || req.query.user_email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const streakInfo = await syncUserStreakInDB(db, String(email));
+    res.json(streakInfo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(["/api/users/streak", "/api/streak"], async (req, res) => {
+  try {
+    const db = getDb();
+    const email = req.body.email || req.body.user_email || req.query.email || req.headers["user-email"];
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const streakInfo = await syncUserStreakInDB(db, String(email));
+    res.json(streakInfo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/transactions", async (req, res) => {
   try {
     const db = getDb();
@@ -252,67 +411,14 @@ app.post("/api/transactions", async (req, res) => {
       args: [newTx.id, newTx.user_email, newTx.amount, newTx.type, newTx.category, newTx.description, newTx.created_at]
     });
 
-    // Hitung streak harian dari basis data transaksi (Integritas Backend)
-    const txDate = newTx.created_at.split('T')[0];
-    const allTxResult = await db.execute({
-      sql: "SELECT DISTINCT SUBSTR(created_at, 1, 10) as tx_date FROM transactions WHERE user_email = ? ORDER BY tx_date DESC",
-      args: [newTx.user_email]
-    });
-
-    const uniqueDates = allTxResult.rows
-      .map((row: any) => String(row.tx_date || ""))
-      .filter((d: string) => d.length === 10);
-
-    let currentStreak = 0;
-    if (uniqueDates.length > 0) {
-      const parseDate = (dStr: string) => {
-        const [y, m, d] = dStr.split('-').map(Number);
-        return new Date(y, m - 1, d);
-      };
-
-      const todayStr = new Date().toISOString().split('T')[0];
-      const latestDateStr = uniqueDates[0];
-      
-      const latestDate = parseDate(latestDateStr);
-      const today = parseDate(todayStr);
-      
-      const diffTime = Math.abs(today.getTime() - latestDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      // Jika transaksi terakhir hari ini atau kemarin, streak masih aktif
-      if (diffDays <= 1 || latestDateStr === todayStr) {
-        currentStreak = 1;
-        let checkDate = latestDate;
-        for (let i = 1; i < uniqueDates.length; i++) {
-          const prevDate = parseDate(uniqueDates[i]);
-          const gap = Math.ceil(Math.abs(checkDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (gap === 1) {
-            currentStreak++;
-            checkDate = prevDate;
-          } else if (gap === 0) {
-            continue;
-          } else {
-            break;
-          }
-        }
-      }
-    }
-
-    // Periksa apakah ini transaksi pertama pengguna pada tanggal tersebut
-    const sameDayResult = await db.execute({
-      sql: "SELECT COUNT(*) as count FROM transactions WHERE user_email = ? AND SUBSTR(created_at, 1, 10) = ?",
-      args: [newTx.user_email, txDate]
-    });
-    const sameDayCount = Number(sameDayResult.rows[0]?.count || 0);
-    
-    // Jika sameDayCount === 1, berarti ini adalah transaksi pertama yang dicatat hari ini
-    const streakIncreasedToday = sameDayCount === 1;
+    // Synchronize and persist streak in database user table
+    const streakInfo = await syncUserStreakInDB(db, newTx.user_email);
 
     const responsePayload = {
       ...newTx,
       success: true,
-      currentStreak,
-      streakIncreasedToday
+      currentStreak: streakInfo.streakCount,
+      streakIncreasedToday: streakInfo.streakIncreasedToday
     };
 
     res.status(201).json(responsePayload);
