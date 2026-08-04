@@ -1236,7 +1236,11 @@ app.post("/api/forgot-password", async (req, res) => {
       args: [resetToken, resetTokenExpiry, user.id]
     });
 
-    const baseUrl = (process.env.VITE_APP_URL || process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, "");
+    const reqOrigin = req.get('origin') || (req.headers.origin as string) || (req.get('referer') ? new URL(req.get('referer')!).origin : '');
+    const reqProtocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+    const reqHost = (req.headers['x-forwarded-host'] as string) || req.get('host');
+    const dynamicOrigin = reqOrigin || (reqHost ? `${reqProtocol}://${reqHost}` : '');
+    const baseUrl = (dynamicOrigin || process.env.VITE_APP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, "");
     const recoveryLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
     console.log("=========================================");
