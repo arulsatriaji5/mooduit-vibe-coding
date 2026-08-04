@@ -1,11 +1,11 @@
 {
-  "name": "MOODUIT - Gen Z Financial Advisor & Budgeting",
+  "name": "MOODUIT",
   "short_name": "MOODUIT",
   "description": "Aplikasi Pengelola Keuangan Pribadi & Smart AI Advisor",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/logo-pwa-bg.png",
