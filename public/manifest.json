@@ -1,11 +1,10 @@
 {
   "name": "MOODUIT",
   "short_name": "MOODUIT",
-  "description": "Aplikasi Pengelola Keuangan Pribadi & Smart AI Advisor",
-  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "start_url": "/",
   "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "icons": [
     {
       "src": "/logo-pwa-bg.png",
