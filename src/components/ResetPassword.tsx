@@ -53,10 +53,17 @@ export default function ResetPassword({ token, onClose }: ResetPasswordProps) {
         })
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error("Gagal parse JSON Reset Password:", responseText);
+        throw new Error(t("Terjadi kesalahan pada server. Silakan coba lagi.", "Server error occurred. Please try again."));
+      }
 
       if (!res.ok) {
-        setErrorMessage(data.error || t('Gagal mengatur ulang kata sandi!', 'Failed to reset password!'));
+        setErrorMessage(data.message || data.error || t('Gagal mengatur ulang kata sandi!', 'Failed to reset password!'));
         setStatus('idle');
         return;
       }

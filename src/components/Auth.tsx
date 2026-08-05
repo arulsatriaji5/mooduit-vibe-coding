@@ -54,14 +54,21 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
             })
           });
 
-          if (!syncRes.ok) {
-            throw new Error(language === 'id' 
-              ? "Gagal menyinkronkan akun Google dengan backend"
-              : "Failed to sync Google account with backend"
-            );
+          const resText = await syncRes.text();
+          let backendUser: any = {};
+          try {
+            backendUser = resText ? JSON.parse(resText) : {};
+          } catch (e) {
+            console.error("Gagal parse JSON Google Login:", resText);
           }
 
-          const backendUser = await syncRes.json();
+          if (!syncRes.ok) {
+            throw new Error(
+              backendUser.message || backendUser.error || (language === 'id' 
+                ? "Gagal menyinkronkan akun Google dengan backend"
+                : "Failed to sync Google account with backend")
+            );
+          }
 
           const savedLocalAvatar = backendUser.email ? localStorage.getItem(`avatar_${backendUser.email}`) : null;
           const DEFAULT_ANIMATED_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arul';
@@ -195,11 +202,18 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         body: JSON.stringify({ name, email, password })
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error("Gagal parse JSON Register:", responseText);
+        throw new Error(language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again.");
+      }
 
       if (!res.ok) {
         setToastType('error');
-        setToastMessage(data.error || (language === 'id' ? 'Pendaftaran gagal!' : 'Registration failed!'));
+        setToastMessage(data.message || data.error || (language === 'id' ? 'Pendaftaran gagal!' : 'Registration failed!'));
         return;
       }
 
@@ -259,11 +273,18 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error("Gagal parse JSON Login:", responseText);
+        throw new Error(language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again.");
+      }
 
       if (!res.ok) {
         setToastType('error');
-        setToastMessage(data.error || (language === 'id' ? 'Login gagal!' : 'Login failed!'));
+        setToastMessage(data.message || data.error || (language === 'id' ? 'Gagal masuk, periksa kembali email dan sandi.' : 'Login failed, check your email and password.'));
         return;
       }
 
@@ -575,9 +596,16 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: forgotEmail })
                   });
-                  const data = await res.json();
+                  const responseText = await res.text();
+                  let data: any = {};
+                  try {
+                    data = responseText ? JSON.parse(responseText) : {};
+                  } catch (error) {
+                    console.error("Gagal parse JSON Forgot Password:", responseText);
+                    throw new Error(language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again.");
+                  }
                   if (!res.ok) {
-                    toast.error(data.error || (language === 'id' ? 'Gagal mengirim email reset!' : 'Failed to send reset email!'));
+                    toast.error(data.message || data.error || (language === 'id' ? 'Gagal mengirim email reset!' : 'Failed to send reset email!'));
                     setForgotStatus('idle');
                     return;
                   }
