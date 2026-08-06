@@ -67,7 +67,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   const navItems = [
     { id: 'dashboard', icon: <Home size={18} />, label: t('Beranda', 'Home') },
     { id: 'smart-budget', icon: <Calculator size={18} />, label: t('Smart Budget', 'Smart Budget') },
-    { id: 'scanner', icon: <Camera size={24} />, label: t('Scan Transaksi', 'Scan Transaction'), isAction: true },
+    { id: 'scanner', icon: <Camera size={20} />, label: t('Scan', 'Scan'), isAction: true },
     { id: 'analisa', icon: <PieChart size={18} />, label: t('Analisa', 'Analysis') },
     { id: 'history', icon: <List size={18} />, label: t('Riwayat', 'History') },
     { id: 'settings', icon: <SettingsIcon size={18} />, label: t('Pengaturan', 'Settings') },
@@ -116,15 +116,12 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     key={item.id}
                     onClick={() => setShowActionModal(true)}
                     style={{ backgroundColor: '#B9AB8C', color: '#112F58' }}
-                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all shadow-sm group border-0"
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all shadow-sm group border-0 mb-2 cursor-pointer"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    
-                    {/* TEKS DIBUAT SEJAJAR DAN SATU BARIS */}
-                    <span className="font-bold whitespace-nowrap text-sm">{item.label}</span>
+                    <span className="flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </span>
+                    <span className="font-bold whitespace-nowrap overflow-hidden text-ellipsis text-sm">{item.label}</span>
                   </button>
                 );
               }
@@ -132,7 +129,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`border-0 w-100 text-start px-3 py-2.5 mb-2 rounded-xl transition-all d-flex align-items-center gap-3 ${
+                  className={`border-0 w-100 text-start px-3 py-2.5 mb-2 rounded-xl transition-all d-flex align-items-center gap-3 cursor-pointer ${
                     activePage === item.id 
                       ? 'active bg-white bg-opacity-10' 
                       : 'text-white opacity-70 hover:opacity-100'
@@ -142,10 +139,10 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     color: 'inherit'
                   }}
                 >
-                  <span>
+                  <span className="flex items-center justify-center shrink-0">
                     {item.icon}
                   </span>
-                  <span className="small fw-bold">
+                  <span className="small fw-bold whitespace-nowrap overflow-hidden text-ellipsis">
                     {item.label}
                   </span>
                 </button>

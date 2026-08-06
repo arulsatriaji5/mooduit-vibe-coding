@@ -1507,18 +1507,20 @@ export default function Dashboard({
                     dangerouslySetInnerHTML={renderMarkdown(msg.text)}
                   />
                   {msg.isTransactionSuccess && msg.transactionDetails && (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 mt-2.5 flex items-center gap-2.5 font-sans animate-fade-in text-slate-800 dark:text-slate-100">
-                      <span className="text-xl">✅</span>
-                      <div className="text-left">
-                        <div className="font-extrabold text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm">
+                    <div className="bg-[#112F58] border border-[#244c7d] text-white rounded-lg p-3 md:p-4 my-2 shadow-md flex items-start gap-3 font-sans animate-fade-in">
+                      <span className="text-emerald-400 text-xl shrink-0 mt-0.5">✅</span>
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="font-semibold text-white text-sm mb-1">
                           {language === "id" ? "Transaksi Berhasil Dicatat!" : "Transaction Successfully Recorded!"}
                         </div>
-                        <div className="text-emerald-700 dark:text-emerald-300 text-xs font-semibold mt-0.5">
+                        <div className="text-slate-200 text-sm font-medium">
                           {msg.transactionDetails.type === "income" ? (language === "id" ? "Pemasukan" : "Income") : (language === "id" ? "Pengeluaran" : "Expense")} • Rp {msg.transactionDetails.amount.toLocaleString("id-ID")} ({msg.transactionDetails.category})
                         </div>
-                        <div className="text-emerald-600 dark:text-emerald-400 text-[11px] mt-0.5 italic">
-                          "{msg.transactionDetails.notes}"
-                        </div>
+                        {msg.transactionDetails.notes && (
+                          <div className="text-slate-300 text-xs mt-0.5 italic">
+                            "{msg.transactionDetails.notes}"
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

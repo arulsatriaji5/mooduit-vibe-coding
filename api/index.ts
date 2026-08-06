@@ -1658,35 +1658,44 @@ function generateSmartConsultationFallback(userMessage: string, financialContext
     amount = parseInt(plainNumMatch[1].replace(/\./g, ''), 10) || 0;
   }
 
-  const formattedAmount = amount > 0 ? `Rp ${amount.toLocaleString("id-ID")}` : "barang tersebut";
   const balance = financialContext?.totalBalance ?? financialContext?.summary?.balance ?? 0;
   const income = financialContext?.totalIncome ?? financialContext?.summary?.totalIncome ?? 0;
   const expense = financialContext?.totalExpense ?? financialContext?.summary?.totalExpense ?? 0;
 
+  let itemName = "barang tersebut";
+  const itemMatch = userMessage.match(/(?:beli|bayar|jajan|nonton|tiket|pesan|order|sewa)\s+([a-zA-Z0-9\s]+?)(?:\s+harga|\s+sebesar|\s+rp|\s+\d|$)/i);
+  if (itemMatch && itemMatch[1] && itemMatch[1].trim().length > 1) {
+    itemName = itemMatch[1].trim();
+  }
+
+  const formattedAmount = amount > 0 ? `Rp ${amount.toLocaleString("id-ID")}` : itemName;
+
   // Inquiry about buying something or expenses
-  if (amount > 0 || text.includes("beli") || text.includes("jam") || text.includes("barang") || text.includes("sepatu") || text.includes("baju") || text.includes("hp") || text.includes("gadget")) {
+  if (amount > 0 || text.includes("beli") || text.includes("jam") || text.includes("barang") || text.includes("sepatu") || text.includes("baju") || text.includes("hp") || text.includes("kopi") || text.includes("gadget")) {
     let balanceAnalysis = "";
     if (amount > 0) {
       const remaining = balance - amount;
       if (balance <= 0) {
-        balanceAnalysis = `\n\n⚠️ **Analisa Dompetmu**: Saldo aktifmu saat ini Rp 0 atau belum tercatat. Membeli ${formattedAmount} mungkin akan memicu defisit atau menghabiskan tabunganmu!`;
+        balanceAnalysis = `Waduh, saldomu saat ini Rp 0! Membeli ${itemName} seharga ${formattedAmount} mending ditunda dulu deh, jujurly ini red flag keuangan! 😭`;
       } else if (remaining < 0) {
-        balanceAnalysis = `\n\n⚠️ **Peringatan Saldo**: Total saldomu saat ini adalah Rp ${balance.toLocaleString("id-ID")}. Pembelian ${formattedAmount} ini melebihi total saldomu sebesar Rp ${Math.abs(remaining).toLocaleString("id-ID")}! Sangat disarankan untuk menunda pembelian ini.`;
+        balanceAnalysis = `Waduh, saldomu cuma Rp ${balance.toLocaleString("id-ID")} kok mau beli ${itemName} seharga ${formattedAmount}? 😭 Ini minus Rp ${Math.abs(remaining).toLocaleString("id-ID")} dari total hartamu, fix red flag keuangan nih! Mending tunda dulu!`;
       } else {
         const percentage = Math.round((amount / balance) * 100);
-        balanceAnalysis = `\n\n📊 **Analisa Saldo Dompetmu Real-time**:\n` +
-                          `- Total Saldo Aktif Saat Ini: Rp ${balance.toLocaleString("id-ID")}\n` +
-                          `- Harga Barang: ${formattedAmount} (${percentage}% dari total saldomu)\n` +
-                          `- Sisa Saldo Setelah Pembelian: Rp ${remaining.toLocaleString("id-ID")}\n\n` +
-                          `${percentage >= 50 ? `⚠️ Pembelian ini menguras sekitar ${percentage}% dari sisa saldomu (sisa tinggal Rp ${remaining.toLocaleString("id-ID")}). Pertimbangkan kembali apakah barang ini benar-benar esensial!` : '✅ Sisa saldomu masih relatif aman, tapi pastikan kebutuhan pokokmu bulan ini sudah terpenuhi!'}`;
+        if (percentage > 10) {
+          balanceAnalysis = `Waduh, saldomu tinggal Rp ${balance.toLocaleString("id-ID")} kok mau beli ${itemName} seharga ${formattedAmount} (${percentage}% dari total hartamu)? 😭 Red flag keuangan nih! Mending pikir-pikir lagi deh, sisa saldomu nanti tinggal Rp ${remaining.toLocaleString("id-ID")}.`;
+        } else {
+          balanceAnalysis = `Harga ${itemName} ini (${formattedAmount}) berkisar ${percentage}% dari total saldomu (Rp ${balance.toLocaleString("id-ID")}). Sisa saldomu nanti Rp ${remaining.toLocaleString("id-ID")}. Masih di bawah 10% jadi tergolong aman, tapi pastikan kebutuhan pokokmu bulan ini sudah aman ya! 👍`;
+        }
       }
+    } else {
+      balanceAnalysis = `Mengenai rencana pembelian ${itemName}, yuk cek dulu total saldomu (Rp ${balance.toLocaleString("id-ID")}). Pastikan pengeluaran ini tidak mengganggu pos kebutuhan utama!`;
     }
 
-    return `Mengenai rencana pembelian ${formattedAmount}, berikut beberapa pertimbangan berdasarkan data keuanganmu:${balanceAnalysis}\n\n` +
-           `1. 💡 **Aturan Budget 50/30/20**: Pastikan pengeluaran ini masuk dalam alokasi 30% Keinginan/Jajan, dan tidak mengganggu 50% Kebutuhan Pokok.\n` +
-           `2. 🛡️ **Dana Darurat**: Pastikan simpanan dana daruratmu tetap aman sebelum membeli barang non-esensial.\n` +
-           `3. ⏳ **Aturan 24 Jam**: Berikan jeda 24-48 jam. Jika setelahnya kamu masih merasa butuh dan sisa budget-mu aman, silakan beli dengan tenang!\n\n` +
-           `Kalau mau dicatat langsung ke pengeluaran, kamu tinggal ketik: *"catat pengeluaran beli ${amount > 0 ? formattedAmount : 'barang'} "* ya! 😉`;
+    return `${balanceAnalysis}\n\n` +
+           `💡 **Tips Bijak MOODUIT**:\n` +
+           `1. **Aturan 50/30/20**: Pastikan pengeluaran ini masuk alokasi 30% Keinginan.\n` +
+           `2. **Jeda 24 Jam**: Coba beri jeda 24 jam sebelum checkout untuk menghindari impulse buying.\n\n` +
+           `Kalau kamu tetap mau beli, ketik: "catat pengeluaran beli ${itemName} ${amount > 0 ? formattedAmount : ''}".`;
   }
 
   // Financial condition or health check
@@ -1695,19 +1704,19 @@ function generateSmartConsultationFallback(userMessage: string, financialContext
            `- 💵 Total Pemasukan Bulan Ini: Rp ${income.toLocaleString("id-ID")}\n` +
            `- 💸 Total Pengeluaran Bulan Ini: Rp ${expense.toLocaleString("id-ID")}\n` +
            `- 🏦 Total Saldo Aktif: Rp ${balance.toLocaleString("id-ID")}\n\n` +
-           `Saran dari MOODUIT AI Advisor: Jaga pengeluaran rutin agar tetap berada di bawah 50% dari total pemasukan, dan alokasikan minimal 20% untuk tabungan/dana darurat! 👍`;
+           `Saran dari MOODUIT AI: Jaga pengeluaran rutin agar tetap berada di bawah 50% dari total pemasukan, dan alokasikan minimal 20% untuk tabungan/dana darurat! 👍`;
   }
 
   // Savings / Investment / Goals
   if (text.includes("nabung") || text.includes("tabungan") || text.includes("investasi") || text.includes("impian") || text.includes("wishlist") || text.includes("cepat")) {
-    return `Berikut tips menabung efektif dari MOODUIT AI Advisor:\n\n` +
+    return `Berikut tips menabung efektif dari MOODUIT AI:\n\n` +
            `1. 🎯 **Prinsip Pay Yourself First**: Sisihkan minimal 20% dari total pemasukanmu (Rp ${income > 0 ? income.toLocaleString("id-ID") : 'pemasukanmu'}) begitu cair.\n` +
            `2. 📌 **Gunakan Target Impian**: Buat target spesifik di menu Wishlist MOODUIT untuk memantau progres secara berkala.\n` +
            `3. 📉 **Evaluasi Kebocoran Halus**: Cek transaksi rutin seperti jajan kopi harian atau langganan yang jarang dipakai.\n\n` +
            `Total saldomu saat ini Rp ${balance.toLocaleString("id-ID")}. Konsistensi kecil setiap hari akan membawa hasil besar! 🚀`;
   }
 
-  return `Sebagai MOODUIT AI Advisor, saya siap membantumu mengelola keuangan secara bijak! Kamu bisa berkonsultasi mengenai alokasi budget 50/30/20, evaluasi rencana belanja, tips menabung, atau meminta saya mencatat transaksi baru secara langsung. Ada yang ingin kamu diskusikan lagi? 😊`;
+  return `Sebagai MOODUIT AI, saya siap membantumu mengelola keuangan secara bijak! Kamu bisa berkonsultasi mengenai alokasi budget 50/30/20, evaluasi rencana belanja, tips menabung, atau meminta saya mencatat transaksi baru secara langsung. Ada yang ingin kamu diskusikan lagi? 😊`;
 }
 
 app.post("/api/chat", async (req, res) => {
@@ -1808,15 +1817,16 @@ app.post("/api/chat", async (req, res) => {
 `;
 
     const systemInstruction = 
-      `Kamu adalah MOODUIT AI Advisor, konsultan keuangan pribadi Gen Z yang cerdas dan santai.\n\n` +
+      `Kamu adalah "MOODUIT AI", asisten keuangan cerdas, asyik, dan realistis untuk Gen Z.\n` +
+      `Gunakan bahasa Indonesia yang kasual, friendly, kadang menggunakan istilah gaul secukupnya (seperti 'waduh', 'jujurly', 'red flag', 'mending'), tapi jangan berlebihan. Tetap terlihat pintar dan profesional.\n\n` +
       `${userStats}\n\n` +
-      `ATURAN KHUSUS ANALISA KEUANGAN:\n` +
-      `- Kamu WAJIB membaca [DATA KEUANGAN AKTUAL PENGGUNA SAAT INI] sebelum menjawab pertanyaan konsultasi.\n` +
-      `- JIKA pengguna bertanya apakah boleh membeli barang/jasa seharga X (misal: "gimana kalau beli jam 200rb?"), langsung bandingkan harga barang X tersebut dengan Total Saldo Aktif mereka! Hitung persentase nominal X terhadap Total Saldo Aktif dan sebutkan berapa sisa saldo mereka jika dibeli.\n` +
-      `- Berikan jawaban yang praktis dan empatik. Contoh: Jika saldo tinggal Rp 350.000 dan pengguna ingin beli barang Rp 200.000, peringatkan dengan ramah bahwa pembelian itu akan menguras sekitar 57% dari sisa saldo mereka (sisa tinggal Rp 150.000), dan berikan saran apakah itu aman atau sebaiknya ditunda.\n` +
-      `- Hindari jawaban teori umum yang terlalu panjang jika kamu sudah tahu angka pasti uang pengguna. Bicara langsung berdasarkan angka nyata dompet mereka!\n\n` +
+      `ATURAN WAJIB SAAT MENGANALISIS RENCANA PEMBELIAN:\n` +
+      `1. Hitung Persentase Akurat: Bandingkan harga barang/jasa dengan total saldo aktif pengguna saat ini. Sebutkan persentasenya secara jelas.\n` +
+      `2. Roasting Edukatif (PENTING!): JIKA barang yang ingin dibeli bersifat konsumtif/keinginan semata (seperti kopi, jajan, game, tiket konser, baju, hobi) DAN harganya MELEBIHI 10% dari total saldo, kamu WAJIB menegur pengguna. Gunakan gaya bahasa yang agak sarkas/lucu tapi menyadarkan. Contoh: "Waduh, saldomu tinggal segitu kok mau beli kopi seharga 30% dari total hartamu? 😭 Red flag keuangan nih!".\n` +
+      `3. Mode Aman: Jika persentase di bawah 10% atau untuk kebutuhan pokok, berikan lampu hijau dan saran bijak (ingatkan aturan 50/30/20 atau jeda 24 jam).\n` +
+      `4. Call to Action (CTA) Dinamis: Di akhir jawaban, WAJIB berikan template perintah pencatatan yang MENYEBUTKAN SPESIFIK NAMA BARANGNYA. Jangan gunakan nama generik. Contoh jika user ingin beli kopi Rp 60.000: "Kalau kamu tetap mau beli, ketik: 'catat pengeluaran beli kopi Rp 60.000'".\n\n` +
       `ATURAN KERJA UTAMA:\n` +
-      `- KASUS 1 (Konsultasi / Tanya Jawab / Diskusi): Jika user bertanya opini, tips, atau diskusi (misal: "boleh gak beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), berikan analisa finansial yang logis, santai, dan langsung menjawab pertanyaannya berdasarkan data keuangan aktual. JANGAN keluarkan format JSON sama sekali!\n` +
+      `- KASUS 1 (Konsultasi / Tanya Jawab / Diskusi): Jika user bertanya opini, tips, atau diskusi (misal: "boleh gak beli jam 200rb?", "gimana cara nabung cepat?", "bagaimana kondisi keuangan saya?"), berikan analisa finansial yang logis, santai, dan langsung menjawab pertanyaannya berdasarkan data keuangan aktual dan aturan roasting di atas. JANGAN keluarkan format JSON sama sekali!\n` +
       `- KASUS 2 (Perintah Catat Transaksi): HANYA JIKA user menyuruh mencatat pemasukan/pengeluaran, balas dengan konfirmasi ramah DAN sertakan blok JSON di akhir teks berformat persis seperti ini:\n\n` +
       `\`\`\`json\n` +
       `{\n` +
