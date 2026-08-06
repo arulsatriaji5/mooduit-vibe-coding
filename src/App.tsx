@@ -19,6 +19,7 @@ import { fetchAllTransactions } from './utils/api';
 import ResetPassword from './components/ResetPassword';
 
 import Analysis from './components/Analysis';
+import InstallPrompt from './components/InstallPrompt';
 
 type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist' | 'settings' | 'smart-budget' | 'analisa';
 
@@ -421,6 +422,7 @@ export default function App() {
   return (
     <div className="mooduit-app">
       <Toaster position="top-center" reverseOrder={false} />
+      <InstallPrompt />
       <AnimatePresence mode="wait">
         {needsLayout ? (
           <Layout 
