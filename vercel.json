@@ -28,6 +28,14 @@
   ],
   "rewrites": [
     {
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },
