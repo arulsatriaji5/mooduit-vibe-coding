@@ -15,7 +15,9 @@ import {
   Camera,
   Eye,
   EyeOff,
-  Lock
+  Lock,
+  BookOpen,
+  X
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import './Settings.css';
@@ -37,6 +39,7 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
 
   // VIEW NAVIGATION STATE
@@ -380,44 +383,25 @@ export default function Settings({ onLogout }: SettingsProps) {
                         <ChevronRight size={18} className="text-muted flex-shrink-0" />
                       </div>
                     </div>
-                    <div className="notif-row d-flex align-items-center justify-content-between p-3 border-0 w-full overflow-hidden flex-nowrap" style={{ minWidth: 0 }}>
-                      
-                      {/* Bagian Kiri: Ikon & Teks */}
-                      <div className="notif-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
-                        {/* Kiri: Ikon Lonceng */}
-                        <div className="bell-wrapper flex-shrink-0">
-                          <svg className="bell-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                          </svg>
+                    <button 
+                      onClick={() => setIsGuideModalOpen(true)}
+                      className="privacy-btn d-flex align-items-center justify-content-between p-3 border-0 w-full overflow-hidden flex-nowrap"
+                      type="button"
+                      style={{ minWidth: 0 }}
+                    >
+                      <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="privacy-icon-wrapper flex-shrink-0"><BookOpen size={20} /></div>
+                        <div className="text-left min-w-0 flex-1">
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                            {t("Panduan Aplikasi", "App Guide")}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                            {t("Fitur, cara penggunaan & tips keuangan", "Features, usage guide & money tips")}
+                          </span>
                         </div>
-                        <span className="notif-label truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                          Notification
-                        </span>
                       </div>
-                      
-                      {/* Bagian Kanan: Toggle Kapsul Minimalis (Sejalan dengan Mode Gelap) */}
-                      <button 
-                        onClick={() => setNotifEnabled(!notifEnabled)} 
-                        className={`notif-toggle ${notifEnabled ? 'enabled' : 'disabled'} flex-shrink-0`}
-                        aria-label="Toggle Notification"
-                        style={{ flexShrink: 0 }}
-                      >
-                        <div className="notif-toggle-handle">
-                          {notifEnabled ? (
-                            <svg className="notif-knob-icon" fill="currentColor" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                          ) : (
-                            <svg className="notif-knob-icon" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                      
-                    </div>
+                      <ChevronRight size={18} className="privacy-chevron flex-shrink-0" />
+                    </button>
                   </div>
                 </div>
 
@@ -993,6 +977,127 @@ export default function Settings({ onLogout }: SettingsProps) {
                     </button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Modal Panduan Aplikasi */}
+        {isGuideModalOpen && (
+          <div className="security-modal-overlay">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="security-modal-backdrop"
+              onClick={() => setIsGuideModalOpen(false)}
+            />
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+              className="security-modal-content"
+            >
+              {/* Header */}
+              <div className="security-modal-header">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 text-[#112F58] dark:text-amber-400 rounded-xl">
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <h5 className="security-modal-title">
+                      {t("Panduan Aplikasi MOODUIT", "MOODUIT App Guide")}
+                    </h5>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0 mt-0.5">
+                      {t("Kenali & manfaatkan seluruh fitur keuanganmu", "Discover & master your financial features")}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsGuideModalOpen(false)}
+                  className="security-modal-close"
+                  type="button"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="security-modal-body">
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    ✨ {t("1. MOODUIT AI Advisor", "1. MOODUIT AI Advisor")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Asisten keuangan pribadi Gen Z yang cerdas dan realistis. Kamu bisa berkonsultasi rencana belanja, mendapat teguran/roasting bijak jika pembelian terlalu konsumtif (>10% saldo), serta mencatat transaksi otomatis langsung via chat!",
+                      "Your smart & realistic Gen Z financial advisor. Consult shopping plans, get realistic roasting/feedback if a purchase is too impulsive (>10% balance), and auto-record transactions directly via chat!"
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    📸 {t("2. Scan Transaksi (OCR)", "2. Smart Receipt Scanner")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Foto atau unggah foto struk belanjaanmu. AI secara otomatis membaca nama toko, tanggal, total nominal, dan rincian item barang tanpa perlu input manual.",
+                      "Snap or upload receipt photos. AI automatically detects merchant name, date, total amount, and itemized list without manual typing."
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    🧮 {t("3. Smart Budgeting (50/30/20)", "3. Smart Budgeting (50/30/20)")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Bagi otomatis pendapatan bulananmu ke dalam 50% Kebutuhan Pokok, 30% Keinginan, dan 20% Tabungan/Investasi untuk menjaga alur keuangan sehat.",
+                      "Automatically divide monthly income into 50% Needs, 30% Wants, and 20% Savings/Investments for a balanced financial life."
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    🛡️ {t("4. Dana Darurat & Wishlist", "4. Emergency Fund & Wishlist")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Hitung dan kumpulkan fondasi keamanan finansial 3-6 kali pengeluaran bulanan, serta wujudkan target barang impian secara terencana.",
+                      "Calculate and build a 3-6 month safety net, and systematically track savings for your dream items."
+                    )}
+                  </p>
+                </div>
+
+                <div className="security-section">
+                  <h6 className="security-section-title">
+                    📊 {t("5. Analisa & Riwayat", "5. Analysis & History")}
+                  </h6>
+                  <p className="security-section-text">
+                    {t(
+                      "Pantau grafik pengeluaran berdasarkan kategori dan cek seluruh riwayat catatan keuanganmu kapan saja.",
+                      "Monitor expense charts by category and review all your financial logs anytime."
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="security-modal-footer">
+                <button 
+                  onClick={() => setIsGuideModalOpen(false)}
+                  className="security-modal-btn"
+                  type="button"
+                >
+                  {t("Paham, Terima Kasih!", "Got It, Thanks!")}
+                </button>
               </div>
             </motion.div>
           </div>

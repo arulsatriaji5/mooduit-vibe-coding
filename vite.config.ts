@@ -13,23 +13,27 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['Logo_mooduit.png', 'logo-pwa-bg.png'],
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        },
+        manifestFilename: 'manifest.json',
         manifest: {
           name: 'MOODUIT - Gen Z Financial Advisor',
           short_name: 'MOODUIT',
-          theme_color: '#ffffff',
+          description: 'Aplikasi asisten keuangan cerdas.',
+          theme_color: '#0f172a',
           background_color: '#ffffff',
           display: 'standalone',
+          start_url: '/',
           icons: [
             {
-              src: 'logo-pwa-bg.png',
-              sizes: '192x192 any',
-              type: 'image/png',
-              purpose: 'any maskable'
+              src: '/logo-pwa-bg.png',
+              sizes: '192x192',
+              type: 'image/png'
             },
             {
-              src: 'logo-pwa-bg.png',
-              sizes: '512x512 any',
+              src: '/logo-pwa-bg.png',
+              sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             }

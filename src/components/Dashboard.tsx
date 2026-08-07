@@ -435,7 +435,9 @@ export default function Dashboard({
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     isDragging.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
     const clientX = e.clientX;
     const clientY = e.clientY;
     dragStart.current = { x: clientX - pos.x, y: clientY - pos.y };
@@ -446,22 +448,43 @@ export default function Dashboard({
     if (!isDragging.current) return;
     const clientX = e.clientX;
     const clientY = e.clientY;
-    setPos({
-      x: clientX - dragStart.current.x,
-      y: clientY - dragStart.current.y,
-    });
+
+    const rawX = clientX - dragStart.current.x;
+    const rawY = clientY - dragStart.current.y;
+
+    const buttonWidth = 56;
+    const buttonHeight = 56;
+    const rightOffset = 20;
+    const bottomOffset = isMobile ? 85 : 20;
+
+    const defaultLeft = window.innerWidth - rightOffset - buttonWidth;
+    const defaultTop = window.innerHeight - bottomOffset - buttonHeight;
+
+    const minLeft = 10;
+    const maxLeft = window.innerWidth - buttonWidth - 10;
+    const targetLeft = Math.max(minLeft, Math.min(maxLeft, defaultLeft + rawX));
+    const clampedX = targetLeft - defaultLeft;
+
+    const minTop = 10;
+    const maxTop = window.innerHeight - buttonHeight - 10;
+    const targetTop = Math.max(minTop, Math.min(maxTop, defaultTop + rawY));
+    const clampedY = targetTop - defaultTop;
+
+    setPos({ x: clampedX, y: clampedY });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!isDragging.current) return;
     isDragging.current = false;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
 
     const distance = Math.hypot(
       e.clientX - startCoords.current.x,
       e.clientY - startCoords.current.y,
     );
-    if (distance < 5) {
+    if (distance < 6) {
       setIsChatOpen((prev) => !prev);
     }
   };
@@ -1576,8 +1599,9 @@ export default function Dashboard({
             zIndex: 1050,
             bottom: isMobile ? "85px" : "20px",
             right: "20px",
-            transform: isMobile ? "none" : `translate(${pos.x}px, ${pos.y}px)`,
+            transform: `translate(${pos.x}px, ${pos.y}px)`,
             transition: isDragging.current ? "none" : "transform 0.15s ease-out",
+            touchAction: "none"
           }}
         >
           <motion.button
@@ -1591,7 +1615,7 @@ export default function Dashboard({
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            style={{ touchAction: "none" }}
+            style={{ touchAction: "none", cursor: isDragging.current ? "grabbing" : "grab" }}
             title="Tanya AI Mooduit"
           >
             {isChatOpen ? (

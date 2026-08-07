@@ -1,10 +1,9 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/logo-pwa-bg.png", "destination": "/logo-pwa-bg.png" },
+    { "source": "/workbox-(.*)", "destination": "/workbox-$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
