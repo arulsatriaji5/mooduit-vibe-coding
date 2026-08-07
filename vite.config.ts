@@ -13,6 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        includeAssets: ['Logo_mooduit.png', 'logo-pwa-bg.png', 'pwa-192x192.png', 'pwa-512x512.png', 'icon.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}']
         },
@@ -25,17 +26,30 @@ export default defineConfig(({mode}) => {
           background_color: '#ffffff',
           display: 'standalone',
           start_url: '/',
+          scope: '/',
           icons: [
             {
-              src: '/logo-pwa-bg.png',
+              src: '/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
             },
             {
               src: '/logo-pwa-bg.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
+            },
+            {
+              src: '/icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any'
             }
           ]
         }
