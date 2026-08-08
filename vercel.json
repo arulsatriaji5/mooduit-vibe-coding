@@ -4,9 +4,7 @@
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/workbox-(.*)", "destination": "/workbox-$1" },
-    { "source": "/pwa-(.*)", "destination": "/pwa-$1" },
     { "source": "/logo-pwa-bg.png", "destination": "/logo-pwa-bg.png" },
-    { "source": "/icon.svg", "destination": "/icon.svg" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
