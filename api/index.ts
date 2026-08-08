@@ -273,13 +273,17 @@ app.get("/api/transactions", async (req, res) => {
 
 // Helper to synchronize and persist Daily Streak (Fire Icon) in database across devices
 // Streak MUST ONLY increase and update lastActiveDate when a NEW TRANSACTION is successfully saved (isTransactionWrite = true).
-async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite: boolean = false) {
+async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite: boolean = false, clientLocalDate?: string) {
   if (!userEmail) {
     return { streakCount: 0, lastActiveDate: "", streakActive: false, streakIncreasedToday: false };
   }
 
   const cleanEmail = String(userEmail).trim().toLowerCase();
-  const todayStr = new Date().toISOString().split('T')[0];
+  
+  // Use client's local YYYY-MM-DD date if provided, otherwise fallback to local Date string (en-CA: YYYY-MM-DD)
+  const todayStr = (clientLocalDate && /^\d{4}-\d{2}-\d{2}$/.test(String(clientLocalDate).trim()))
+    ? String(clientLocalDate).trim()
+    : new Date().toLocaleDateString('en-CA');
 
   // Fetch user row from DB
   const userRes = await db.execute({
@@ -295,14 +299,14 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
   let dbStreak = Number(user.streakCount || 0);
   let dbLastActive = String(user.lastActiveDate || "").split('T')[0];
 
-  const parseDate = (dStr: string) => {
+  const parseLocalDate = (dStr: string) => {
     const [y, m, d] = dStr.split('-').map(Number);
     return new Date(y, m - 1, d);
   };
 
   // IF READ-ONLY (Login / GET streak):
   if (!isTransactionWrite) {
-    // Check if user has recorded a transaction today or yesterday
+    // Check if user has recorded a transaction today in user's local timezone
     if (dbLastActive === todayStr) {
       return {
         streakCount: Math.max(dbStreak, 1),
@@ -313,12 +317,12 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     }
 
     if (dbLastActive) {
-      const todayDate = parseDate(todayStr);
-      const lastDate = parseDate(dbLastActive);
+      const todayDate = parseLocalDate(todayStr);
+      const lastDate = parseLocalDate(dbLastActive);
       const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
-        // Active yesterday, pending today's transaction to activate streak
+        // Active yesterday, pending today's transaction to activate streak -> Streak FLAME MATI (abu-abu) at 00:00 local time
         return {
           streakCount: Math.max(dbStreak, 1),
           lastActiveDate: dbLastActive,
@@ -346,8 +350,8 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     streakCount = Math.max(dbStreak, 1);
     streakIncreasedToday = true; // celebrate this new transaction
   } else if (dbLastActive) {
-    const todayDate = parseDate(todayStr);
-    const lastDate = parseDate(dbLastActive);
+    const todayDate = parseLocalDate(todayStr);
+    const lastDate = parseLocalDate(dbLastActive);
     const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
@@ -381,10 +385,11 @@ app.get(["/api/users/streak", "/api/streak"], async (req, res) => {
   try {
     const db = getDb();
     const email = req.query.email || req.query.user_email || req.headers["user-email"];
+    const clientLocalDate = req.query.clientLocalDate || req.query.today;
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
-    const streakInfo = await syncUserStreakInDB(db, String(email), false);
+    const streakInfo = await syncUserStreakInDB(db, String(email), false, String(clientLocalDate || ""));
     res.json(streakInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -395,10 +400,11 @@ app.post(["/api/users/streak", "/api/streak"], async (req, res) => {
   try {
     const db = getDb();
     const email = req.body.email || req.body.user_email || req.query.email || req.headers["user-email"];
+    const clientLocalDate = req.body.clientLocalDate || req.query.clientLocalDate;
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
-    const streakInfo = await syncUserStreakInDB(db, String(email), false);
+    const streakInfo = await syncUserStreakInDB(db, String(email), false, String(clientLocalDate || ""));
     res.json(streakInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -429,7 +435,8 @@ app.post("/api/transactions", async (req, res) => {
     });
 
     // Synchronize and persist streak ONLY on transaction write
-    const streakInfo = await syncUserStreakInDB(db, newTx.user_email, true);
+    const clientLocalDate = req.body.clientLocalDate || String(newTx.created_at).split('T')[0];
+    const streakInfo = await syncUserStreakInDB(db, newTx.user_email, true, clientLocalDate);
 
     const responsePayload = {
       ...newTx,
@@ -2190,6 +2197,85 @@ app.get("/api/cron/monthly-report", monthlyReportHandler);
 app.post("/api/cron/monthly-report", monthlyReportHandler);
 app.get("/api/send-report", monthlyReportHandler);
 app.post("/api/send-report", monthlyReportHandler);
+
+// Birthday Email Handler with Deep Link
+const birthdayEmailHandler = async (req: express.Request, res: express.Response) => {
+  try {
+    const userEmail = req.body.email || req.query.email || req.headers["user-email"];
+    if (!userEmail) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const db = getDb();
+    const cleanEmail = String(userEmail).trim().toLowerCase();
+    const userRes = await db.execute({
+      sql: "SELECT * FROM users WHERE LOWER(email) = ?",
+      args: [cleanEmail]
+    });
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = userRes.rows[0];
+    const userName = user.name || "Sobat Cuan";
+    const appUrl = process.env.APP_URL || "https://mooduit.arulsatriaji.dev";
+    const deepLinkUrl = `${appUrl}/?surprise=true`;
+
+    const smtpEmail = process.env.SMTP_EMAIL || process.env.GMAIL_USER;
+    const smtpPassword = process.env.SMTP_PASSWORD || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+
+    if (!smtpEmail || !smtpPassword) {
+      return res.json({
+        success: true,
+        message: "Demo Mode: Email kado ulang tahun diproses.",
+        deepLinkUrl
+      });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: smtpEmail, pass: smtpPassword }
+    });
+
+    const mailOptions = {
+      from: `"MOODUIT Financial Advisor" <${smtpEmail}>`,
+      to: cleanEmail,
+      subject: `🎂 Selamat Ulang Tahun, ${userName}! Kado Spesial dari MOODUIT Menunggumu 🎁`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border-radius: 16px; background-color: #0f172a; color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 40px; margin-bottom: 8px;">🎂✨</div>
+            <h1 style="color: #f472b6; margin: 0; font-size: 24px;">Selamat Ulang Tahun, ${userName}!</h1>
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 6px;">Hari ini adalah hari spesialmu!</p>
+          </div>
+          <div style="background-color: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 24px;">
+            <p style="margin: 0 0 12px 0; color: #e2e8f0; line-height: 1.6;">
+              Tim MOODUIT mendoakan yang terbaik untukmu! Buka aplikasi MOODUIT sekarang untuk mengambil kado ulang tahun spesialmu dan melihat pesan eksklusif dari MOODUIT AI.
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+              <a href="${deepLinkUrl}" style="background: linear-gradient(to right, #ec4899, #8b5cf6); color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 15px;">
+                🎁 Buka Kado Ulang Tahun Sekarang
+              </a>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
+            Atau buka link ini: <a href="${deepLinkUrl}" style="color: #38bdf8;">${deepLinkUrl}</a>
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true, message: "Email kado ulang tahun berhasil dikirim!", deepLinkUrl });
+  } catch (err: any) {
+    console.error("Birthday email error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+app.get("/api/send-birthday-email", birthdayEmailHandler);
+app.post("/api/send-birthday-email", birthdayEmailHandler);
 
 // Asynchronous background database initialization so it never blocks startup or serverless container boot
 initDB().catch(err => {

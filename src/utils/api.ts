@@ -1,7 +1,8 @@
 export async function fetchUserStreak(user_email?: string): Promise<{ streakCount: number; streakActive: boolean; streakIncreasedToday: boolean }> {
   try {
     if (!user_email) return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
-    const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}`);
+    const todayLocal = new Date().toLocaleDateString('en-CA');
+    const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}&clientLocalDate=${todayLocal}`);
     if (!response.ok) throw new Error("Failed to fetch streak from DB");
     const data = await response.json();
     return {

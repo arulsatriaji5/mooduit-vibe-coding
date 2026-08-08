@@ -21,9 +21,11 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  Gift,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
 import { fetchUserStreak } from "../utils/api";
+import { BirthdayModal, isUserBirthdayToday } from "./BirthdayModal";
 import "./Dashboard.css";
 
 interface DashboardProps {
@@ -49,7 +51,27 @@ export default function Dashboard({
     return false;
   });
   const [userName, setUserName] = React.useState("Sobat Cuan");
+  const [userDob, setUserDob] = React.useState<string>(() => localStorage.getItem("userDob") || "");
+  const [showBirthdayModal, setShowBirthdayModal] = React.useState<boolean>(false);
   const [budgetsData, setBudgetsData] = React.useState<any[]>([]);
+
+  // Check URL Deep Link for ?surprise=true or ?birthday=true on mount
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedDob = localStorage.getItem("userDob") || "";
+      if (storedDob) setUserDob(storedDob);
+
+      const params = new URLSearchParams(window.location.search);
+      const isSurpriseDeepLink = params.get("surprise") === "true" || params.get("birthday") === "true";
+
+      if (isSurpriseDeepLink) {
+        setShowBirthdayModal(true);
+        // Clean up URL query params smoothly without reloading page
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+  }, []);
 
   // Daily Streak and Celebration Pop-up States (Sourced strictly from Database)
   const [streakCount, setStreakCount] = React.useState<number>(0);
@@ -820,15 +842,22 @@ export default function Dashboard({
     }
   }, [propsTransactions]);
 
-  // Effect to load current streak directly from backend database
+  // Effect to load and periodically sync current streak using local-timezone awareness
   React.useEffect(() => {
-    const user_email = localStorage.getItem("userEmail") || "";
-    if (user_email) {
-      fetchUserStreak(user_email).then((s) => {
-        setStreakCount(s.streakCount);
-        setStreakActive(s.streakActive);
-      });
-    }
+    const syncStreakWithLocalTime = () => {
+      const user_email = localStorage.getItem("userEmail") || "";
+      if (user_email) {
+        fetchUserStreak(user_email).then((s) => {
+          setStreakCount(s.streakCount);
+          setStreakActive(s.streakActive);
+        });
+      }
+    };
+
+    syncStreakWithLocalTime();
+    // Periodically sync every 30s to trigger instant midnight 00:00 local time flame extinguish if no transaction today
+    const streakInterval = setInterval(syncStreakWithLocalTime, 30000);
+    return () => clearInterval(streakInterval);
   }, []);
 
   React.useEffect(() => {
@@ -1216,6 +1245,22 @@ export default function Dashboard({
               </span>
             </div>
           </div>
+
+          {/* IKON KADO ULANG TAHUN DI DASHBOARD (SEBELAH STREAK) */}
+          {isUserBirthdayToday(userDob) && (
+            <motion.button
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              type="button"
+              onClick={() => setShowBirthdayModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-black text-xs shadow-md shadow-pink-500/25 animate-pulse border-0 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+              style={{ borderRadius: '9999px' }}
+              title={t("Kado Ulang Tahun Kamu! 🎉 Klik untuk membuka modal kado", "Your Birthday Gift! 🎉 Click to open surprise modal")}
+            >
+              <span className="text-sm select-none">🎁</span>
+              <span className="tracking-wide uppercase text-[11px] font-black">{t("Kado Ulang Tahun", "Birthday Gift")}</span>
+            </motion.button>
+          )}
         </div>
         <p className="text-muted mb-0">
           {t(
@@ -2156,6 +2201,15 @@ export default function Dashboard({
           </div>
         )}
       </AnimatePresence>
+
+      {/* FULL-SCREEN BIRTHDAY SURPRISE MODAL */}
+      <BirthdayModal
+        isOpen={showBirthdayModal}
+        onClose={() => setShowBirthdayModal(false)}
+        userName={userName}
+        userDob={userDob}
+        userAvatar={localStorage.getItem("userAvatar") || undefined}
+      />
     </div>
   );
 }
