@@ -383,25 +383,33 @@
 .mooduit-chat-input-wrapper {
   border: 1px solid #e2e8f0 !important;
   border-radius: 20px !important;
-  padding: 8px 16px !important;
-  background-color: #f8fafc !important;
+  padding: 8px 12px !important;
+  background-color: transparent !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mooduit-chat-input-wrapper textarea {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .dark .mooduit-chat-input-wrapper {
   border-color: #334155 !important;
-  background-color: #1e293b !important;
+  background-color: transparent !important;
 }
 
-.mooduit-chat-input-wrapper:focus-within {
+html:not(.dark) .mooduit-chat-input-wrapper:focus-within {
   border-color: #112F58 !important; /* Mooduit Navy Blue */
-  background-color: #ffffff !important;
+  background-color: transparent !important;
   box-shadow: 0 0 0 3px rgba(17, 47, 88, 0.15) !important;
 }
 
 .dark .mooduit-chat-input-wrapper:focus-within {
   border-color: #38bdf8 !important; /* Sky Blue in Dark Mode */
-  background-color: #0f172a !important;
+  background-color: transparent !important;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
 }
 

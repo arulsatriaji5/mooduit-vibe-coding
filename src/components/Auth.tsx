@@ -144,26 +144,15 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
-      response_type: 'token',
+      response_type: 'code',
       scope: 'openid email profile',
       prompt: 'select_account'
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-    const authWindow = window.open(
-      googleAuthUrl,
-      'google_oauth_popup',
-      'width=600,height=700,status=no,resizable=yes,scrollbars=yes'
-    );
-
-    if (!authWindow) {
-      toast.error(
-        language === 'id'
-          ? "Popup terblokir! Silakan aktifkan popup untuk situs ini agar dapat masuk menggunakan Google."
-          : "Popup blocked! Please enable popups for this site to sign in with Google."
-      );
-    }
+    // Full window redirect for PWA & Mobile standalone mode compatibility (NO POPUP)
+    window.location.href = googleAuthUrl;
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {

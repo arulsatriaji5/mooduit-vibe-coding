@@ -910,12 +910,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
             const hashError = params.get('error');
 
             if (hashError) {
-              if (window.opener) {
-                window.opener.postMessage({ type: 'GOOGLE_AUTH_FAILURE', error: hashError }, '*');
-              } else {
-                window.location.href = '/auth?error=' + encodeURIComponent(hashError);
-              }
-              window.close();
+              window.location.href = '/?error=' + encodeURIComponent(hashError);
             } else if (accessToken) {
               fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { 'Authorization': 'Bearer ' + accessToken }
@@ -927,51 +922,22 @@ app.get('/api/auth/google/callback', async (req, res) => {
               .then(userInfo => {
                 const sessionToken = 'google_' + Math.random().toString(36).substring(2) + Date.now();
                 const redirectUrl = '/dashboard?token=' + sessionToken + '&email=' + encodeURIComponent(userInfo.email) + '&oauth_email=' + encodeURIComponent(userInfo.email) + '&oauth_name=' + encodeURIComponent(userInfo.name || '') + '&oauth_picture=' + encodeURIComponent(userInfo.picture || '');
-                if (window.opener) {
-                  try {
-                    window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', userInfo, token: sessionToken }, '*');
-                  } catch (e) {
-                    console.error("postMessage failed", e);
-                  }
-                  try {
-                    window.opener.location.href = redirectUrl;
-                  } catch (e) {
-                    console.error("Redirecting opener failed", e);
-                  }
-                  window.close();
-                } else {
-                  window.location.href = redirectUrl;
-                }
+                window.location.href = redirectUrl;
               })
               .catch(err => {
-                if (window.opener) {
-                  window.opener.postMessage({ type: 'GOOGLE_AUTH_FAILURE', error: err.message }, '*');
-                } else {
-                  window.location.href = '/auth?error=' + encodeURIComponent(err.message);
-                }
-                window.close();
+                window.location.href = '/?error=' + encodeURIComponent(err.message);
               });
             } else {
               const queryParams = new URLSearchParams(window.location.search);
               const queryError = queryParams.get('error');
               if (queryError) {
-                if (window.opener) {
-                  window.opener.postMessage({ type: 'GOOGLE_AUTH_FAILURE', error: queryError }, '*');
-                } else {
-                  window.location.href = '/auth?error=' + encodeURIComponent(queryError);
-                }
-                window.close();
+                window.location.href = '/?error=' + encodeURIComponent(queryError);
               } else {
                 setTimeout(() => {
                   if (!window.location.hash) {
-                    if (window.opener) {
-                      window.opener.postMessage({ type: 'GOOGLE_AUTH_FAILURE', error: 'No access token found' }, '*');
-                    } else {
-                      window.location.href = '/auth';
-                    }
-                    window.close();
+                    window.location.href = '/';
                   }
-                }, 2000);
+                }, 1500);
               }
             }
           </script>

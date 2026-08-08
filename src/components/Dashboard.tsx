@@ -17,6 +17,10 @@ import {
   Eye,
   EyeOff,
   Settings,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
 import { fetchUserStreak } from "../utils/api";
@@ -157,6 +161,163 @@ export default function Dashboard({
     }[]
   >([]);
   const [isTyping, setIsTyping] = React.useState(false);
+
+  // Speech-to-Text (STT) & Text-to-Speech (TTS) states
+  const [isListening, setIsListening] = React.useState(false);
+  const [speakingMsgIndex, setSpeakingMsgIndex] = React.useState<number | null>(null);
+  const [isVoiceInteraction, setIsVoiceInteraction] = React.useState(false);
+  const recognitionRef = React.useRef<any>(null);
+
+  // Initial welcome message when chat opens (AI DOES NOT SPEAK AUTOMATICALLY)
+  React.useEffect(() => {
+    if (isChatOpen && messages.length === 0) {
+      const welcome = language === "id"
+        ? "Halo Sobat Cuan! 👋 Aku Asisten AI MOODUIT. Kamu bisa tanya tips keuangan, konsultasikan rencana belanja, atau langsung ucapkan transaksi untuk dicatat (misal: 'Beli kopi 25rb tadi siang')! 🎙️"
+        : "Hello Sobat Cuan! 👋 I'm MOODUIT AI Advisor. Ask financial tips, consult shopping plans, or speak transactions to log them (e.g., 'Spent 25k on coffee')! 🎙️";
+      setMessages([{ text: welcome, isAi: true }]);
+    }
+  }, [isChatOpen, messages.length, language]);
+
+  // STT: Speech-to-Text handler using Web Speech API
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error(
+        language === "id"
+          ? "Fitur input suara tidak didukung di browser ini. Gunakan Chrome, Edge, atau Safari!"
+          : "Speech recognition is not supported in this browser."
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = language === "id" ? "id-ID" : "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setChatInput((prev) => (prev ? prev + " " + transcript : transcript));
+          setIsVoiceInteraction(true); // User initiated via Voice Note (Mic)!
+          toast.success(
+            language === "id" ? "Suara berhasil ditranskrip! 🎙️" : "Voice transcribed! 🎙️"
+          );
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error !== "no-speech") {
+          toast.error(
+            language === "id"
+              ? "Gagal merekam suara. Pastikan izin mikrofon telah aktif!"
+              : "Failed to record voice. Check microphone permissions."
+          );
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e: any) {
+      console.error("SpeechRecognition error:", e);
+      setIsListening(false);
+      toast.error(
+        language === "id"
+          ? "Tidak dapat mengakses mikrofon!"
+          : "Cannot access microphone!"
+      );
+    }
+  };
+
+  // TTS: Text-to-Speech handler using Web SpeechSynthesis
+  const speakMessage = (text: string, index: number) => {
+    if (!("speechSynthesis" in window)) {
+      toast.error(
+        language === "id"
+          ? "Browser Anda tidak mendukung fitur pembaca suara (Text-to-Speech)."
+          : "Your browser does not support Text-to-Speech."
+      );
+      return;
+    }
+
+    if (speakingMsgIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    setSpeakingMsgIndex(index);
+
+    // Clean text of html tags & markdown formatting
+    const cleanText = text
+      .replace(/<[^>]*>/g, "")
+      .replace(/\*+/g, "")
+      .replace(/#+/g, "")
+      .replace(/`+/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = language === "id" ? "id-ID" : "en-US";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Try finding an Indonesian voice if available
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find(
+        (v) => v.lang.toLowerCase().includes("id") || v.lang.toLowerCase().includes("indonesia")
+      );
+      if (idVoice) utterance.voice = idVoice;
+    } catch (_) {}
+
+    utterance.onend = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    utterance.onerror = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // AI Voice response ONLY plays if user initiated message via Voice Note (Mic) interaction
+  const prevMessagesLengthRef = React.useRef(messages.length);
+  React.useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current) {
+      const lastIdx = messages.length - 1;
+      const lastMsg = messages[lastIdx];
+      if (lastMsg && lastMsg.isAi && isVoiceInteraction) {
+        speakMessage(lastMsg.text, lastIdx);
+        setIsVoiceInteraction(false); // Reset voice interaction trigger after speaking
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, isVoiceInteraction]);
   const [wishlist, setWishlist] = React.useState<any[]>([]);
   const [targetImpian, setTargetImpian] = React.useState<any[]>([]);
   const [isEditTargetModalOpen, setIsEditTargetModalOpen] =
@@ -1500,7 +1661,13 @@ export default function Dashboard({
                 <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
               </div>
               <button 
-                onClick={() => setIsChatOpen(false)} 
+                type="button"
+                onClick={() => {
+                  if ("speechSynthesis" in window) {
+                    window.speechSynthesis.cancel();
+                  }
+                  setIsChatOpen(false);
+                }} 
                 className="btn btn-link text-white text-xl p-2 cursor-pointer border-0 shadow-none leading-none d-flex align-items-center justify-content-center mooduit-chat-close"
                 style={{ padding: '8px', background: 'transparent', outline: 'none' }}
               >
@@ -1547,6 +1714,27 @@ export default function Dashboard({
                       </div>
                     </div>
                   )}
+                  {msg.isAi && (
+                    <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 bg-transparent dark:bg-transparent">
+                      <span className="text-[10px] text-slate-400 font-sans font-medium">MOODUIT AI</span>
+                      <button
+                        type="button"
+                        onClick={() => speakMessage(msg.text, i)}
+                        className={`p-1 px-2 rounded-full transition-all flex items-center gap-1 border-0 cursor-pointer bg-transparent dark:bg-transparent ${
+                          speakingMsgIndex === i 
+                            ? "text-rose-500 animate-pulse font-bold" 
+                            : "text-slate-600 dark:text-slate-300 hover:opacity-80"
+                        }`}
+                        title={speakingMsgIndex === i ? t("Hentikan Suara", "Stop Voice") : t("Dengarkan Suara AI", "Listen to AI Voice")}
+                        style={{ outline: "none" }}
+                      >
+                        {speakingMsgIndex === i ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                        <span className="text-[10px] font-semibold">
+                          {speakingMsgIndex === i ? (language === "id" ? "Stop" : "Stop") : (language === "id" ? "Dengarkan" : "Listen")}
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               ))}
               {isTyping && (
@@ -1559,31 +1747,59 @@ export default function Dashboard({
             </div>
 
             {/* INPUT AREA */}
-            <div className={`p-3 border-top shrink-0 ${darkMode ? "bg-slate-800 border-slate-700" : "bg-white"}`}>
-              <div className="d-flex align-items-start gap-2 mooduit-chat-input-wrapper">
+            <div className={`p-3 border-t shrink-0 ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+              {isListening && (
+                <div className="mb-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-rose-500 text-xs font-semibold animate-pulse">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                  <span>{t("🎙️ Bicara sekarang... MOODUIT sedang mendengarkan", "🎙️ Speak now... MOODUIT is listening")}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 mooduit-chat-input-wrapper">
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="form-control border-0 bg-transparent p-0 shadow-none resize-none"
-                  placeholder={t("Tanya AI di sini...", "Ask AI here...")}
+                  className="w-full border-none bg-transparent dark:bg-transparent !bg-transparent p-1 shadow-none resize-none flex-1 outline-none focus:ring-0 text-slate-800 dark:text-slate-100"
+                  placeholder={isListening ? t("Mendengarkan suara kamu...", "Listening to your voice...") : t("Tanya AI atau ucapkan transaksi...", "Ask AI or speak transaction...")}
                   style={{
                     fontSize: "13px",
                     lineHeight: "18px",
-                    minHeight: "54px",
+                    minHeight: "44px",
                     maxHeight: "120px",
-                    width: "100%",
                     outline: "none",
-                    color: darkMode ? "#ffffff" : "inherit"
+                    border: "none",
+                    boxShadow: "none",
+                    backgroundColor: "transparent",
+                    color: darkMode ? "#f8fafc" : "#0f172a"
                   }}
                 />
                 <button
-                  onClick={handleSendMessage}
-                  className="btn p-1 text-primary-mooduit hover:opacity-70 transition-opacity border-0 mt-1"
-                  style={{ color: darkMode ? "#60a5fa" : "#112F58", cursor: "pointer" }}
+                  type="button"
+                  onClick={toggleListening}
+                  className={`p-2 rounded-full border-0 transition-all flex items-center justify-center shrink-0 cursor-pointer bg-transparent dark:bg-transparent ${
+                    isListening
+                      ? "text-rose-500 animate-bounce"
+                      : "text-slate-600 dark:text-slate-300 hover:opacity-80"
+                  }`}
+                  title={isListening ? t("Hentikan Merekam", "Stop Recording") : t("Kirim Pesan Suara (Voice Note)", "Voice Input")}
+                  style={{ width: "38px", height: "38px" }}
                 >
-                  <Send size={20} />
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={!chatInput.trim()}
+                  className={`p-2 rounded-full border-0 transition-all flex items-center justify-center shrink-0 cursor-pointer bg-transparent dark:bg-transparent ${
+                    chatInput.trim()
+                      ? "text-primary-mooduit dark:text-sky-400 hover:opacity-80"
+                      : "text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                  }`}
+                  style={{ width: "38px", height: "38px" }}
+                  title={t("Kirim Pesan", "Send Message")}
+                >
+                  <Send size={18} />
                 </button>
               </div>
             </div>
