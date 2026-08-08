@@ -52,6 +52,9 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [userEmail] = useState(() => {
     return localStorage.getItem('userEmail') || 'arulsatriaji5@gmail.com';
   });
+  const [userDob, setUserDob] = useState(() => {
+    return localStorage.getItem('userDob') || '';
+  });
   const [userId] = useState(() => {
     return localStorage.getItem('userId') || '';
   });
@@ -59,6 +62,26 @@ export default function Settings({ onLogout }: SettingsProps) {
     return localStorage.getItem('authProvider') || 'local';
   });
   const isGoogleUser = authProvider === 'google' || localStorage.getItem('authProvider') === 'google';
+
+  React.useEffect(() => {
+    if (userEmail) {
+      fetch(`/api/users/profile?email=${encodeURIComponent(userEmail)}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            if (data.dob) {
+              setUserDob(data.dob);
+              localStorage.setItem('userDob', data.dob);
+            }
+            if (data.name && data.name !== userName) {
+              setUserName(data.name);
+              localStorage.setItem('userName', data.name);
+            }
+          }
+        })
+        .catch(err => console.warn("Failed to fetch user profile:", err));
+    }
+  }, [userEmail]);
 
   // CHANGE PASSWORD FIELDS
   const [oldPassword, setOldPassword] = useState('');
@@ -120,12 +143,16 @@ export default function Settings({ onLogout }: SettingsProps) {
     });
   };
 
-  const syncProfileAndSession = async (newAvatar: string, newName: string) => {
+  const syncProfileAndSession = async (newAvatar: string, newName: string, newDob?: string) => {
     safeStorageSet('userAvatar', newAvatar);
     if (userEmail) {
       safeStorageSet(`avatar_${userEmail}`, newAvatar);
     }
     safeStorageSet('userName', newName);
+    const dobToSave = newDob !== undefined ? newDob : userDob;
+    if (dobToSave) {
+      safeStorageSet('userDob', dobToSave);
+    }
 
     try {
       const savedUserStr = localStorage.getItem('mooduit_user');
@@ -134,6 +161,7 @@ export default function Settings({ onLogout }: SettingsProps) {
         u.picture = newAvatar;
         u.avatar = newAvatar;
         u.name = newName;
+        u.dob = dobToSave;
         safeStorageSet('mooduit_user', JSON.stringify(u));
       }
       const savedSessionStr = localStorage.getItem('mooduit_session');
@@ -143,6 +171,7 @@ export default function Settings({ onLogout }: SettingsProps) {
           s.user.picture = newAvatar;
           s.user.avatar = newAvatar;
           s.user.name = newName;
+          s.user.dob = dobToSave;
           safeStorageSet('mooduit_session', JSON.stringify(s));
         }
       }
@@ -158,7 +187,7 @@ export default function Settings({ onLogout }: SettingsProps) {
         await fetch('/api/update-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar })
+          body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar, dob: dobToSave })
         });
       } catch (err) {
         console.error('Failed to update profile to backend database:', err);
@@ -547,12 +576,23 @@ export default function Settings({ onLogout }: SettingsProps) {
                   />
                   <span className="mooduit-form-tip">{t("Email tidak dapat diubah", "Email address cannot be changed")}</span>
                 </div>
+
+                <div className="mooduit-form-group">
+                  <label className="mooduit-form-label">{t("Tanggal Lahir 🎂", "Date of Birth 🎂")}</label>
+                  <input 
+                    type="date" 
+                    value={userDob} 
+                    onChange={(e) => setUserDob(e.target.value)}
+                    className="mooduit-form-input"
+                  />
+                  <span className="mooduit-form-tip">{t("Diperlukan untuk kado & kejutan ulang tahun kamu! 🎉", "Needed for your birthday surprise! 🎉")}</span>
+                </div>
               </div>
 
               {/* SAVE BUTTON */}
               <button 
                 onClick={async () => {
-                  await syncProfileAndSession(currentAvatar, userName);
+                  await syncProfileAndSession(currentAvatar, userName, userDob);
                   toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
                   setActiveView('main');
                 }}

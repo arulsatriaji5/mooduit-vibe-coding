@@ -1911,13 +1911,13 @@ export default function Dashboard({
               </div>
  
               <h4 className="celebration-modal-title">
-                {t("🔥 Streak Harian +1!", "🔥 Daily Streak +1!")}
+                {t("Boom! Transaksi Tercatat! 🔥", "Boom! Transaction Recorded! 🔥")}
               </h4>
  
               <p className="celebration-modal-text">
                 {t(
-                  `Keren! Kamu sudah konsisten mencatat keuangan selama ${streakCount} hari berturut-turut!`,
-                  `Awesome! You have consistently logged your finances for ${streakCount} consecutive days!`
+                  "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala!",
+                  "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing!"
                 )}
               </p>
  

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { Mail, Lock, User, Eye, EyeOff, X, CheckCircle, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, X, CheckCircle, ArrowLeft, ShieldAlert, Calendar } from 'lucide-react';
 import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import './Auth.css';
@@ -20,6 +20,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [dob, setDob] = useState('');
   
   // Custom Toast states
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -199,7 +200,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, dob })
       });
 
       const responseText = await res.text();
@@ -228,10 +229,12 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       const registeredUserData = {
         name,
         email,
+        dob,
         authProvider: 'local'
       };
       localStorage.setItem('userName', name);
       localStorage.setItem('userEmail', email);
+      if (dob) localStorage.setItem('userDob', dob);
       localStorage.setItem('mooduit_user', JSON.stringify(registeredUserData));
 
       // Secara otomatis alihkan (redirect / switch state) tampilan Modal dari "Daftar" ke "Masuk"
@@ -308,6 +311,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       safeSet('userId', data.id);
       safeSet('userName', data.name);
       safeSet('userEmail', data.email);
+      if (data.dob) safeSet('userDob', data.dob);
       safeSet('authProvider', data.authProvider || 'local');
       safeSet('userAvatar', finalAvatar);
       if (data.email) {
@@ -439,6 +443,23 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                     placeholder={t("Ketik nama lengkapmu...", "Type your full name here...")} 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    required 
+                  />
+                </div>
+              </div>
+
+              {/* Tanggal Lahir (DOB) */}
+              <div className="mb-3 animate-fade-in">
+                <label className="auth-input-label">{t("Tanggal Lahir 🎂", "Date of Birth 🎂")}</label>
+                <div className="auth-input-group">
+                  <span className="auth-input-addon">
+                    <Calendar size={18} className="text-slate-400 dark:text-slate-500" />
+                  </span>
+                  <input 
+                    type="date" 
+                    className="auth-input-field" 
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
                     required 
                   />
                 </div>

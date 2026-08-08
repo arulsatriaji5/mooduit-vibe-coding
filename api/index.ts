@@ -106,12 +106,15 @@ async function initDB() {
       }
     }
 
-    // Gracefully add streak columns to users table for database cross-device streak persistence
+    // Gracefully add streak & dob columns to users table for database cross-device streak & birthday persistence
     try {
       await db.execute("ALTER TABLE users ADD COLUMN streakCount INTEGER DEFAULT 0");
     } catch (err) {}
     try {
       await db.execute("ALTER TABLE users ADD COLUMN lastActiveDate TEXT");
+    } catch (err) {}
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN dob TEXT");
     } catch (err) {}
 
     // Try migrating existing db.json to Turso/SQLite if tables are empty
@@ -269,7 +272,8 @@ app.get("/api/transactions", async (req, res) => {
 });
 
 // Helper to synchronize and persist Daily Streak (Fire Icon) in database across devices
-async function syncUserStreakInDB(db: any, userEmail: string) {
+// Streak MUST ONLY increase and update lastActiveDate when a NEW TRANSACTION is successfully saved (isTransactionWrite = true).
+async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite: boolean = false) {
   if (!userEmail) {
     return { streakCount: 0, lastActiveDate: "", streakActive: false, streakIncreasedToday: false };
   }
@@ -277,120 +281,102 @@ async function syncUserStreakInDB(db: any, userEmail: string) {
   const cleanEmail = String(userEmail).trim().toLowerCase();
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Calculate transaction-based streak from unique dates in transactions table
-  let txStreak = 0;
-  try {
-    const allTxResult = await db.execute({
-      sql: "SELECT DISTINCT SUBSTR(created_at, 1, 10) as tx_date FROM transactions WHERE LOWER(user_email) = ? ORDER BY tx_date DESC",
-      args: [cleanEmail]
-    });
-
-    const uniqueDates = (allTxResult.rows || [])
-      .map((row: any) => String(row.tx_date || ""))
-      .filter((d: string) => d.length === 10);
-
-    if (uniqueDates.length > 0) {
-      const parseDate = (dStr: string) => {
-        const [y, m, d] = dStr.split('-').map(Number);
-        return new Date(y, m - 1, d);
-      };
-
-      const latestDateStr = uniqueDates[0];
-      const latestDate = parseDate(latestDateStr);
-      const today = parseDate(todayStr);
-
-      const diffTime = Math.abs(today.getTime() - latestDate.getTime());
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 1 || latestDateStr === todayStr) {
-        txStreak = 1;
-        let checkDate = latestDate;
-        for (let i = 1; i < uniqueDates.length; i++) {
-          const prevDate = parseDate(uniqueDates[i]);
-          const gap = Math.round(Math.abs(checkDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (gap === 1) {
-            txStreak++;
-            checkDate = prevDate;
-          } else if (gap === 0) {
-            continue;
-          } else {
-            break;
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Error computing txStreak:", e);
-  }
-
   // Fetch user row from DB
   const userRes = await db.execute({
     sql: "SELECT * FROM users WHERE LOWER(email) = ?",
     args: [cleanEmail]
   });
 
-  let streakCount = txStreak;
-  let lastActiveDate = todayStr;
-  let streakActive = true;
-  let streakIncreasedToday = false;
+  if (userRes.rows.length === 0) {
+    return { streakCount: 0, lastActiveDate: "", streakActive: false, streakIncreasedToday: false };
+  }
 
-  if (userRes.rows.length > 0) {
-    const user = userRes.rows[0];
-    const dbStreak = Number(user.streakCount || 0);
-    const dbLastActive = String(user.lastActiveDate || "").split('T')[0];
+  const user = userRes.rows[0];
+  let dbStreak = Number(user.streakCount || 0);
+  let dbLastActive = String(user.lastActiveDate || "").split('T')[0];
 
+  const parseDate = (dStr: string) => {
+    const [y, m, d] = dStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  // IF READ-ONLY (Login / GET streak):
+  if (!isTransactionWrite) {
+    // Check if user has recorded a transaction today or yesterday
     if (dbLastActive === todayStr) {
-      // Already logged active today
-      streakCount = Math.max(dbStreak, txStreak, 1);
-      streakActive = true;
-      streakIncreasedToday = false;
-    } else if (dbLastActive) {
-      const parseDate = (dStr: string) => {
-        const [y, m, d] = dStr.split('-').map(Number);
-        return new Date(y, m - 1, d);
+      return {
+        streakCount: Math.max(dbStreak, 1),
+        lastActiveDate: dbLastActive,
+        streakActive: true,
+        streakIncreasedToday: false
       };
-      const todayDate = parseDate(todayStr);
-      const lastDate = parseDate(dbLastActive);
-      const diffTime = todayDate.getTime() - lastDate.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Active yesterday -> Increment streak
-        streakCount = Math.max(dbStreak + 1, txStreak, 1);
-        streakActive = true;
-        streakIncreasedToday = true;
-      } else if (diffDays > 1) {
-        // Gap > 1 day -> Reset streak to 1 today
-        streakCount = Math.max(1, txStreak);
-        streakActive = true;
-        streakIncreasedToday = true;
-      } else {
-        streakCount = Math.max(dbStreak, txStreak, 1);
-        streakActive = true;
-      }
-    } else {
-      // First time active
-      streakCount = Math.max(1, txStreak);
-      streakActive = true;
-      streakIncreasedToday = true;
     }
 
-    // Persist updated streak count and last active date to database
-    await db.execute({
-      sql: "UPDATE users SET streakCount = ?, lastActiveDate = ? WHERE LOWER(email) = ?",
-      args: [streakCount, todayStr, cleanEmail]
-    });
+    if (dbLastActive) {
+      const todayDate = parseDate(todayStr);
+      const lastDate = parseDate(dbLastActive);
+      const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        // Active yesterday, pending today's transaction to activate streak
+        return {
+          streakCount: Math.max(dbStreak, 1),
+          lastActiveDate: dbLastActive,
+          streakActive: false,
+          streakIncreasedToday: false
+        };
+      }
+    }
+
+    // Gap > 1 day -> streak is inactive
+    return {
+      streakCount: Math.max(dbStreak, 0),
+      lastActiveDate: dbLastActive,
+      streakActive: false,
+      streakIncreasedToday: false
+    };
   }
+
+  // IF TRANSACTION WRITE (New transaction saved):
+  let streakCount = 1;
+  let streakIncreasedToday = true;
+
+  if (dbLastActive === todayStr) {
+    // User already added a transaction today
+    streakCount = Math.max(dbStreak, 1);
+    streakIncreasedToday = true; // celebrate this new transaction
+  } else if (dbLastActive) {
+    const todayDate = parseDate(todayStr);
+    const lastDate = parseDate(dbLastActive);
+    const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      // Recorded yesterday -> Streak +1!
+      streakCount = dbStreak + 1;
+    } else {
+      // Missed > 1 day -> Reset streak to 1
+      streakCount = 1;
+    }
+  } else {
+    // First transaction ever
+    streakCount = 1;
+  }
+
+  // PERSIST to DB only when a transaction is added!
+  await db.execute({
+    sql: "UPDATE users SET streakCount = ?, lastActiveDate = ? WHERE LOWER(email) = ?",
+    args: [streakCount, todayStr, cleanEmail]
+  });
 
   return {
     streakCount,
     lastActiveDate: todayStr,
-    streakActive,
+    streakActive: true,
     streakIncreasedToday
   };
 }
 
-// Endpoint to fetch/sync daily streak from database
+// Endpoint to fetch/sync daily streak from database (READ ONLY)
 app.get(["/api/users/streak", "/api/streak"], async (req, res) => {
   try {
     const db = getDb();
@@ -398,7 +384,7 @@ app.get(["/api/users/streak", "/api/streak"], async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
-    const streakInfo = await syncUserStreakInDB(db, String(email));
+    const streakInfo = await syncUserStreakInDB(db, String(email), false);
     res.json(streakInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -412,7 +398,7 @@ app.post(["/api/users/streak", "/api/streak"], async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
-    const streakInfo = await syncUserStreakInDB(db, String(email));
+    const streakInfo = await syncUserStreakInDB(db, String(email), false);
     res.json(streakInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -442,8 +428,8 @@ app.post("/api/transactions", async (req, res) => {
       args: [newTx.id, newTx.user_email, newTx.amount, newTx.type, newTx.category, newTx.description, newTx.created_at]
     });
 
-    // Synchronize and persist streak in database user table
-    const streakInfo = await syncUserStreakInDB(db, newTx.user_email);
+    // Synchronize and persist streak ONLY on transaction write
+    const streakInfo = await syncUserStreakInDB(db, newTx.user_email, true);
 
     const responsePayload = {
       ...newTx,
@@ -682,7 +668,7 @@ app.post("/api/budget-plans", async (req, res) => {
 app.post("/api/register", async (req, res) => {
   try {
     const db = getDb();
-    const { name, email, password } = req.body;
+    const { name, email, password, dob } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Kolom wajib diisi" });
@@ -699,15 +685,17 @@ app.post("/api/register", async (req, res) => {
       // Account Linking: If user exists without a password (e.g. Google OAuth user setting password)
       if (!existingUser.password || String(existingUser.password).trim() === '') {
         const updatedName = (existingUser.name && existingUser.name !== "Sobat Cuan") ? existingUser.name : name;
+        const updatedDob = dob || existingUser.dob || "";
         await db.execute({
-          sql: "UPDATE users SET password = ?, name = ?, authProvider = 'hybrid' WHERE LOWER(email) = LOWER(?)",
-          args: [password, updatedName, cleanEmail]
+          sql: "UPDATE users SET password = ?, name = ?, dob = ?, authProvider = 'hybrid' WHERE LOWER(email) = LOWER(?)",
+          args: [password, updatedName, updatedDob, cleanEmail]
         });
         return res.status(200).json({
           id: existingUser.id,
           name: updatedName,
           email: existingUser.email,
           picture: existingUser.picture,
+          dob: updatedDob,
           authProvider: 'hybrid',
           message: "Akun Google Anda berhasil dihubungkan dengan kata sandi!"
         });
@@ -716,12 +704,13 @@ app.post("/api/register", async (req, res) => {
     }
 
     const id = String(Date.now());
+    const userDob = dob ? String(dob).trim() : "";
     await db.execute({
-      sql: "INSERT INTO users (id, name, email, password, authProvider) VALUES (?, ?, ?, ?, 'local')",
-      args: [id, name, cleanEmail, password]
+      sql: "INSERT INTO users (id, name, email, password, dob, authProvider) VALUES (?, ?, ?, ?, ?, 'local')",
+      args: [id, name, cleanEmail, password, userDob]
     });
 
-    res.status(201).json({ id, name, email: cleanEmail, authProvider: 'local' });
+    res.status(201).json({ id, name, email: cleanEmail, dob: userDob, authProvider: 'local' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -755,7 +744,7 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "Akun ini terdaftar via Google. Silakan masuk menggunakan tombol Google!" });
     }
 
-    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider || 'local' });
+    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, dob: user.dob || "", authProvider: user.authProvider || 'local' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -1091,6 +1080,7 @@ app.get(["/api/users/profile", "/api/user-profile", "/api/me"], async (req, res)
       name: user.name,
       email: user.email,
       picture: user.picture,
+      dob: user.dob || "",
       authProvider: user.authProvider
     });
   } catch (err: any) {
@@ -1098,11 +1088,11 @@ app.get(["/api/users/profile", "/api/user-profile", "/api/me"], async (req, res)
   }
 });
 
-// Update Profile API (Name and Avatar Picture Persistence with UPSERT)
+// Update Profile API (Name, Avatar Picture, and DOB Persistence with UPSERT)
 app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
   try {
     const db = getDb();
-    const { email, name, picture, avatarUrl, profile_picture } = req.body;
+    const { email, name, picture, avatarUrl, profile_picture, dob } = req.body;
     const profilePic = picture || avatarUrl || profile_picture || "";
 
     if (!email) {
@@ -1120,23 +1110,25 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
       const id = String(Date.now());
       const userName = (name !== undefined && name !== null && String(name).trim() !== "") ? String(name).trim() : (cleanEmail.split('@')[0] || "Sobat Cuan");
       const userPic = profilePic || "";
+      const userDob = dob || "";
       await db.execute({
-        sql: "INSERT INTO users (id, name, email, picture, authProvider) VALUES (?, ?, ?, ?, 'local')",
-        args: [id, userName, cleanEmail, userPic]
+        sql: "INSERT INTO users (id, name, email, picture, dob, authProvider) VALUES (?, ?, ?, ?, ?, 'local')",
+        args: [id, userName, cleanEmail, userPic, userDob]
       });
       return res.json({
         success: true,
-        user: { id, name: userName, email: cleanEmail, picture: userPic, authProvider: 'local' }
+        user: { id, name: userName, email: cleanEmail, picture: userPic, dob: userDob, authProvider: 'local' }
       });
     }
 
     const existing = result.rows[0];
     const updatedName = (name !== undefined && name !== null && String(name).trim() !== "") ? String(name).trim() : existing.name;
     const updatedPic = (profilePic !== undefined && profilePic !== null && String(profilePic).trim() !== "") ? String(profilePic).trim() : existing.picture;
+    const updatedDob = (dob !== undefined && dob !== null) ? String(dob).trim() : (existing.dob || "");
 
     await db.execute({
-      sql: "UPDATE users SET name = ?, picture = ? WHERE LOWER(email) = LOWER(?)",
-      args: [updatedName, updatedPic, cleanEmail]
+      sql: "UPDATE users SET name = ?, picture = ?, dob = ? WHERE LOWER(email) = LOWER(?)",
+      args: [updatedName, updatedPic, updatedDob, cleanEmail]
     });
 
     res.json({
@@ -1146,6 +1138,7 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
         name: updatedName,
         email: existing.email,
         picture: updatedPic,
+        dob: updatedDob,
         authProvider: existing.authProvider
       }
     });
