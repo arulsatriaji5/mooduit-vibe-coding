@@ -211,10 +211,41 @@ async function initDB() {
   }
 }
 
+let dbInitPromise: Promise<void> | null = null;
+
+async function ensureDB() {
+  if (!dbInitPromise) {
+    dbInitPromise = initDB().catch(err => {
+      console.error("Async DB initialization failed:", err.message || err);
+      dbInitPromise = null;
+    });
+  }
+  await dbInitPromise;
+}
+
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, user-email");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+app.use(async (req, res, next) => {
+  try {
+    await ensureDB();
+  } catch (e) {
+    console.error("ensureDB middleware error:", e);
+  }
+  next();
+});
 
 app.get('/api/ping', (req, res) => { res.status(200).send('PONG! Backend MOODUIT Menyala!'); });
 
