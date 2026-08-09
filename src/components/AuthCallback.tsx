@@ -21,14 +21,12 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         const userId = searchParams.get('id');
 
         const finishAndRedirect = () => {
-          setTimeout(() => {
-            if (!isMounted) return;
-            if (onSuccess) {
-              onSuccess();
-            } else {
-              window.location.href = '/dashboard';
-            }
-          }, 800);
+          if (!isMounted) return;
+          localStorage.setItem('mooduit_current_page', 'dashboard');
+          if (onSuccess) {
+            onSuccess();
+          }
+          window.location.replace('/dashboard');
         };
 
         // Case 1: Params already extracted and passed back in query string
@@ -130,9 +128,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         if (isMounted) {
           console.error('OAuth Callback Error:', err);
           localStorage.setItem('mooduit_current_page', 'dashboard');
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 800);
+          window.location.replace('/dashboard');
         }
       }
     }

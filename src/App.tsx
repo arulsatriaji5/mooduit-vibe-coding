@@ -374,6 +374,18 @@ export default function App() {
   // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login & alihkan user terautentikasi ke dashboard
   useEffect(() => {
     if (isAuthLoading || currentPage === 'callback') return;
+
+    // Anti-Kick: Jika URL mengandung code, access_token, atau path callback, JANGAN redirect ke landing page
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasOAuthIndicators =
+      searchParams.has('code') ||
+      searchParams.has('oauth_email') ||
+      window.location.hash.includes('access_token') ||
+      window.location.pathname.includes('/callback');
+
+    if (hasOAuthIndicators) {
+      return;
+    }
     
     const isPublicPage = ['landing', 'auth'].includes(currentPage);
     const hasSession = Boolean(
@@ -421,7 +433,7 @@ export default function App() {
               }
               setCurrentPage('dashboard');
               localStorage.setItem('mooduit_current_page', 'dashboard');
-              window.history.replaceState({}, document.title, '/dashboard');
+              window.location.replace('/dashboard');
             }}
           />
         );
@@ -447,14 +459,7 @@ export default function App() {
   const needsLayout = !['landing', 'auth', 'scanner', 'callback'].includes(currentPage);
 
   if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 border-4 border-t-[#112F58] border-[#112F58]/20 rounded-full animate-spin"></div>
-          <p className="text-sm font-semibold text-[#112F58]/75 dark:text-white/75 text-center">Memeriksa sesi...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (resetToken) {
