@@ -353,14 +353,27 @@ export default function App() {
     setCurrentPage('landing');
   };
 
-  // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login
+  // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login & alihkan user terautentikasi ke dashboard
   useEffect(() => {
     if (isAuthLoading) return;
     
     const isPublicPage = ['landing', 'auth'].includes(currentPage);
-    const hasSession = localStorage.getItem('userName') !== null;
-    if (!isPublicPage && !user && !hasSession) {
+    const hasSession = Boolean(
+      user ||
+      localStorage.getItem('mooduit_session') ||
+      localStorage.getItem('mooduit_user') ||
+      localStorage.getItem('userName')
+    );
+
+    if (hasSession && isPublicPage) {
+      setCurrentPage('dashboard');
+      localStorage.setItem('mooduit_current_page', 'dashboard');
+      return;
+    }
+
+    if (!isPublicPage && !hasSession) {
       setCurrentPage('landing');
+      localStorage.setItem('mooduit_current_page', 'landing');
     }
   }, [currentPage, user, isAuthLoading]);
 

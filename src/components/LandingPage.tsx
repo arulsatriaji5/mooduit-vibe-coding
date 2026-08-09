@@ -41,6 +41,18 @@ export default function LandingPage({ onStart }: LandingPageProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Redirect instantly if user already has an active session
+  useEffect(() => {
+    const savedSession = localStorage.getItem('mooduit_session');
+    const savedUser = localStorage.getItem('mooduit_user');
+    const savedName = localStorage.getItem('userName');
+    
+    if (savedSession || savedUser || savedName) {
+      localStorage.setItem('mooduit_current_page', 'dashboard');
+      window.location.href = '/dashboard';
+    }
+  }, []);
+
   return (
     <div className="w-full min-h-screen scroll-smooth font-sans mooduit-landing-page" style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', display: 'flex', flexDirection: 'column', transition: 'background-color 0.3s ease' }}>
       <style>{`

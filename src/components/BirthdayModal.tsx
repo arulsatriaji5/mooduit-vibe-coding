@@ -130,7 +130,7 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border-0 cursor-pointer shadow-lg backdrop-blur-sm"
+            className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-transparent hover:bg-slate-800 text-white flex items-center justify-center transition-colors border-0 cursor-pointer"
             title="Tutup"
           >
             <X size={18} />
@@ -221,7 +221,8 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
               type="button"
               onClick={handleDownloadPoster}
               disabled={isDownloading}
-              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-xs py-2.5 px-3 rounded-2xl shadow-lg shadow-pink-500/25 transition-all active:scale-95 border-0 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-xs py-2.5 px-3 rounded-2xl shadow-lg shadow-pink-500/25 transition-all active:scale-95 border-0 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap overflow-hidden"
+              style={{ borderRadius: '1rem' }}
             >
               <Download size={15} />
               <span>{isDownloading ? 'Menyimpan...' : 'Simpan Momen'}</span>
@@ -230,7 +231,8 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
             <button
               type="button"
               onClick={handleShare}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-2xl border border-slate-700 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+              className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2.5 px-3 rounded-2xl border border-slate-700 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap overflow-hidden"
+              style={{ borderRadius: '1rem' }}
             >
               <Share2 size={15} className="text-sky-400" />
               <span>Bagikan</span>

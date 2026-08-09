@@ -146,7 +146,8 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
-      prompt: 'select_account'
+      prompt: 'select_account',
+      redirectTo: `${window.location.origin}/dashboard`
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
