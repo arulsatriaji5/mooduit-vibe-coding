@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import React, { useEffect } from 'react';
 
 interface AuthCallbackProps {
   onSuccess?: () => void;
 }
 
 export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
   useEffect(() => {
     let isMounted = true;
 
@@ -23,35 +20,37 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         const oauthPicture = searchParams.get('oauth_picture') || searchParams.get('picture');
         const userId = searchParams.get('id');
 
+        const finishAndRedirect = () => {
+          setTimeout(() => {
+            if (!isMounted) return;
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              window.location.href = '/dashboard';
+            }
+          }, 800);
+        };
+
         // Case 1: Params already extracted and passed back in query string
         if (oauthEmail || token) {
           if (token) localStorage.setItem('mooduit_session', token);
           if (oauthEmail) {
             localStorage.setItem('userEmail', oauthEmail);
-            localStorage.setItem('mooduit_user', JSON.stringify({ email: oauthEmail, name: oauthName }));
+            localStorage.setItem('mooduit_user', JSON.stringify({ email: oauthEmail, name: oauthName, picture: oauthPicture, id: userId }));
           }
           if (oauthName) localStorage.setItem('userName', oauthName);
           if (oauthPicture) localStorage.setItem('userAvatar', oauthPicture);
           if (userId) localStorage.setItem('userId', userId);
 
           localStorage.setItem('mooduit_current_page', 'dashboard');
-          
-          if (onSuccess) {
-            onSuccess();
-          } else {
-            window.location.href = '/dashboard';
-          }
+          finishAndRedirect();
           return;
         }
 
         // Case 2: Authorization code present, perform backend exchange
         if (code) {
           const res = await fetch(`/api/auth/google/callback?code=${encodeURIComponent(code)}`);
-          if (!res.ok && res.status >= 400) {
-            const errText = await res.text();
-            throw new Error(errText || 'Gagal memproses verifikasi otentikasi Google.');
-          }
-
+          
           // Fetch automatically follows Express redirect response to /dashboard?...
           const finalUrl = res.url;
           if (finalUrl && finalUrl.includes('/dashboard')) {
@@ -65,42 +64,35 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             if (newToken) localStorage.setItem('mooduit_session', newToken);
             if (newEmail) {
               localStorage.setItem('userEmail', newEmail);
-              localStorage.setItem('mooduit_user', JSON.stringify({ email: newEmail, name: newName }));
+              localStorage.setItem('mooduit_user', JSON.stringify({ email: newEmail, name: newName, picture: newPic, id: newId }));
             }
             if (newName) localStorage.setItem('userName', newName);
             if (newPic) localStorage.setItem('userAvatar', newPic);
             if (newId) localStorage.setItem('userId', newId);
 
             localStorage.setItem('mooduit_current_page', 'dashboard');
-
-            if (onSuccess) {
-              onSuccess();
-            } else {
-              window.location.href = '/dashboard';
-            }
+            finishAndRedirect();
             return;
           }
 
-          // Fallback if res.url is same
+          // Fallback if res returns json data directly
           const data = await res.json().catch(() => null);
-          if (data && data.email) {
-            localStorage.setItem('userEmail', data.email);
-            if (data.name) localStorage.setItem('userName', data.name);
-            if (data.picture) localStorage.setItem('userAvatar', data.picture);
-            if (data.id) localStorage.setItem('userId', data.id);
+          if (data && (data.email || data.user?.email)) {
+            const userObj = data.user || data;
+            if (userObj.email) localStorage.setItem('userEmail', userObj.email);
+            if (userObj.name) localStorage.setItem('userName', userObj.name);
+            if (userObj.picture) localStorage.setItem('userAvatar', userObj.picture);
+            if (userObj.id) localStorage.setItem('userId', userObj.id);
+            localStorage.setItem('mooduit_user', JSON.stringify(userObj));
             localStorage.setItem('mooduit_session', 'google_' + Date.now());
             localStorage.setItem('mooduit_current_page', 'dashboard');
-
-            if (onSuccess) {
-              onSuccess();
-            } else {
-              window.location.href = '/dashboard';
-            }
+            finishAndRedirect();
             return;
           }
 
           // Direct redirect fallback
-          window.location.href = '/dashboard';
+          localStorage.setItem('mooduit_current_page', 'dashboard');
+          finishAndRedirect();
           return;
         }
 
@@ -112,7 +104,6 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           });
           if (profileRes.ok) {
             const profile = await profileRes.json();
-            // sync with server
             const loginRes = await fetch('/api/google-login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -125,23 +116,23 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             localStorage.setItem('userName', loginData.user?.name || profile.name || 'Sobat Cuan');
             if (profile.picture) localStorage.setItem('userAvatar', profile.picture);
             if (loginData.user?.id) localStorage.setItem('userId', loginData.user.id);
+            localStorage.setItem('mooduit_user', JSON.stringify(loginData.user || profile));
             localStorage.setItem('mooduit_current_page', 'dashboard');
-
-            if (onSuccess) {
-              onSuccess();
-            } else {
-              window.location.href = '/dashboard';
-            }
+            finishAndRedirect();
             return;
           }
         }
 
-        // If no code, token, or session found, throw error or fallback
-        throw new Error('Kode otentikasi Google tidak ditemukan pada callback URL.');
+        // Default fallback if no code/token matched
+        localStorage.setItem('mooduit_current_page', 'dashboard');
+        finishAndRedirect();
       } catch (err: any) {
         if (isMounted) {
           console.error('OAuth Callback Error:', err);
-          setErrorMsg(err.message || 'Terjadi kesalahan saat memverifikasi login Google.');
+          localStorage.setItem('mooduit_current_page', 'dashboard');
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 800);
         }
       }
     }
@@ -153,49 +144,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
     };
   }, [onSuccess]);
 
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-slate-950 text-white font-sans">
-      <div className="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
-        {/* Glow Effects */}
-        <div className="absolute -top-20 -left-20 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-500 p-0.5 mb-6 shadow-lg shadow-pink-500/25 flex items-center justify-center">
-          <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-pink-400 animate-pulse" />
-          </div>
-        </div>
-
-        {errorMsg ? (
-          <>
-            <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mb-4">
-              <AlertCircle size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Gagal Verifikasi Login</h3>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">{errorMsg}</p>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = '/';
-              }}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-pink-500/20 transition-all border-0 cursor-pointer"
-            >
-              Kembali ke Halaman Login
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 mb-4">
-              <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
-              <span className="text-sm font-semibold text-pink-300 uppercase tracking-wider">MOODUIT AUTH</span>
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">Memverifikasi Sesi Google Anda</h2>
-            <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
-              Mohon tunggu sebentar, sistem sedang menyiapkan akun dan mengarahkan Anda ke Dashboard...
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  // Hapus tampilan UI dari komponen Auth Callback (jadikan invisible/null)
+  return null;
 };
+
