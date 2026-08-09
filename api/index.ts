@@ -776,7 +776,9 @@ app.get('/api/auth/google/callback', async (req, res) => {
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.VITE_GOOGLE_CLIENT_SECRET || "";
       
       try {
-        const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+        const host = req.get('host') || req.headers.host;
+        const protocol = req.headers['x-forwarded-proto'] || (req.protocol === 'https' ? 'https' : 'https');
+        const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
