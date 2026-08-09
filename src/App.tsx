@@ -144,12 +144,35 @@ export default function App() {
     const oauthEmail = params.get('oauth_email') || params.get('email');
     const oauthName = params.get('oauth_name');
     const oauthPicture = params.get('oauth_picture');
+    const code = params.get('code');
+
+    // Tangkap token / code dari OAuth callback jika dialihkan ke root
+    if (code && !oauthEmail) {
+      setCurrentPage('dashboard');
+      localStorage.setItem('mooduit_current_page', 'dashboard');
+      window.location.href = `/api/auth/google/callback?code=${encodeURIComponent(code)}`;
+      return;
+    }
+
+    if (window.location.hash.includes('access_token')) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      if (accessToken) {
+        setCurrentPage('dashboard');
+        localStorage.setItem('mooduit_current_page', 'dashboard');
+        window.location.href = `/api/auth/google/callback#access_token=${encodeURIComponent(accessToken)}`;
+        return;
+      }
+    }
 
     if (token && !oauthEmail) {
       setResetToken(token);
     }
 
     if (oauthEmail) {
+      setCurrentPage('dashboard');
+      localStorage.setItem('mooduit_current_page', 'dashboard');
+
       // Sync with backend /api/google-login to retrieve linked unified user profile
       fetch('/api/google-login', {
         method: 'POST',
@@ -213,6 +236,9 @@ export default function App() {
         };
         setUser(oauthUser);
         setCurrentPage('dashboard');
+      })
+      .finally(() => {
+        setIsAuthLoading(false);
       });
 
       // Bersihkan parameter dari URL
@@ -223,6 +249,7 @@ export default function App() {
       url.searchParams.delete('oauth_name');
       url.searchParams.delete('oauth_picture');
       window.history.replaceState({}, document.title, url.pathname + url.search);
+      return;
     } else if (authenticatedUser) {
       const lastPage = localStorage.getItem('mooduit_current_page');
       if (lastPage && ['dashboard', 'scanner', 'history', 'wishlist', 'settings', 'smart-budget', 'analisa'].includes(lastPage)) {
