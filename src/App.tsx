@@ -20,8 +20,9 @@ import ResetPassword from './components/ResetPassword';
 
 import Analysis from './components/Analysis';
 import InstallPrompt from './components/InstallPrompt';
+import { AuthCallback } from './components/AuthCallback';
 
-type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist' | 'settings' | 'smart-budget' | 'analisa';
+type Page = 'landing' | 'auth' | 'dashboard' | 'scanner' | 'history' | 'wishlist' | 'settings' | 'smart-budget' | 'analisa' | 'callback';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -146,23 +147,13 @@ export default function App() {
     const oauthPicture = params.get('oauth_picture');
     const code = params.get('code');
 
-    // Tangkap token / code dari OAuth callback jika dialihkan ke root
-    if (code && !oauthEmail) {
-      setCurrentPage('dashboard');
-      localStorage.setItem('mooduit_current_page', 'dashboard');
-      window.location.href = `/api/auth/google/callback?code=${encodeURIComponent(code)}`;
-      return;
-    }
+    const isCallbackRoute = window.location.pathname.includes('/api/auth/google/callback') || window.location.pathname.includes('/auth/callback');
 
-    if (window.location.hash.includes('access_token')) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      if (accessToken) {
-        setCurrentPage('dashboard');
-        localStorage.setItem('mooduit_current_page', 'dashboard');
-        window.location.href = `/api/auth/google/callback#access_token=${encodeURIComponent(accessToken)}`;
-        return;
-      }
+    // Tangkap token / code dari OAuth callback
+    if (isCallbackRoute || (code && !oauthEmail) || window.location.hash.includes('access_token')) {
+      setCurrentPage('callback');
+      setIsAuthLoading(false);
+      return;
     }
 
     if (token && !oauthEmail) {
@@ -382,7 +373,7 @@ export default function App() {
 
   // Auth guard effect untuk mengunci halaman dashboard/fitur jika tidak login & alihkan user terautentikasi ke dashboard
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading || currentPage === 'callback') return;
     
     const isPublicPage = ['landing', 'auth'].includes(currentPage);
     const hasSession = Boolean(
@@ -418,6 +409,22 @@ export default function App() {
         return <LandingPage onStart={handleStart} />;
       case 'auth':
         return <Auth onAuth={handleAuth} onClose={() => setCurrentPage('landing')} initialMode={authMode} />;
+      case 'callback':
+        return (
+          <AuthCallback
+            onSuccess={() => {
+              const savedUserStr = localStorage.getItem('mooduit_user');
+              if (savedUserStr) {
+                try {
+                  setUser(JSON.parse(savedUserStr));
+                } catch (e) {}
+              }
+              setCurrentPage('dashboard');
+              localStorage.setItem('mooduit_current_page', 'dashboard');
+              window.history.replaceState({}, document.title, '/dashboard');
+            }}
+          />
+        );
       case 'dashboard':
         return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} />;
       case 'scanner':
@@ -437,7 +444,7 @@ export default function App() {
     }
   };
 
-  const needsLayout = !['landing', 'auth', 'scanner'].includes(currentPage);
+  const needsLayout = !['landing', 'auth', 'scanner', 'callback'].includes(currentPage);
 
   if (isAuthLoading) {
     return (

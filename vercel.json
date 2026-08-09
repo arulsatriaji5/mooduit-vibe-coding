@@ -1,11 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api", "destination": "/api" },
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/manifest.json", "destination": "/manifest.json" },
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/workbox-(.*)", "destination": "/workbox-$1" },
-    { "source": "/logo-pwa-bg.png", "destination": "/logo-pwa-bg.png" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
