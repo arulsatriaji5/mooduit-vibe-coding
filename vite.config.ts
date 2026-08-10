@@ -18,6 +18,9 @@ export default defineConfig(({mode}) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api/],
+          clientsClaim: true,
+          skipWaiting: true,
+          cleanupOutdatedCaches: true,
         },
         manifestFilename: 'manifest.json',
         manifest: {
