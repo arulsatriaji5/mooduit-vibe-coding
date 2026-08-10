@@ -15,7 +15,9 @@ export default defineConfig(({mode}) => {
         injectRegister: 'auto',
         includeAssets: ['Logo_mooduit.png', 'logo-pwa-bg.png'],
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api/],
         },
         manifestFilename: 'manifest.json',
         manifest: {

@@ -891,7 +891,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
       // Redirect to dashboard carrying the unified linked profile info
       const redirectUrl = `/dashboard?token=${sessionToken}&email=${encodeURIComponent(cleanEmail)}&oauth_email=${encodeURIComponent(cleanEmail)}&oauth_name=${encodeURIComponent(dbUser.name || name)}&oauth_picture=${encodeURIComponent(dbUser.picture || picture)}&id=${encodeURIComponent(dbUser.id)}`;
-      return res.redirect(redirectUrl);
+      return res.redirect(302, redirectUrl);
     }
 
     // Fallback jika tidak ada code atau access_token langsung (misalnya client-side hash flow via popup)
