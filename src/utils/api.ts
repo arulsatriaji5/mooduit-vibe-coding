@@ -1,18 +1,52 @@
-export async function fetchUserStreak(user_email?: string): Promise<{ streakCount: number; streakActive: boolean; streakIncreasedToday: boolean }> {
+export async function fetchUserStreak(user_email?: string): Promise<{
+  current_streak: number;
+  streakCount: number;
+  last_active_date: string;
+  lost_streak: number;
+  restore_count: number;
+  last_restore_month: string;
+  streakActive: boolean;
+  streakIncreasedToday: boolean;
+}> {
   try {
-    if (!user_email) return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
+    if (!user_email) return { current_streak: 0, streakCount: 0, last_active_date: '', lost_streak: 0, restore_count: 0, last_restore_month: '', streakActive: false, streakIncreasedToday: false };
     const todayLocal = new Date().toLocaleDateString('en-CA');
     const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}&clientLocalDate=${todayLocal}`, { credentials: 'include' });
     if (!response.ok) throw new Error("Failed to fetch streak from DB");
     const data = await response.json();
     return {
-      streakCount: Number(data.streakCount) || 0,
+      current_streak: Number(data.current_streak ?? data.streakCount) || 0,
+      streakCount: Number(data.streakCount ?? data.current_streak) || 0,
+      last_active_date: String(data.last_active_date || ''),
+      lost_streak: Number(data.lost_streak) || 0,
+      restore_count: Number(data.restore_count) || 0,
+      last_restore_month: String(data.last_restore_month || ''),
       streakActive: Boolean(data.streakActive),
       streakIncreasedToday: Boolean(data.streakIncreasedToday)
     };
   } catch (err) {
     console.error("Error fetching streak from DB:", err);
-    return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
+    return { current_streak: 0, streakCount: 0, last_active_date: '', lost_streak: 0, restore_count: 0, last_restore_month: '', streakActive: false, streakIncreasedToday: false };
+  }
+}
+
+export async function restoreStreak(user_email: string): Promise<{ success: boolean; message?: string; data?: any; error?: string }> {
+  try {
+    if (!user_email) return { success: false, error: "Email is required" };
+    const todayLocal = new Date().toLocaleDateString('en-CA');
+    const response = await fetch('/api/streak/restore', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user_email, clientLocalDate: todayLocal })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.error || data.message || "Gagal memulihkan streak" };
+    }
+    return { success: true, message: data.message, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Network error" };
   }
 }
 

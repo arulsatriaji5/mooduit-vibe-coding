@@ -24,7 +24,7 @@ import {
   Gift,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
-import { fetchUserStreak } from "../utils/api";
+import { fetchUserStreak, restoreStreak } from "../utils/api";
 import { BirthdayModal, isUserBirthdayToday } from "./BirthdayModal";
 import "./Dashboard.css";
 
@@ -77,35 +77,72 @@ export default function Dashboard({
   const [streakCount, setStreakCount] = React.useState<number>(0);
   const [streakActive, setStreakActive] = React.useState<boolean>(false);
   const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
+  const [quoteIndex, setQuoteIndex] = React.useState<number>(0);
   const [streakIncreasedToday, setStreakIncreasedToday] = React.useState<boolean>(true);
+
+  const motivationQuotes = React.useMemo(() => [
+    {
+      id: "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
+      en: "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
+    },
+    {
+      id: "Satu langkah kecil untuk dompetmu, satu lompatan besar menuju bebas finansial! Pertahankan apimu! 🚀",
+      en: "One small step for your wallet, one giant leap towards financial freedom! Keep your fire burning! 🚀"
+    },
+    {
+      id: "Konsistensi adalah kunci! Catat terus pengeluaranmu dan jadilah tuan atas uangmu sendiri. 💪",
+      en: "Consistency is key! Keep logging your expenses and master your own money. 💪"
+    },
+    {
+      id: "Mantap! Kebiasaan baik sudah mulai terbentuk. Jangan biarkan apinya padam besok ya! ✨",
+      en: "Awesome! Good habits are forming. Don't let the fire go out tomorrow! ✨"
+    },
+    {
+      id: "Disiplin hari ini, foya-foya terencana besok! Keren, kamu berhasil menjaga streak-mu hari ini. 🎯",
+      en: "Disciplined today, planned fun tomorrow! Great job keeping your streak alive today. 🎯"
+    }
+  ], []);
+
+  React.useEffect(() => {
+    if (showCelebration) {
+      const randomIndex = Math.floor(Math.random() * motivationQuotes.length);
+      setQuoteIndex(randomIndex);
+    }
+  }, [showCelebration, motivationQuotes]);
+  const [lostStreak, setLostStreak] = React.useState<number>(0);
+  const [restoreCount, setRestoreCount] = React.useState<number>(0);
+  const [isRestoring, setIsRestoring] = React.useState<boolean>(false);
 
   // Expose triggerTransactionSuccess and showStreakCelebration murni ke global window object
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const triggerFn = (apiStreak?: number, apiIncreased?: boolean) => {
-        if (apiStreak !== undefined) {
-          setStreakCount(apiStreak);
-          setStreakActive(true);
-          const isIncreased = Boolean(apiIncreased);
-          setStreakIncreasedToday(isIncreased);
-          if (isIncreased) {
-            setShowCelebration(true);
+        setStreakCount((prev) => {
+          let finalStreak = 1;
+          if (typeof apiStreak === "number" && apiStreak > 0) {
+            finalStreak = apiStreak;
+          } else if (prev > 0) {
+            finalStreak = prev;
           } else {
-            setShowCelebration(false);
+            finalStreak = 1;
           }
-        } else {
-          // Re-sync directly with Backend Database
-          const email = localStorage.getItem("userEmail") || "";
-          if (email) {
-            fetchUserStreak(email).then((s) => {
-              setStreakCount(s.streakCount);
-              setStreakActive(s.streakActive);
-              if (s.streakIncreasedToday) {
-                setStreakIncreasedToday(true);
-                setShowCelebration(true);
-              }
-            });
-          }
+          return finalStreak;
+        });
+        setStreakActive(true);
+        setStreakIncreasedToday(true);
+        setShowCelebration(true);
+
+        const email = localStorage.getItem("userEmail") || "";
+        if (email) {
+          fetchUserStreak(email).then((s) => {
+            const fetched = Number(s.current_streak || s.streakCount) || 1;
+            setStreakCount((prev) => Math.max(prev, fetched > 0 ? fetched : 1));
+            setStreakActive(true);
+            setLostStreak(s.lost_streak || 0);
+            setRestoreCount(s.restore_count || 0);
+            setStreakIncreasedToday(true);
+            setShowCelebration(true);
+          });
         }
       };
 
@@ -122,6 +159,32 @@ export default function Dashboard({
       }
     };
   }, []);
+
+  const handleRestoreStreak = async () => {
+    if (isRestoring) return;
+    const email = localStorage.getItem("userEmail") || "";
+    if (!email) {
+      toast.error(t("Silakan login terlebih dahulu!", "Please login first!"));
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      const res = await restoreStreak(email);
+      if (res.success) {
+        toast.success(res.message || t("Streak berhasil dipulihkan! 🔥", "Streak restored successfully! 🔥"));
+        setStreakCount(res.data.current_streak || res.data.streakCount);
+        setStreakActive(true);
+        setLostStreak(0);
+        setRestoreCount(res.data.restore_count);
+      } else {
+        toast.error(res.error || t("Gagal memulihkan streak", "Failed to restore streak"));
+      }
+    } catch (err: any) {
+      toast.error(err.message || t("Terjadi kesalahan jaringan", "Network error occurred"));
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);
@@ -1114,8 +1177,14 @@ export default function Dashboard({
               const user_email = localStorage.getItem("userEmail") || "";
               const insertedTx = await insertTransaction(newTx, user_email);
               propsSetTransactions(prev => [insertedTx, ...prev]);
+              if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday);
+              }
             } else {
               setLocalTransactions(prev => [newTx, ...prev]);
+              if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                (window as any).triggerTransactionSuccess();
+              }
             }
           } catch (err) {
             console.error("Failed to insert AI transaction:", err);
@@ -1228,22 +1297,52 @@ export default function Dashboard({
     },
   ];
 
+  const getGreeting = () => {
+    const hours = new Date().getHours();
+    if (hours >= 0 && hours <= 11) {
+      return { id: "Selamat Pagi", en: "Good Morning" };
+    } else if (hours >= 12 && hours <= 14) {
+      return { id: "Selamat Siang", en: "Good Afternoon" };
+    } else if (hours >= 15 && hours <= 18) {
+      return { id: "Selamat Sore", en: "Good Afternoon" };
+    } else {
+      return { id: "Selamat Malam", en: "Good Evening" };
+    }
+  };
+
+  const currentGreeting = getGreeting();
+
   return (
     <div className="container py-4 pb-5 mb-5">
       <header className="mb-4">
         <div className="d-flex align-items-center flex-wrap gap-3 mb-1">
           <h3 className="fw-800 text-primary-mooduit mb-0">
-            {t(`Selamat Pagi, ${userName}! 👋`, `Good Morning, ${userName}! 👋`)}
+            {t(`${currentGreeting.id}, ${userName}! 👋`, `${currentGreeting.en}, ${userName}! 👋`)}
           </h3>
-          <div className="streak-badge-container">
+          <div className="streak-badge-container flex items-center gap-2">
             <div 
-              className={`streak-badge ${streakActive ? 'streak-badge-menyala' : 'streak-badge-padam'}`}
+              className={`streak-badge ${streakActive && streakCount > 0 ? 'streak-badge-menyala' : 'streak-badge-padam'}`}
             >
               <span className="streak-badge-fire">🔥</span>
               <span className="streak-badge-text">
                 {streakCount}
               </span>
             </div>
+
+            {lostStreak > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRestoreStreak}
+                disabled={isRestoring}
+                type="button"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                title={t(`Pulihkan streak yang hangus (${lostStreak} hari). Sisa pemulihan bulan ini: ${Math.max(0, 2 - restoreCount)}/2`, `Restore lost streak (${lostStreak} days). Remaining restores this month: ${Math.max(0, 2 - restoreCount)}/2`)}
+              >
+                <span>⚡</span>
+                <span>{isRestoring ? t("Memulihkan...", "Restoring...") : t(`Pulihkan (${lostStreak} hr)`, `Restore (${lostStreak} d)`)}</span>
+              </motion.button>
+            )}
           </div>
 
           {/* IKON KADO ULANG TAHUN DI DASHBOARD (SEBELAH STREAK) */}
@@ -1262,12 +1361,24 @@ export default function Dashboard({
             </motion.button>
           )}
         </div>
-        <p className="text-muted mb-0">
-          {t(
-            "Status dompetmu lagi terpantau sehat hari ini.",
-            "Your wallet status is looking healthy today.",
-          )}
-        </p>
+        {totalSaldo <= 50000 ? (
+          <p className="mb-0 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 text-sm">
+            <span>⚠️</span>
+            <span>
+              {t(
+                "Waduh, dompetmu lagi kritis nih. Yuk rem pengeluaran!",
+                "Watch out, your wallet is in critical condition. Let's slow down spending!"
+              )}
+            </span>
+          </p>
+        ) : (
+          <p className="text-muted mb-0">
+            {t(
+              "Status dompetmu lagi terpantau sehat hari ini.",
+              "Your wallet status is looking healthy today.",
+            )}
+          </p>
+        )}
       </header>
 
       {/* Ambient AI Advisor Component (Moved to Top) */}
@@ -1351,13 +1462,13 @@ export default function Dashboard({
           </h2>
         </div>
 
-        {/* KARTU RINGKASAN PEMASUKAN & PENGELUARAN (RESPONSIVE FIX) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }} className="w-full">
+        {/* KARTU RINGKASAN PEMASUKAN & PENGELUARAN (BALANCED GRID FIX) */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 w-full">
           
           {/* Kartu Pemasukan */}
-          <div style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <div className="w-full" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#dcfce7', d: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', display: 'flex' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', color: '#16a34a', display: 'flex' }}>
                 <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                 </svg>
@@ -1372,9 +1483,9 @@ export default function Dashboard({
           </div>
 
           {/* Kartu Pengeluaran */}
-          <div style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <div className="w-full" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fee2e2', d: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', display: 'flex' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center', color: '#dc2626', display: 'flex' }}>
                 <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
                 </svg>
@@ -1825,7 +1936,7 @@ export default function Dashboard({
                   className={`p-2 rounded-full border-0 transition-all flex items-center justify-center shrink-0 cursor-pointer bg-transparent dark:bg-transparent ${
                     isListening
                       ? "text-rose-500 animate-bounce"
-                      : "text-slate-600 dark:text-slate-300 hover:opacity-80"
+                      : "text-primary-mooduit dark:text-sky-400 hover:opacity-80"
                   }`}
                   title={isListening ? t("Hentikan Merekam", "Stop Recording") : t("Kirim Pesan Suara (Voice Note)", "Voice Input")}
                   style={{ width: "38px", height: "38px" }}
@@ -2166,7 +2277,7 @@ export default function Dashboard({
             >
               {/* KONDISI A: SELEBRASI STREAK BARU */}
               <div className="celebration-orange-accent-wrapper">
-                <span className="celebration-modal-fire">🔥</span>
+                <span className="celebration-modal-fire animate-bounce inline-block">🔥</span>
                 <span className="streak-celebration-sparkle streak-celebration-sparkle-1">✨</span>
                 <span className="streak-celebration-sparkle streak-celebration-sparkle-2">✨</span>
               </div>
@@ -2177,8 +2288,8 @@ export default function Dashboard({
  
               <p className="celebration-modal-text">
                 {t(
-                  "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala!",
-                  "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing!"
+                  motivationQuotes[quoteIndex]?.id || "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
+                  motivationQuotes[quoteIndex]?.en || "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
                 )}
               </p>
  
