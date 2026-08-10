@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs/promises";
@@ -11,9 +10,7 @@ import { createClient } from "@libsql/client";
 
 dotenv.config({ override: true });
 
-const resolvedFilename = typeof import.meta !== "undefined" && import.meta.url
-  ? fileURLToPath(import.meta.url)
-  : (typeof __filename !== "undefined" ? __filename : "");
+const resolvedFilename = typeof __filename !== "undefined" ? __filename : "";
 
 const resolvedDirname = typeof __dirname !== "undefined"
   ? __dirname
