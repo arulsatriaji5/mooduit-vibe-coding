@@ -30,6 +30,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
@@ -153,6 +154,7 @@ export default function App() {
     if (isCallbackRoute || (code && !oauthEmail) || window.location.hash.includes('access_token')) {
       setCurrentPage('callback');
       setIsAuthLoading(false);
+      setIsAuthReady(true);
       return;
     }
 
@@ -230,6 +232,7 @@ export default function App() {
       })
       .finally(() => {
         setIsAuthLoading(false);
+        setIsAuthReady(true);
       });
 
       // Bersihkan parameter dari URL
@@ -254,6 +257,7 @@ export default function App() {
     }
     
     setIsAuthLoading(false);
+    setIsAuthReady(true);
   }, []);
 
   const handleCloseResetPassword = () => {
@@ -458,7 +462,7 @@ export default function App() {
 
   const needsLayout = !['landing', 'auth', 'scanner', 'callback'].includes(currentPage);
 
-  if (isAuthLoading) {
+  if (!isAuthReady || isAuthLoading) {
     return null;
   }
 
