@@ -65,7 +65,7 @@ export default function Settings({ onLogout }: SettingsProps) {
 
   React.useEffect(() => {
     if (userEmail) {
-      fetch(`/api/users/profile?email=${encodeURIComponent(userEmail)}`)
+      fetch(`/api/users/profile?email=${encodeURIComponent(userEmail)}`, { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
@@ -186,6 +186,7 @@ export default function Settings({ onLogout }: SettingsProps) {
       try {
         await fetch('/api/update-profile', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar, dob: dobToSave })
         });
@@ -980,6 +981,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                         const loadToast = toast.loading(language === 'id' ? 'Menyimpan kata sandi...' : 'Saving password...');
                         fetch('/api/change-password', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: {
                             'Content-Type': 'application/json'
                           },

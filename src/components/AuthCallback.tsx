@@ -48,7 +48,9 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
         // Case 2: Authorization code present, perform backend exchange
         if (code) {
-          const res = await fetch(`/api/auth/google/callback?code=${encodeURIComponent(code)}`);
+          const res = await fetch(`/api/auth/google/callback?code=${encodeURIComponent(code)}`, {
+            credentials: 'include'
+          });
           
           // Fetch automatically follows Express redirect response to /dashboard?...
           const finalUrl = res.url;
@@ -105,6 +107,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             const profile = await profileRes.json();
             const loginRes = await fetch('/api/google-login', {
               method: 'POST',
+              credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: profile.email, name: profile.name, picture: profile.picture })
             });

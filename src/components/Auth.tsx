@@ -45,6 +45,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         try {
           const syncRes = await fetch('/api/google-login', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
@@ -187,6 +188,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
     try {
       const res = await fetch('/api/register', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -260,6 +262,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -604,6 +607,7 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
                 try {
                   const res = await fetch('/api/forgot-password', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: forgotEmail })
                   });

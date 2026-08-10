@@ -169,6 +169,7 @@ export default function App() {
       // Sync with backend /api/google-login to retrieve linked unified user profile
       fetch('/api/google-login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: oauthEmail,

@@ -234,7 +234,9 @@ const PORT = 3000;
 app.use(express.json({ limit: '10mb' }));
 
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, user-email");
   if (req.method === "OPTIONS") {
@@ -719,7 +721,10 @@ app.post("/api/register", async (req, res) => {
       args: [id, name, cleanEmail, password, userDob]
     });
 
-    res.status(201).json({ id, name, email: cleanEmail, dob: userDob, authProvider: 'local' });
+    const sessionToken = `session_${id}_${Date.now()}`;
+    res.setHeader('Set-Cookie', `sessionToken=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+
+    res.status(201).json({ id, name, email: cleanEmail, dob: userDob, authProvider: 'local', sessionToken });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -745,15 +750,19 @@ app.post("/api/login", async (req, res) => {
     }
 
     const user = result.rows[0];
-    if (user.password && user.password !== password) {
-      return res.status(401).json({ error: "Kata sandi salah!" });
-    }
 
-    if (!user.password && user.authProvider === 'google') {
+    if (!user.password || String(user.password).trim() === '') {
       return res.status(400).json({ error: "Akun ini terdaftar via Google. Silakan masuk menggunakan tombol Google!" });
     }
 
-    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, dob: user.dob || "", authProvider: user.authProvider || 'local' });
+    if (String(user.password).trim() !== String(password).trim()) {
+      return res.status(401).json({ error: "Kata sandi salah!" });
+    }
+
+    const sessionToken = `session_${user.id}_${Date.now()}`;
+    res.setHeader('Set-Cookie', `sessionToken=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+
+    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, dob: user.dob || "", authProvider: user.authProvider || 'local', sessionToken });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -896,6 +905,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
       // Generate a session token
       const sessionToken = crypto.randomBytes(32).toString("hex");
+      res.setHeader('Set-Cookie', `sessionToken=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
 
       // Redirect to dashboard carrying the unified linked profile info
       const redirectUrl = `/dashboard?token=${sessionToken}&email=${encodeURIComponent(cleanEmail)}&oauth_email=${encodeURIComponent(cleanEmail)}&oauth_name=${encodeURIComponent(dbUser.name || name)}&oauth_picture=${encodeURIComponent(dbUser.picture || picture)}&id=${encodeURIComponent(dbUser.id)}`;
@@ -988,7 +998,10 @@ app.post("/api/google-login", async (req, res) => {
       }
     }
 
-    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider });
+    const sessionToken = `session_${user.id}_${Date.now()}`;
+    res.setHeader('Set-Cookie', `sessionToken=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+
+    res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture, authProvider: user.authProvider, sessionToken });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

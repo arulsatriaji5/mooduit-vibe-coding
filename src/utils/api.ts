@@ -2,7 +2,7 @@ export async function fetchUserStreak(user_email?: string): Promise<{ streakCoun
   try {
     if (!user_email) return { streakCount: 0, streakActive: false, streakIncreasedToday: false };
     const todayLocal = new Date().toLocaleDateString('en-CA');
-    const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}&clientLocalDate=${todayLocal}`);
+    const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}&clientLocalDate=${todayLocal}`, { credentials: 'include' });
     if (!response.ok) throw new Error("Failed to fetch streak from DB");
     const data = await response.json();
     return {
@@ -64,7 +64,7 @@ export function mapFrontendToDB(ft: any): any {
 export async function fetchAllTransactions(user_email?: string): Promise<any[]> {
   try {
     if (!user_email) return [];
-    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(user_email)}`);
+    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch transactions');
     const dbData = await response.json();
     return dbData.map(mapDBToFrontend);
@@ -80,6 +80,7 @@ export async function insertTransaction(tx: any, user_email?: string): Promise<a
     const dbPayload = { ...mapFrontendToDB(tx), user_email };
     const response = await fetch('/api/transactions', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dbPayload)
     });
@@ -98,6 +99,7 @@ export async function updateTransactionDB(id: string | number, tx: any, user_ema
     const dbPayload = { ...mapFrontendToDB(tx), user_email };
     const response = await fetch(`/api/transactions/${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dbPayload)
     });
@@ -114,7 +116,8 @@ export async function deleteTransactionDB(id: string | number, user_email?: stri
   try {
     if (!user_email) throw new Error('user_email is required');
     const response = await fetch(`/api/transactions/${id}?user_email=${encodeURIComponent(user_email)}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Failed to delete transaction');
     const result = await response.json();
@@ -128,7 +131,7 @@ export async function deleteTransactionDB(id: string | number, user_email?: stri
 export async function fetchBudgetPlan(user_email?: string): Promise<any | null> {
   try {
     if (!user_email) return null;
-    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(user_email)}`);
+    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch budget');
     const budget = await response.json();
     if (!budget) return null;
@@ -158,6 +161,7 @@ export async function saveBudgetPlanDB(pendapatan: number, user_email?: string):
     };
     const response = await fetch('/api/budgets', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
@@ -181,7 +185,7 @@ export async function saveBudgetPlanDB(pendapatan: number, user_email?: string):
 export async function fetchGoals(user_email: string): Promise<any[]> {
   try {
     if (!user_email) return [];
-    const response = await fetch(`/api/goals?user_email=${encodeURIComponent(user_email)}`);
+    const response = await fetch(`/api/goals?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch goals');
     const goals = await response.json();
     return goals.map((item: any) => ({
@@ -203,6 +207,7 @@ export async function syncGoals(user_email: string, wishlist: any[]): Promise<bo
     if (!user_email) return false;
     const response = await fetch('/api/goals/sync', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_email, wishlist })
     });
@@ -219,7 +224,7 @@ export async function syncGoals(user_email: string, wishlist: any[]): Promise<bo
 export async function fetchBudgetPlanCustom(user_email: string): Promise<any | null> {
   try {
     if (!user_email) return null;
-    const response = await fetch(`/api/budget-plans?user_email=${encodeURIComponent(user_email)}`);
+    const response = await fetch(`/api/budget-plans?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch custom budget plan');
     return await response.json();
   } catch (err) {
@@ -236,6 +241,7 @@ export async function saveBudgetPlanCustom(user_email: string, data: any): Promi
     const cleanExpenses = data.expenses ? String(data.expenses).replace(/\D/g, "") : "";
     const response = await fetch('/api/budget-plans', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_email,
