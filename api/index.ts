@@ -763,7 +763,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     const { code, access_token, error } = req.query;
 
     if (error) {
-      return res.status(400).send(`Authentication error: ${error}`);
+      throw new Error(`Google OAuth Callback returned error parameter: ${error}`);
     }
 
     let email = "";
@@ -774,58 +774,66 @@ app.get('/api/auth/google/callback', async (req, res) => {
     if (code) {
       const clientId = process.env.VITE_GOOGLE_CLIENT_ID || "";
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.VITE_GOOGLE_CLIENT_SECRET || "";
-      
-      try {
-        const host = req.get('host') || req.headers.host;
-        const protocol = req.headers['x-forwarded-proto'] || (req.protocol === 'https' ? 'https' : 'https');
-        const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
-        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            code: String(code),
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri,
-            grant_type: 'authorization_code'
-          })
-        });
 
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          const tokenToUse = tokenData.access_token;
-          if (tokenToUse) {
-            const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: { 'Authorization': `Bearer ${tokenToUse}` }
-            });
-            if (profileRes.ok) {
-              const profileData = await profileRes.json();
-              email = profileData.email || "";
-              name = profileData.name || "Sobat Cuan";
-              picture = profileData.picture || "";
-            }
-          }
-        } else {
-          const errText = await tokenRes.text();
-          console.error("Token exchange failed:", errText);
-        }
-      } catch (exchangeErr) {
-        console.error("Error during token exchange:", exchangeErr);
+      if (!clientId || !clientSecret) {
+        throw new Error(`Environment Variable Google OAuth Client ID or Client Secret is missing! Client ID present: ${Boolean(clientId)}, Client Secret present: ${Boolean(clientSecret)}`);
       }
+
+      const host = req.get('host') || req.headers.host;
+      const protocol = req.headers['x-forwarded-proto'] || (req.protocol === 'https' ? 'https' : 'https');
+      const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code'
+        })
+      });
+
+      if (!tokenRes.ok) {
+        const errText = await tokenRes.text();
+        throw new Error(`Google Token Exchange Failed (Status ${tokenRes.status}): ${errText}`);
+      }
+
+      const tokenData = await tokenRes.json();
+      const tokenToUse = tokenData.access_token;
+
+      if (!tokenToUse) {
+        throw new Error(`Google Token Exchange succeeded but no access_token found in response: ${JSON.stringify(tokenData)}`);
+      }
+
+      const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { 'Authorization': `Bearer ${tokenToUse}` }
+      });
+
+      if (!profileRes.ok) {
+        const profileErrText = await profileRes.text();
+        throw new Error(`Google UserInfo Request Failed (Status ${profileRes.status}): ${profileErrText}`);
+      }
+
+      const profileData = await profileRes.json();
+      email = profileData.email || "";
+      name = profileData.name || "Sobat Cuan";
+      picture = profileData.picture || "";
     } else if (access_token) {
-      try {
-        const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { 'Authorization': `Bearer ${access_token}` }
-        });
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          email = profileData.email || "";
-          name = profileData.name || "Sobat Cuan";
-          picture = profileData.picture || "";
-        }
-      } catch (profileErr) {
-        console.error("Error fetching userinfo with access token:", profileErr);
+      const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { 'Authorization': `Bearer ${access_token}` }
+      });
+
+      if (!profileRes.ok) {
+        const profileErrText = await profileRes.text();
+        throw new Error(`Google UserInfo Request (access_token) Failed (Status ${profileRes.status}): ${profileErrText}`);
       }
+
+      const profileData = await profileRes.json();
+      email = profileData.email || "";
+      name = profileData.name || "Sobat Cuan";
+      picture = profileData.picture || "";
     }
 
     // Jika email berhasil diperoleh, gabungkan / tautkan akun di database
@@ -857,7 +865,6 @@ app.get('/api/auth/google/callback', async (req, res) => {
           needsUpdate = true;
         }
 
-        // Preserve existing custom name unless empty or default
         let updatedName = dbUser.name;
         if (!updatedName || updatedName === "Sobat Cuan") {
           if (name && name !== "Sobat Cuan") {
@@ -866,7 +873,6 @@ app.get('/api/auth/google/callback', async (req, res) => {
           }
         }
 
-        // Preserve existing custom picture unless empty
         let updatedPic = dbUser.picture;
         if (!updatedPic || updatedPic.trim() === "") {
           if (picture && picture.trim() !== "") {
@@ -894,68 +900,25 @@ app.get('/api/auth/google/callback', async (req, res) => {
       return res.redirect(302, redirectUrl);
     }
 
-    // Fallback jika tidak ada code atau access_token langsung (misalnya client-side hash flow via popup)
-    res.send(`
+    throw new Error("No authorization code or access token found in Google callback request parameters.");
+  } catch (error: any) {
+    console.error("CRITICAL AUTH ERROR:", error);
+    return res.status(500).send(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Google Auth Callback</title>
+          <title>Auth Error (X-Ray)</title>
         </head>
-        <body style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-          <div style="max-width: 400px; margin: 100px auto; text-align: center; padding: 30px; border-radius: 12px; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid #f1f5f9; border-radius: 50%; border-top-color: #0d9488; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
-            <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 600;">Menghubungkan Akun Google</h3>
-            <p style="margin: 0; color: #64748b; font-size: 14px;">Mohon tunggu sebentar selagi kami mengautentikasi data Anda...</p>
-            <style>
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            </style>
+        <body style="background-color: #0f172a; color: #f8fafc; font-family: monospace; padding: 40px; line-height: 1.6;">
+          <div style="max-width: 800px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #ef4444; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <h1 style="color: #ef4444; margin-top: 0;">TERJADI KESALAHAN BACKEND (X-RAY)</h1>
+            <p>Backend gagal memproses login Google Anda. Detail Error:</p>
+            <pre style="color: #f87171; background: #0f172a; padding: 16px; border-radius: 8px; white-space: pre-wrap; word-break: break-all;">${error?.message || String(error)}</pre>
+            <pre style="color: #94a3b8; background: #0f172a; padding: 16px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all;">${error?.stack || 'No stack trace available'}</pre>
           </div>
-          <script>
-            const params = new URLSearchParams(window.location.hash.substring(1));
-            const accessToken = params.get('access_token');
-            const hashError = params.get('error');
-
-            if (hashError) {
-              window.location.href = '/?error=' + encodeURIComponent(hashError);
-            } else if (accessToken) {
-              fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-              })
-              .then(r => {
-                if (!r.ok) throw new Error('Gagal mengambil profil dari Google');
-                return r.json();
-              })
-              .then(userInfo => {
-                const sessionToken = 'google_' + Math.random().toString(36).substring(2) + Date.now();
-                const redirectUrl = '/dashboard?token=' + sessionToken + '&email=' + encodeURIComponent(userInfo.email) + '&oauth_email=' + encodeURIComponent(userInfo.email) + '&oauth_name=' + encodeURIComponent(userInfo.name || '') + '&oauth_picture=' + encodeURIComponent(userInfo.picture || '');
-                window.location.href = redirectUrl;
-              })
-              .catch(err => {
-                window.location.href = '/?error=' + encodeURIComponent(err.message);
-              });
-            } else {
-              const queryParams = new URLSearchParams(window.location.search);
-              const queryError = queryParams.get('error');
-              if (queryError) {
-                window.location.href = '/?error=' + encodeURIComponent(queryError);
-              } else {
-                setTimeout(() => {
-                  if (!window.location.hash) {
-                    window.location.href = '/';
-                  }
-                }, 1500);
-              }
-            }
-          </script>
         </body>
       </html>
     `);
-  } catch (err: any) {
-    console.error("Google Auth Callback Handler Error:", err);
-    res.status(500).send("Internal Server Error: " + err.message);
   }
 });
 
