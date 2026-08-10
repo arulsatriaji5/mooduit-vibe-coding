@@ -199,12 +199,12 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         data = responseText ? JSON.parse(responseText) : {};
       } catch (error) {
         console.error("Gagal parse JSON Register:", responseText);
-        throw new Error(language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again.");
+        throw new Error(responseText || (language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again."));
       }
 
       if (!res.ok) {
         setToastType('error');
-        setToastMessage(data.message || data.error || (language === 'id' ? 'Pendaftaran gagal!' : 'Registration failed!'));
+        setToastMessage(data.message || data.error || responseText || (language === 'id' ? 'Pendaftaran gagal!' : 'Registration failed!'));
         return;
       }
 
@@ -272,12 +272,12 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
         data = responseText ? JSON.parse(responseText) : {};
       } catch (error) {
         console.error("Gagal parse JSON Login:", responseText);
-        throw new Error(language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again.");
+        throw new Error(responseText || (language === 'id' ? "Terjadi kesalahan pada server. Silakan coba lagi." : "Server error occurred. Please try again."));
       }
 
       if (!res.ok) {
         setToastType('error');
-        setToastMessage(data.message || data.error || (language === 'id' ? 'Gagal masuk, periksa kembali email dan sandi.' : 'Login failed, check your email and password.'));
+        setToastMessage(data.message || data.error || responseText || (language === 'id' ? 'Gagal masuk, periksa kembali email dan sandi.' : 'Login failed, check your email and password.'));
         return;
       }
 

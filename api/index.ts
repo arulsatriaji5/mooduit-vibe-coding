@@ -21,8 +21,13 @@ let dbInstance: any = null;
 
 function getDb() {
   if (!dbInstance) {
-    const dbUrl = process.env.VITE_TURSO_DATABASE_URL || process.env.TURSO_DATABASE_URL || "file:local.db";
-    const dbAuthToken = process.env.VITE_TURSO_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
+    const dbUrl = process.env.TURSO_DATABASE_URL || process.env.VITE_TURSO_DATABASE_URL || "file:local.db";
+    const dbAuthToken = process.env.TURSO_AUTH_TOKEN || process.env.VITE_TURSO_AUTH_TOKEN;
+
+    if (!process.env.TURSO_DATABASE_URL && !process.env.VITE_TURSO_DATABASE_URL) {
+      console.warn("TURSO WARNING: Neither TURSO_DATABASE_URL nor VITE_TURSO_DATABASE_URL is defined. Falling back to local.db");
+    }
+
     dbInstance = createClient({
       url: dbUrl,
       authToken: dbAuthToken,
