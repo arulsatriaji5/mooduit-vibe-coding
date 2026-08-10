@@ -402,12 +402,18 @@ export default function App() {
     if (hasSession && isPublicPage) {
       setCurrentPage('dashboard');
       localStorage.setItem('mooduit_current_page', 'dashboard');
+      if (window.location.pathname !== '/dashboard') {
+        window.history.replaceState({}, document.title, '/dashboard');
+      }
       return;
     }
 
     if (!isPublicPage && !hasSession) {
       setCurrentPage('landing');
       localStorage.setItem('mooduit_current_page', 'landing');
+      if (window.location.pathname !== '/') {
+        window.history.replaceState({}, document.title, '/');
+      }
     }
   }, [currentPage, user, isAuthLoading]);
 
@@ -434,10 +440,21 @@ export default function App() {
                 try {
                   setUser(JSON.parse(savedUserStr));
                 } catch (e) {}
+              } else {
+                const userEmail = localStorage.getItem('userEmail');
+                const userName = localStorage.getItem('userName');
+                if (userEmail) {
+                  setUser({
+                    email: userEmail,
+                    name: userName || userEmail.split('@')[0],
+                    picture: localStorage.getItem('userAvatar') || undefined,
+                    id: localStorage.getItem('userId') || undefined,
+                  });
+                }
               }
               setCurrentPage('dashboard');
               localStorage.setItem('mooduit_current_page', 'dashboard');
-              window.location.replace('/dashboard');
+              window.history.replaceState({}, document.title, '/dashboard');
             }}
           />
         );

@@ -25,6 +25,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           localStorage.setItem('mooduit_current_page', 'dashboard');
           if (onSuccess) {
             onSuccess();
+            return;
           }
           window.location.replace('/dashboard');
         };
