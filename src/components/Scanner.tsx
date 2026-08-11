@@ -232,13 +232,21 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       }
       // Trigger success modal with exact streak details from API response!
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday);
+        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
+          type: inserted.type,
+          amount: inserted.amount,
+          category: inserted.category
+        });
       }
     }).catch((err) => {
       console.error("Failed to persist OCR transaction to DB:", err);
       // Fallback trigger in case of failure
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-        (window as any).triggerTransactionSuccess();
+        (window as any).triggerTransactionSuccess(undefined, undefined, {
+          type: scannedData?.suggestedType || 'expense',
+          amount: scannedData?.totalAmount || 0,
+          category: scannedData?.suggestedCategory || 'Scanning Struk'
+        });
       }
     });
   };

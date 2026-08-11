@@ -24,7 +24,7 @@ import {
   Gift,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
-import { fetchUserStreak, restoreStreak } from "../utils/api";
+import { fetchUserStreak, restoreStreak, fetchAiStreakMotivation, fetchAmbientAiAdvice } from "../utils/api";
 import { BirthdayModal, isUserBirthdayToday } from "./BirthdayModal";
 import "./Dashboard.css";
 
@@ -80,6 +80,14 @@ export default function Dashboard({
   const [quoteIndex, setQuoteIndex] = React.useState<number>(0);
   const [streakIncreasedToday, setStreakIncreasedToday] = React.useState<boolean>(true);
 
+  // AI Real-Time Motivation states
+  const [isMotivationLoading, setIsMotivationLoading] = React.useState<boolean>(false);
+  const [aiMotivationText, setAiMotivationText] = React.useState<string>("");
+
+  // Dynamic Ambient AI Advisor states
+  const [ambientAdvice, setAmbientAdvice] = React.useState<string>("");
+  const [isAmbientLoading, setIsAmbientLoading] = React.useState<boolean>(true);
+
   const motivationQuotes = React.useMemo(() => [
     {
       id: "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
@@ -103,6 +111,29 @@ export default function Dashboard({
     }
   ], []);
 
+  const generateStreakMotivation = React.useCallback(async (txContext?: { type?: string; amount?: number; category?: string }) => {
+    setIsMotivationLoading(true);
+    setAiMotivationText("");
+    try {
+      const text = await fetchAiStreakMotivation({
+        type: txContext?.type,
+        amount: txContext?.amount,
+        category: txContext?.category,
+        language: language
+      });
+      setAiMotivationText(text);
+    } catch (err) {
+      console.error("Failed to generate AI motivation:", err);
+      setAiMotivationText(
+        language === "en"
+          ? "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
+          : "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥"
+      );
+    } finally {
+      setIsMotivationLoading(false);
+    }
+  }, [language]);
+
   React.useEffect(() => {
     if (showCelebration) {
       const randomIndex = Math.floor(Math.random() * motivationQuotes.length);
@@ -116,7 +147,7 @@ export default function Dashboard({
   // Expose triggerTransactionSuccess and showStreakCelebration murni ke global window object
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      const triggerFn = (apiStreak?: number, apiIncreased?: boolean) => {
+      const triggerFn = (apiStreak?: number, apiIncreased?: boolean, txContext?: { type?: string; amount?: number; category?: string }) => {
         setStreakCount((prev) => {
           let finalStreak = 1;
           if (typeof apiStreak === "number" && apiStreak > 0) {
@@ -131,6 +162,9 @@ export default function Dashboard({
         setStreakActive(true);
         setStreakIncreasedToday(true);
         setShowCelebration(true);
+
+        // Fetch AI motivation asynchronously in real-time
+        generateStreakMotivation(txContext);
 
         const email = localStorage.getItem("userEmail") || "";
         if (email) {
@@ -147,9 +181,10 @@ export default function Dashboard({
       };
 
       (window as any).triggerTransactionSuccess = triggerFn;
-      (window as any).showStreakCelebration = () => {
+      (window as any).showStreakCelebration = (txContext?: any) => {
         setStreakIncreasedToday(true);
         setShowCelebration(true);
+        generateStreakMotivation(txContext);
       };
     }
     return () => {
@@ -158,7 +193,7 @@ export default function Dashboard({
         delete (window as any).showStreakCelebration;
       }
     };
-  }, []);
+  }, [generateStreakMotivation]);
 
   const handleRestoreStreak = async () => {
     if (isRestoring) return;
@@ -391,18 +426,7 @@ export default function Dashboard({
   };
 
   // AI Voice response ONLY plays if user initiated message via Voice Note (Mic) interaction
-  const prevMessagesLengthRef = React.useRef(messages.length);
-  React.useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current) {
-      const lastIdx = messages.length - 1;
-      const lastMsg = messages[lastIdx];
-      if (lastMsg && lastMsg.isAi && isVoiceInteraction) {
-        speakMessage(lastMsg.text, lastIdx);
-        setIsVoiceInteraction(false); // Reset voice interaction trigger after speaking
-      }
-    }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages, isVoiceInteraction]);
+  // Handled directly inside handleSendMessage after backend AI response is received!
   const [wishlist, setWishlist] = React.useState<any[]>([]);
   const [targetImpian, setTargetImpian] = React.useState<any[]>([]);
   const [isEditTargetModalOpen, setIsEditTargetModalOpen] =
@@ -450,13 +474,34 @@ export default function Dashboard({
         const user_email = localStorage.getItem("userEmail") || "";
         const insertedTx = await insertTransaction(newTx, user_email);
         propsSetTransactions(prev => [insertedTx, ...prev]);
+        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+          (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
+            type: 'expense',
+            amount: nominalTarget,
+            category: 'Target Impian'
+          });
+        }
       } else {
         setLocalTransactions(prev => [newTx, ...prev]);
+        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+          (window as any).triggerTransactionSuccess(undefined, undefined, {
+            type: 'expense',
+            amount: nominalTarget,
+            category: 'Target Impian'
+          });
+        }
       }
     } catch (err) {
       console.error("Failed to insert purchase transaction:", err);
       // Fallback update
       setLocalTransactions(prev => [newTx, ...prev]);
+      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+        (window as any).triggerTransactionSuccess(undefined, undefined, {
+          type: 'expense',
+          amount: nominalTarget,
+          category: 'Target Impian'
+        });
+      }
     }
 
     toast.success(
@@ -960,6 +1005,9 @@ export default function Dashboard({
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
+    const wasVoiceInput = isVoiceInteraction;
+    setIsVoiceInteraction(false); // consume voice flag
+
     const userMessage = chatInput.trim();
     const updatedMessages = [...messages, { text: userMessage, isAi: false }];
     setMessages(updatedMessages);
@@ -1178,12 +1226,20 @@ export default function Dashboard({
               const insertedTx = await insertTransaction(newTx, user_email);
               propsSetTransactions(prev => [insertedTx, ...prev]);
               if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday);
+                (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
+                  type: typeValue,
+                  amount: nominalValue,
+                  category: categoryValue
+                });
               }
             } else {
               setLocalTransactions(prev => [newTx, ...prev]);
               if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                (window as any).triggerTransactionSuccess();
+                (window as any).triggerTransactionSuccess(undefined, undefined, {
+                  type: typeValue,
+                  amount: nominalValue,
+                  category: categoryValue
+                });
               }
             }
           } catch (err) {
@@ -1206,22 +1262,40 @@ export default function Dashboard({
             : `Got it! Transaction ${notesValue} worth Rp ${nominalValue.toLocaleString("id-ID")} has been recorded! ✅`;
         }
 
-        setMessages((prev) => [
-          ...prev,
-          { 
-            text: cleanText, 
-            isAi: true, 
-            isTransactionSuccess: true, 
-            transactionDetails: { 
-              type: transactionData.type, 
-              amount: nominalValue, 
-              category: categoryValue, 
-              notes: notesValue 
-            } 
+        setMessages((prev) => {
+          const next = [
+            ...prev,
+            { 
+              text: cleanText, 
+              isAi: true, 
+              isTransactionSuccess: true, 
+              transactionDetails: { 
+                type: transactionData.type, 
+                amount: nominalValue, 
+                category: categoryValue, 
+                notes: notesValue 
+              } 
+            }
+          ];
+          if (wasVoiceInput) {
+            const aiIdx = next.length - 1;
+            setTimeout(() => {
+              speakMessage(cleanText, aiIdx);
+            }, 100);
           }
-        ]);
+          return next;
+        });
       } else {
-        setMessages((prev) => [...prev, { text: cleanText, isAi: true }]);
+        setMessages((prev) => {
+          const next = [...prev, { text: cleanText, isAi: true }];
+          if (wasVoiceInput) {
+            const aiIdx = next.length - 1;
+            setTimeout(() => {
+              speakMessage(cleanText, aiIdx);
+            }, 100);
+          }
+          return next;
+        });
       }
     } else {
       const lastErrorLower = lastError.toLowerCase();
@@ -1272,6 +1346,55 @@ export default function Dashboard({
     .filter((t) => t.jenis === "pengeluaran")
     .reduce((acc, t) => acc + (Number(t.nominal) || 0), 0);
   const totalSaldo = totalPemasukan - totalPengeluaran;
+
+  // Real-time Ambient AI Advisor fetch effect
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchAdvice = async () => {
+      setIsAmbientLoading(true);
+      try {
+        const advice = await fetchAmbientAiAdvice(totalSaldo, language);
+        if (isMounted) {
+          if (advice) {
+            const cleanedText = advice.replace(/^["'“«]+|["'”»]+$/g, '').trim();
+            setAmbientAdvice(cleanedText);
+          } else {
+            if (totalSaldo <= 50000) {
+              setAmbientAdvice(
+                language === "en"
+                  ? "Low balance alert! Time to slow down on non-essential spending today! 🛑"
+                  : "Dompet menipis nih! Waktunya ngerem jajan yang nggak penting dulu ya! 🛑"
+              );
+            } else {
+              setAmbientAdvice(
+                language === "en"
+                  ? "Nice balance! Keep saving and put some into smart investments! 🚀"
+                  : "Saldo aman jaya! Jangan lupa tabung sebagian dan investasikan ya! 🚀"
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching Ambient AI advice:", err);
+        if (isMounted) {
+          setAmbientAdvice(
+            language === "en"
+              ? "Keep tracking your expenses to stay financially healthy! ✨"
+              : "Catat terus pengeluaranmu agar keuanganmu tetap sehat! ✨"
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsAmbientLoading(false);
+        }
+      }
+    };
+
+    fetchAdvice();
+    return () => {
+      isMounted = false;
+    };
+  }, [totalSaldo, language]);
 
   const summaryCards = [
     {
@@ -1391,19 +1514,34 @@ export default function Dashboard({
         <div className="bg-white p-3 rounded-xl text-brown-mooduit shadow-sm shrink-0 mooduit-ambient-ai-icon">
           <MessageSquareText size={24} />
         </div>
-        <div>
+        <div className="w-full">
           <div
             className="small fw-800 text-brown-mooduit opacity-75 text-uppercase tracking-wider mb-1 mooduit-ambient-ai-title"
             style={{ fontSize: "10px" }}
           >
             Ambient AI Advisor
           </div>
-          <p
-            className="mb-0 fw-bold text-brown-mooduit text-justify mooduit-ambient-ai-desc"
-            style={{ fontSize: "15px", lineHeight: "1.5" }}
-          >
-            {t(currentDailyQuote.id, currentDailyQuote.en)}
-          </p>
+          {isAmbientLoading ? (
+            <p
+              className="mb-0 fw-bold text-brown-mooduit animate-pulse flex items-center gap-2 mooduit-ambient-ai-desc"
+              style={{ fontSize: "15px", lineHeight: "1.5" }}
+            >
+              <span className="animate-spin text-amber-600">✨</span>
+              <span>
+                {t(
+                  "✨ AI sedang menganalisa aura dompetmu...",
+                  "✨ AI is analyzing your wallet aura..."
+                )}
+              </span>
+            </p>
+          ) : (
+            <p
+              className="mb-0 fw-bold text-brown-mooduit text-justify mooduit-ambient-ai-desc"
+              style={{ fontSize: "15px", lineHeight: "1.5" }}
+            >
+              {ambientAdvice}
+            </p>
+          )}
         </div>
       </motion.div>
 
@@ -2286,12 +2424,26 @@ export default function Dashboard({
                 {t("Boom! Transaksi Tercatat! 🔥", "Boom! Transaction Recorded! 🔥")}
               </h4>
  
-              <p className="celebration-modal-text">
-                {t(
-                  motivationQuotes[quoteIndex]?.id || "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
-                  motivationQuotes[quoteIndex]?.en || "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
+              <div className="celebration-modal-text min-h-[56px] flex items-center justify-center text-center my-2 px-2">
+                {isMotivationLoading ? (
+                  <span className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold italic animate-pulse text-sm py-1.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <span className="animate-spin text-base">✨</span>
+                    <span>
+                      {t(
+                        "✨ MOODUIT AI sedang meracik kata-kata sakti buatmu...",
+                        "✨ MOODUIT AI is brewing inspiring magic for you..."
+                      )}
+                    </span>
+                  </span>
+                ) : (
+                  <p className="italic font-medium text-slate-700 dark:text-slate-200 text-sm md:text-base leading-relaxed">
+                    “{aiMotivationText || t(
+                      motivationQuotes[quoteIndex]?.id || "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
+                      motivationQuotes[quoteIndex]?.en || "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
+                    )}”
+                  </p>
                 )}
-              </p>
+              </div>
  
               <div className="celebration-modal-stats-card">
                 <span className="celebration-modal-stats-val">🔥 {streakCount}</span>

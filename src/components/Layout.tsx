@@ -465,13 +465,21 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                       
                       // Trigger success modal with exact streak details from API response!
                       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday);
+                        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
+                          type: inserted.type || newType,
+                          amount: inserted.amount || Number(newAmount),
+                          category: inserted.category || newCategory
+                        });
                       }
                     } catch (err) {
                       console.error("Failed to insert transaction in background:", err);
                       // Fallback trigger in case of connection issue
                       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                        (window as any).triggerTransactionSuccess();
+                        (window as any).triggerTransactionSuccess(undefined, undefined, {
+                          type: newType,
+                          amount: Number(newAmount),
+                          category: newCategory
+                        });
                       }
                     }
                   }}

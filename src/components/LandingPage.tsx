@@ -92,11 +92,15 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         }
       `}</style>
       
-      {/* --- 1. HEADER (BACKGROUND SOLID - TIDAK STUCK DI SINI) --- */}
+      {/* --- 1. HEADER (EFEK KACA/TRANSPARAN SAAT SCROLL) --- */}
       <header 
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b"
         style={{
-          backgroundColor: darkMode ? '#0f172a' : '#ffffff',
+          backgroundColor: isScrolled 
+            ? (darkMode ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)') 
+            : (darkMode ? '#0f172a' : '#ffffff'),
+          backdropFilter: isScrolled ? 'blur(12px)' : 'none',
+          WebkitBackdropFilter: isScrolled ? 'blur(12px)' : 'none',
           borderColor: isScrolled 
             ? (darkMode ? '#1e293b' : '#e2e8f0') 
             : 'transparent',
@@ -105,9 +109,9 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       >
         <div className="flex justify-between items-center px-4 py-3.5 md:px-[6%] box-border max-w-7xl mx-auto">
           {/* Logo Brand */}
-          <div className="flex items-center gap-2 md:gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/Logo_mooduit.png" alt="Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
-            <h1 className="text-lg sm:text-xl md:text-2xl font-black m-0 flex">
+          <div className="flex items-center gap-2 md:gap-3 cursor-pointer shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <img src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/Logo_mooduit.png" alt="Logo" className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain" />
+            <h1 className="text-base sm:text-lg md:text-2xl font-black m-0 flex">
               <span style={{ color: darkMode ? '#ffffff' : '#112f58' }}>MOO</span>
               <span style={{ color: '#B9AB8C' }}>DUIT</span>
             </h1>
@@ -144,7 +148,6 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? activeColor : normalColor)}
                 >
                   {item.label}
-                  {/* Indikator Garis Bawah */}
                   {isActive && (
                     <span 
                       className="absolute bottom-[-4px] left-0 w-full h-[3px] rounded-full transition-all"
@@ -156,23 +159,22 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             })}
           </nav>
  
-          {/* Right Section: Toggle Tema & Bahasa + Auth Buttons */}
-          <div className="flex items-center gap-3">
+          {/* Right Section: Toggles & Mobile Menu */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Toggle Bahasa */}
             <button
               onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
               type="button"
-              className="font-bold text-xs cursor-pointer flex items-center justify-center"
+              className="font-bold text-[10px] sm:text-xs cursor-pointer flex items-center justify-center shrink-0"
               style={{
-                height: '36px',
-                minWidth: '44px',
-                padding: '0 12px',
+                height: '32px',
+                minWidth: '36px',
+                padding: '0 8px',
                 borderRadius: '6px',
                 border: darkMode ? '1px solid #334155' : '1px solid #112f58',
                 color: darkMode ? '#38bdf8' : '#112f58',
                 backgroundColor: 'transparent'
               }}
-              title={language === 'id' ? 'Ubah ke Bahasa Inggris' : 'Switch to Indonesian'}
             >
               {language === 'id' ? 'ID' : 'EN'}
             </button>
@@ -183,23 +185,22 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               type="button"
               className="flex items-center justify-center cursor-pointer shrink-0"
               style={{
-                width: '36px',
-                height: '36px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '9999px',
                 border: darkMode ? '1px solid #334155' : '1px solid #112f58',
                 color: darkMode ? '#cbd5e1' : '#112f58',
                 backgroundColor: 'transparent'
               }}
-              title={darkMode ? (language === 'id' ? 'Mode Terang' : 'Light Mode') : (language === 'id' ? 'Mode Gelap' : 'Dark Mode')}
             >
               {darkMode ? (
-                <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z"/></svg>
+                <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z"/></svg>
               ) : (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
               )}
             </button>
 
-            {/* Auth Buttons */}
+            {/* Auth Buttons - Desktop Only */}
             <div className="hidden md:flex items-center gap-2">
               <button 
                 style={{ backgroundColor: 'transparent', border: darkMode ? '1px solid #cbd5e1' : '1px solid #112f58', color: darkMode ? '#cbd5e1' : '#112f58', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -215,27 +216,21 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               </button>
             </div>
 
-            {/* Mobile Actions Menu */}
-            <div className="flex md:hidden items-center gap-1.5">
-              <button 
-                style={{ backgroundColor: darkMode ? '#f8fafc' : '#112f58', color: darkMode ? '#0f172a' : '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '13px' }}
-                onClick={() => onStart('login')}
-              >
-                {language === 'id' ? 'Masuk' : 'Login'}
-              </button>
+            {/* Hamburger Menu - Mobile Only (TOMBOL MASUK DIHILANGKAN DARI SINI) */}
+            <div className="flex md:hidden items-center ml-1">
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1 px-2 rounded-lg transition"
+                className="p-1 rounded-lg transition shrink-0"
                 aria-label="Toggle menu"
                 style={{ color: darkMode ? '#ffffff' : '#112f58', border: 'none', background: 'transparent', cursor: 'pointer' }}
               >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* DROPDOWN MENU MOBILE */}
+        {/* DROPDOWN MENU MOBILE (LOGIN/REGISTER PINDAH KE SINI) */}
         {isMobileMenuOpen && (
           <div 
             className="md:hidden absolute top-[100%] left-0 w-full shadow-xl border-t flex flex-col py-2 px-6 z-50 transition-all backdrop-blur-lg"
@@ -277,6 +272,38 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 {item.label}
               </a>
             ))}
+
+            {/* Tombol Auth di dalam menu mobile */}
+            <div className="flex flex-col gap-3 mt-4 mb-3">
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); onStart('login'); }} 
+                style={{ 
+                  border: darkMode ? '1px solid #cbd5e1' : '1px solid #112f58', 
+                  color: darkMode ? '#cbd5e1' : '#112f58', 
+                  padding: '10px', 
+                  borderRadius: '8px', 
+                  fontWeight: 'bold', 
+                  background: 'transparent', 
+                  cursor: 'pointer' 
+                }}
+              >
+                {language === 'id' ? 'Masuk ke Akun' : 'Sign In'}
+              </button>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); onStart('register'); }} 
+                style={{ 
+                  backgroundColor: darkMode ? '#f8fafc' : '#112f58', 
+                  color: darkMode ? '#0f172a' : '#ffffff', 
+                  padding: '10px', 
+                  borderRadius: '8px', 
+                  fontWeight: 'bold', 
+                  border: 'none', 
+                  cursor: 'pointer' 
+                }}
+              >
+                {language === 'id' ? 'Daftar Sekarang' : 'Register Now'}
+              </button>
+            </div>
           </div>
         )}
       </header>
@@ -343,7 +370,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         </div>
       </section>
 
-      {/* --- 4. FEATURES SECTION (DENGAN EFEK HOVER MELAYANG/NAIK) --- */}
+      {/* --- 4. FEATURES SECTION --- */}
       <section id="fitur" className="mooduit-landing-section-features" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', padding: '80px 6%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <h2 style={{ color: darkMode ? '#ffffff' : '#112f58', fontSize: '32px', fontWeight: 'bold', marginBottom: '16px' }}>
           {language === 'id' ? 'Waktunya Slay Finansial Bersama MOODUIT' : 'Time to Slay Your Finances with MOODUIT'}

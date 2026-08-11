@@ -350,9 +350,13 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
       last_active_date = todayStr;
       streakActive = true;
       streakIncreasedToday = true;
+    } else {
+      current_streak = 0;
+      streakActive = false;
+      streakIncreasedToday = false;
     }
   } else if (last_active_date === todayStr) {
-    // Hari ini SAMA DENGAN last_active_date: Jika streak masih 0 dan ada transaksi ditulis, set ke 1
+    // Hari ini SAMA DENGAN last_active_date (sudah ada transaksi hari ini)
     if (isTransactionWrite && current_streak === 0) {
       current_streak = 1;
     }
@@ -364,23 +368,33 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
-      // Hari ini adalah HARI BERIKUTNYA (selisih 1 hari): Tambahkan current_streak + 1. Update last_active_date.
-      current_streak = current_streak + 1;
-      last_active_date = todayStr;
-      streakActive = true;
-      streakIncreasedToday = true;
+      // Selisih 1 hari (transaksi terakhir kemarin):
+      if (isTransactionWrite) {
+        // HANYA saat user mencatat transaksi baru hari ini: Tambah streak + 1 & update last_active_date
+        current_streak = current_streak + 1;
+        last_active_date = todayStr;
+        streakActive = true;
+        streakIncreasedToday = true;
+      } else {
+        // Saat baru load/login: Streak TIDAK bertambah, api REDUP (streakActive = false), angka streak TETAP
+        streakActive = false;
+        streakIncreasedToday = false;
+      }
     } else if (diffDays > 1) {
       // Selisih LEBIH DARI 1 HARI (melewati 00:00 dan kemarin bolong):
-      // a. Pindahkan nilai current_streak ke lost_streak.
-      // b. Reset current_streak = 0.
-      // c. Update last_active_date menjadi hari ini.
       if (current_streak > 0) {
         lost_streak = current_streak;
       }
-      current_streak = isTransactionWrite ? 1 : 0;
-      last_active_date = todayStr;
-      streakActive = isTransactionWrite;
-      streakIncreasedToday = isTransactionWrite;
+      if (isTransactionWrite) {
+        current_streak = 1;
+        last_active_date = todayStr;
+        streakActive = true;
+        streakIncreasedToday = true;
+      } else {
+        current_streak = 0;
+        streakActive = false;
+        streakIncreasedToday = false;
+      }
     }
   }
 
@@ -2114,6 +2128,141 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       text: consultationFallback, 
       actionPayload: null 
     });
+  }
+});
+
+// AI Real-Time Motivation Generator Endpoint for Daily Streak Popup
+app.post("/api/streak/motivation", async (req, res) => {
+  try {
+    const { type, amount, category, language, tempGeminiKey } = req.body || {};
+    const lang = language === "en" ? "en" : "id";
+
+    const formattedAmount = amount ? Number(amount).toLocaleString("id-ID") : "";
+    const typeLabel = type === "income"
+      ? (lang === "en" ? "Income" : "Pemasukan")
+      : (lang === "en" ? "Expense" : "Pengeluaran");
+    const categoryLabel = category || (lang === "en" ? "General" : "Umum");
+
+    const systemInstruction = lang === "en"
+      ? `You are MOODUIT AI, a supportive and fun Gen-Z financial advisor. The user just logged a transaction: ${typeLabel} ${formattedAmount ? `of Rp ${formattedAmount}` : ''} for category "${categoryLabel}". Give 1 very short motivational sentence (max 15 words), emotionally touching, and encouraging them to keep their daily logging 'Streak' alive. Use a light, modern youth slang tone with 1-2 emojis. Do not wrap the text in quotes.`
+      : `Kamu adalah MOODUIT AI, asisten keuangan Gen-Z yang asik dan suportif. User baru saja mencatat transaksi berupa ${typeLabel} ${formattedAmount ? `sejumlah Rp ${formattedAmount}` : ''} untuk kategori "${categoryLabel}". Berikan 1 kalimat motivasi yang sangat singkat (maksimal 15 kata), menyentuh secara emosional, dan menyemangati mereka untuk terus menjaga 'Streak' pencatatan keuangannya. Gunakan gaya bahasa anak muda (slang ringan) dan sertakan 1-2 emoji. Jangan gunakan tanda kutip pembungkus.`;
+
+    const prompt = lang === "en"
+      ? `Generate 1 short motivational sentence for logging this transaction.`
+      : `Buatkan 1 kalimat motivasi singkat untuk transaksi yang baru saja dicatat.`;
+
+    const apiKey = getGeminiApiKey(tempGeminiKey);
+    let motivationText = "";
+
+    if (apiKey) {
+      try {
+        const ai = getAiClient(tempGeminiKey);
+        const response = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ],
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.8,
+          }
+        });
+        if (response && response.text) {
+          motivationText = response.text.trim().replace(/^["'“«]+|["'”»]+$/g, '');
+        }
+      } catch (err: any) {
+        console.warn("[Streak Motivation API] Gemini API call failed, using fallback motivation quote:", err?.message || err);
+      }
+    }
+
+    if (!motivationText) {
+      const motivationQuotesID = [
+        "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
+        "Satu langkah kecil untuk dompetmu, satu lompatan besar menuju bebas finansial! Pertahankan apimu! 🚀",
+        "Konsistensi adalah kunci! Catat terus pengeluaranmu dan jadilah tuan atas uangmu sendiri. 💪",
+        "Mantap! Kebiasaan baik sudah mulai terbentuk. Jangan biarkan apinya padam besok ya! ✨",
+        "Disiplin hari ini, foya-foya terencana besok! Keren, kamu berhasil menjaga streak-mu hari ini. 🎯"
+      ];
+      const motivationQuotesEN = [
+        "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥",
+        "One small step for your wallet, one giant leap towards financial freedom! Keep your fire burning! 🚀",
+        "Consistency is key! Keep logging your expenses and master your own money. 💪",
+        "Awesome! Good habits are forming. Don't let the fire go out tomorrow! ✨",
+        "Disciplined today, planned fun tomorrow! Great job keeping your streak alive today. 🎯"
+      ];
+      const pool = lang === "en" ? motivationQuotesEN : motivationQuotesID;
+      motivationText = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    return res.json({ motivation: motivationText });
+  } catch (err: any) {
+    console.error("Error in /api/streak/motivation:", err);
+    return res.status(500).json({ error: err?.message || "Internal server error" });
+  }
+});
+
+// AI Ambient Advisor Endpoint
+app.post("/api/ambient/advice", async (req, res) => {
+  try {
+    const { totalSaldo, language, tempGeminiKey } = req.body || {};
+    const lang = language === "en" ? "en" : "id";
+    const saldoNum = Number(totalSaldo) || 0;
+    const formattedSaldo = saldoNum.toLocaleString("id-ID");
+
+    const systemInstruction = lang === "en"
+      ? `You are MOODUIT Ambient AI. The user's current remaining balance is Rp ${formattedSaldo}. Give 1 short financial advice or motivational sentence (maximum 15 words) in a light, modern Gen-Z tone relevant to their balance. If the balance is high, tell them to save/invest. If the balance is low, tell them to slow down spending. Include 1 emoji. Do not wrap text in quotes.`
+      : `Kamu adalah MOODUIT Ambient AI. Sisa saldo pengguna saat ini adalah Rp ${formattedSaldo}. Berikan 1 kalimat nasihat keuangan atau motivasi singkat (maksimal 15 kata) ala Gen-Z yang relevan dengan kondisi dompetnya. Jika saldo banyak, suruh menabung/investasi. Jika saldo sedikit, suruh ngerem pengeluaran. Sertakan 1 emoji. Jangan gunakan tanda kutip pembungkus.`;
+
+    const prompt = lang === "en"
+      ? `Give 1 sentence financial advice for user with balance Rp ${formattedSaldo}.`
+      : `Berikan 1 kalimat nasihat keuangan untuk pengguna dengan sisa saldo Rp ${formattedSaldo}.`;
+
+    const apiKey = getGeminiApiKey(tempGeminiKey);
+    let adviceText = "";
+
+    if (apiKey) {
+      try {
+        const ai = getAiClient(tempGeminiKey);
+        const response = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ],
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.8,
+          }
+        });
+        if (response && response.text) {
+          adviceText = response.text.trim().replace(/^["'“«]+|["'”»]+$/g, '');
+        }
+      } catch (err: any) {
+        console.warn("[Ambient AI Advice API] Gemini API call failed, using fallback:", err?.message || err);
+      }
+    }
+
+    if (!adviceText) {
+      if (saldoNum <= 50000) {
+        adviceText = lang === "en"
+          ? "Low balance alert! Time to slow down on non-essential spending today! 🛑"
+          : "Dompet menipis nih! Waktunya ngerem jajan yang nggak penting dulu ya! 🛑";
+      } else {
+        adviceText = lang === "en"
+          ? "Nice balance! Keep saving and put some into smart investments! 🚀"
+          : "Saldo aman jaya! Jangan lupa tabung sebagian dan investasikan ya! 🚀";
+      }
+    }
+
+    return res.json({ advice: adviceText });
+  } catch (err: any) {
+    console.error("Error in /api/ambient/advice:", err);
+    return res.status(500).json({ error: err?.message || "Internal server error" });
   }
 });
 

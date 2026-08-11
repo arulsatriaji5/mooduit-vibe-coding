@@ -293,3 +293,52 @@ export async function saveBudgetPlanCustom(user_email: string, data: any): Promi
     return false;
   }
 }
+
+// Fetch real-time AI streak motivation quote
+export async function fetchAiStreakMotivation(details?: { type?: string; amount?: number; category?: string; language?: string }): Promise<string> {
+  try {
+    const tempGeminiKey = localStorage.getItem("tempGeminiApiKey") || "";
+    const response = await fetch('/api/streak/motivation', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: details?.type,
+        amount: details?.amount,
+        category: details?.category,
+        language: details?.language || 'id',
+        tempGeminiKey
+      })
+    });
+    if (!response.ok) throw new Error('Failed to fetch AI motivation');
+    const result = await response.json();
+    return result.motivation || "Keren banget! Streak kamu menyala hari ini! 🔥";
+  } catch (err) {
+    console.error("Error fetching AI motivation:", err);
+    return "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥";
+  }
+}
+
+// Fetch real-time Ambient AI Advisor advice based on total balance
+export async function fetchAmbientAiAdvice(totalSaldo: number, language: string = 'id'): Promise<string> {
+  try {
+    const tempGeminiKey = localStorage.getItem("tempGeminiApiKey") || "";
+    const response = await fetch('/api/ambient/advice', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        totalSaldo,
+        language,
+        tempGeminiKey
+      })
+    });
+    if (!response.ok) throw new Error('Failed to fetch Ambient AI advice');
+    const result = await response.json();
+    const rawAdvice = result.advice || "";
+    return rawAdvice.replace(/^["'“«]+|["'”»]+$/g, '').trim();
+  } catch (err) {
+    console.error("Error fetching Ambient AI advice:", err);
+    return "";
+  }
+}
