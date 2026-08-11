@@ -31,6 +31,7 @@ export default function App() {
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(true);
   
   // Logic Gate Data Simulation
   const [saldoDanaDarurat, setSaldoDanaDarurat] = useState(0);
@@ -273,8 +274,10 @@ export default function App() {
     async function initDB() {
       if (!user?.email) {
         setTransactions([]);
+        setIsTransactionsLoading(false);
         return;
       }
+      setIsTransactionsLoading(true);
       try {
         const data = await fetchAllTransactions(user.email);
         // Strictly purge any legacy or dummy transactions with dummy-like IDs or content keywords
@@ -290,6 +293,8 @@ export default function App() {
         setTransactions(cleaned);
       } catch (e) {
         console.error("DB Initialization error:", e);
+      } finally {
+        setIsTransactionsLoading(false);
       }
     }
     initDB();
@@ -460,7 +465,7 @@ export default function App() {
           />
         );
       case 'dashboard':
-        return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} />;
+        return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} isLoading={isTransactionsLoading} />;
       case 'scanner':
         return <Scanner onNavigate={handleNavigate} setTransactions={setTransactions} />;
       case 'history':
@@ -474,14 +479,33 @@ export default function App() {
       case 'analisa':
         return <Analysis transactions={transactions} />;
       default:
-        return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} />;
+        return <Dashboard onNavigate={handleNavigate} saldoDanaDarurat={saldoDanaDarurat} transactions={transactions} setTransactions={setTransactions} isLoading={isTransactionsLoading} />;
     }
   };
 
   const needsLayout = !['landing', 'auth', 'scanner', 'callback'].includes(currentPage);
 
   if (!isAuthReady || isAuthLoading) {
-    return null;
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-50 fixed inset-0">
+        <div className="flex flex-col items-center justify-center text-center px-4">
+          <div className="relative flex items-center justify-center mb-3">
+            <img
+              src="https://raw.githubusercontent.com/arulsatriaji5/mooduit-vibe-coding/main/public/Logo_mooduit.png"
+              alt="MOODUIT Logo"
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain animate-bounce"
+            />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black flex items-center justify-center tracking-wide m-0">
+            <span className="text-[#112f58] dark:text-white">MOO</span>
+            <span className="text-[#B9AB8C]">DUIT</span>
+          </h1>
+          <p className="animate-pulse text-slate-500 dark:text-slate-400 font-medium mt-4 text-sm sm:text-base m-0">
+            {localStorage.getItem('language') === 'en' ? 'Preparing your smart wallet...' : 'Menyiapkan dompet cerdasmu...'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (resetToken) {

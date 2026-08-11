@@ -33,6 +33,7 @@ interface DashboardProps {
   saldoDanaDarurat: number;
   transactions?: any[];
   setTransactions?: React.Dispatch<React.SetStateAction<any[]>>;
+  isLoading?: boolean;
 }
 
 export default function Dashboard({
@@ -40,6 +41,7 @@ export default function Dashboard({
   saldoDanaDarurat,
   transactions: propsTransactions,
   setTransactions: propsSetTransactions,
+  isLoading = false,
 }: DashboardProps) {
   const { t, language, theme } = useThemeLanguage();
   const darkMode = theme === "dark";
@@ -1595,9 +1597,13 @@ export default function Dashboard({
             </div>
           </div>
           
-          <h2 className="text-2xl font-bold text-[#112F58] dark:text-white">
-            {showBalance ? `Rp ${totalSaldo.toLocaleString("id-ID")}` : "Rp ••••••••"}
-          </h2>
+          {isLoading ? (
+            <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse my-1" />
+          ) : (
+            <h2 className="text-2xl font-bold text-[#112F58] dark:text-white">
+              {showBalance ? `Rp ${totalSaldo.toLocaleString("id-ID")}` : "Rp ••••••••"}
+            </h2>
+          )}
         </div>
 
         {/* KARTU RINGKASAN PEMASUKAN & PENGELUARAN (BALANCED GRID FIX) */}
@@ -1615,9 +1621,13 @@ export default function Dashboard({
                 {t("Pemasukan", "Income")}
               </span>
             </div>
-            <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
-              {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
-            </h3>
+            {isLoading ? (
+              <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
+            ) : (
+              <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
+                {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
+              </h3>
+            )}
           </div>
 
           {/* Kartu Pengeluaran */}
@@ -1632,9 +1642,13 @@ export default function Dashboard({
                 {t("Pengeluaran", "Expenses")}
               </span>
             </div>
-            <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
-              {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
-            </h3>
+            {isLoading ? (
+              <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
+            ) : (
+              <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
+                {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
+              </h3>
+            )}
           </div>
 
         </div>
@@ -1719,7 +1733,22 @@ export default function Dashboard({
               </button>
             </div>
 
-            {transactions.length > 0 ? (
+            {isLoading ? (
+              <div className="d-flex flex-column gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100 animate-pulse">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                      <div className="space-y-1">
+                        <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                    </div>
+                    <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : transactions.length > 0 ? (
               <div
                 className="d-flex flex-column gap-3 overflow-y-auto"
                 style={{ maxHeight: "400px" }}

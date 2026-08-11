@@ -2120,8 +2120,7 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       actionPayload: actionPayload 
     });
   } catch (error: any) {
-    const rawErrStr = error?.message || String(error);
-    console.error("[/api/chat Error]:", rawErrStr);
+    console.log("[AI Chat] Using smart consultation fallback.");
     const consultationFallback = generateSmartConsultationFallback(userMessage, financialContext);
     return res.json({ 
       reply: consultationFallback, 
@@ -2174,7 +2173,7 @@ app.post("/api/streak/motivation", async (req, res) => {
           motivationText = response.text.trim().replace(/^["'“«]+|["'”»]+$/g, '');
         }
       } catch (err: any) {
-        console.warn("[Streak Motivation API] Gemini API call failed, using fallback motivation quote:", err?.message || err);
+        console.log("[Streak Motivation] Using fallback motivation quote.");
       }
     }
 
@@ -2199,8 +2198,11 @@ app.post("/api/streak/motivation", async (req, res) => {
 
     return res.json({ motivation: motivationText });
   } catch (err: any) {
-    console.error("Error in /api/streak/motivation:", err);
-    return res.status(500).json({ error: err?.message || "Internal server error" });
+    const lang = req.body?.language === "en" ? "en" : "id";
+    const fallback = lang === "en"
+      ? "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
+      : "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥";
+    return res.json({ motivation: fallback });
   }
 });
 
@@ -2243,7 +2245,7 @@ app.post("/api/ambient/advice", async (req, res) => {
           adviceText = response.text.trim().replace(/^["'“«]+|["'”»]+$/g, '');
         }
       } catch (err: any) {
-        console.warn("[Ambient AI Advice API] Gemini API call failed, using fallback:", err?.message || err);
+        console.log("[Ambient AI Advice] Using fallback advice.");
       }
     }
 
@@ -2261,8 +2263,12 @@ app.post("/api/ambient/advice", async (req, res) => {
 
     return res.json({ advice: adviceText });
   } catch (err: any) {
-    console.error("Error in /api/ambient/advice:", err);
-    return res.status(500).json({ error: err?.message || "Internal server error" });
+    const lang = req.body?.language === "en" ? "en" : "id";
+    const saldoNum = Number(req.body?.totalSaldo) || 0;
+    const fallbackAdvice = saldoNum <= 50000
+      ? (lang === "en" ? "Low balance alert! Time to slow down on non-essential spending today! 🛑" : "Dompet menipis nih! Waktunya ngerem jajan yang nggak penting dulu ya! 🛑")
+      : (lang === "en" ? "Nice balance! Keep saving and put some into smart investments! 🚀" : "Saldo aman jaya! Jangan lupa tabung sebagian dan investasikan ya! 🚀");
+    return res.json({ advice: fallbackAdvice });
   }
 });
 
