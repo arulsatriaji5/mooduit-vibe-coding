@@ -1761,11 +1761,20 @@ function parseSmartTransactionFallback(userMessage: string) {
     else if (text.includes("beras") || text.includes("sembako") || text.includes("pokok") || text.includes("pasar")) category = "Kebutuhan Pokok";
   }
 
-  let notes = userMessage
-    .replace(/(?:catat|tolong|masukkan|rekam|tambah|pemasukan|pengeluaran|sebesar|rp\.?)/gi, '')
+  let cleaned = userMessage
+    .replace(/\b(?:catat|tolong|masukkan|rekam|tambah|input|pengeluaran|pemasukan|saya|hari|ini|ada|tadi|sebesar|rp|ribu|rb|jt|juta|k|\d+)\b/gi, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
     .trim();
+
+  // Keep max 2-3 words
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  let notes = "";
+  if (words.length > 0) {
+    notes = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+
   if (!notes || notes.length < 2) {
-    notes = category;
+    notes = type === "income" ? "Pemasukan" : (category !== "Lainnya" ? category : "Pengeluaran");
   }
 
   if (amount > 0 && (isExplicitRecordCommand || text.includes("pengeluaran") || text.includes("pemasukan"))) {
@@ -1974,9 +1983,13 @@ app.post("/api/chat", async (req, res) => {
       `  "type": "expense" atau "income",\n` +
       `  "amount": <angka integer nominal tanpa tanda titik/koma/simbol>,\n` +
       `  "category": "<Kategori standar paling sesuai>",\n` +
-      `  "notes": "<deskripsi singkat catatan transaksi>"\n` +
+      `  "notes": "<deskripsi/nama transaksi yang sangat singkat>"\n` +
       `}\n` +
       `\`\`\`\n\n` +
+      `ATURAN KHUSUS MENGURANGI/MERANGKUM NAMA TRANSAKSI ("notes"): \n` +
+      `Kamu harus merangkum 'title' atau 'nama transaksi' ("notes") menjadi SANGAT SINGKAT (Maksimal 2-3 kata). JANGAN PERNAH menggunakan kata-kata percakapan user (seperti 'catat pengeluaran', 'saya hari ini ada', 'tadi saya beli') sebagai judul. Contoh: Jika user berkata 'catat pengeluaran saya hari ini beli nasi goreng 15 ribu', maka 'title'/'notes' harus diisi 'Beli Nasi Goreng'. Jika user bilang 'catat pemasukan saya hari ini 500.000', maka 'title'/'notes' diisi 'Pendapatan' atau 'Pemasukan'.\n\n` +
+      `ATURAN KHUSUS BALASAN TEKS (RESPONSE MESSAGE):\n` +
+      `Saat membuat kalimat balasan, buatlah natural dan singkat. JANGAN membaca ulang 'title' yang mentah. Cukup katakan: 'Sip! Pemasukan Rp500.000 sudah dicatat ya! 👍'\n\n` +
       `Aturan Kategori Standar MOODUIT:\n` +
       `- "Kebutuhan Pokok" (untuk sembako, belanja harian primer)\n` +
       `- "Transportasi" (untuk ojek online, bensin, tiket kendaraan)\n` +
@@ -2102,7 +2115,8 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
       const fallbackPayload = parseSmartTransactionFallback(userMessage);
       if (fallbackPayload) {
         actionPayload = fallbackPayload;
-        cleanReply = `Sip! Transaksi ${fallbackPayload.notes} sebesar Rp ${fallbackPayload.amount.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
+        const typeLabel = fallbackPayload.type === "income" ? "Pemasukan" : "Pengeluaran";
+        cleanReply = `Sip! ${typeLabel} Rp ${fallbackPayload.amount.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
       } else {
         cleanReply = generateSmartConsultationFallback(userMessage, financialContext);
       }
@@ -2110,8 +2124,8 @@ JSON.stringify(financialContext, null, 2) + "\n\n" +
 
     if (!cleanReply && actionPayload) {
       const nom = Number(actionPayload.amount) || 0;
-      const notes = actionPayload.notes || actionPayload.category || "transaksi";
-      cleanReply = `Sip! Transaksi ${notes} sebesar Rp ${nom.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
+      const typeLabel = actionPayload.type === "income" ? "Pemasukan" : "Pengeluaran";
+      cleanReply = `Sip! ${typeLabel} Rp ${nom.toLocaleString("id-ID")} sudah dicatat ya! 👍`;
     }
 
     return res.json({ 

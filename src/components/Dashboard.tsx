@@ -1192,7 +1192,11 @@ export default function Dashboard({
         const typeStr = String(transactionData.type || "expense").toLowerCase();
         const typeValue = (typeStr === "income" || typeStr === "pemasukan") ? "pemasukan" : "pengeluaran";
         const categoryValue = transactionData.category || transactionData.kategori || "Lainnya";
-        const notesValue = transactionData.notes || transactionData.catatan || "Transaksi Pintar MOODUIT AI";
+        let rawNotes = transactionData.notes || transactionData.title || transactionData.catatan || transactionData.category || "Transaksi";
+        rawNotes = String(rawNotes)
+          .replace(/^(?:catat|tolong catat|input|rekam|tambah)\s+(?:pengeluaran|pemasukan)?\s*/i, "")
+          .trim();
+        const notesValue = rawNotes || categoryValue;
 
         const categoryIcons: Record<string, string> = {
           "Kebutuhan Pokok": "🛒", 
@@ -1758,21 +1762,21 @@ export default function Dashboard({
                     key={t.id || idx}
                     className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100"
                   >
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="bg-white p-2.5 rounded-xl shadow-sm text-lg">
+                    <div className="d-flex align-items-center gap-3 flex-1 min-w-0 pr-2">
+                      <div className="bg-white p-2.5 rounded-xl shadow-sm text-lg shrink-0">
                         {t.icon || "🧾"}
                       </div>
-                      <div>
-                        <div className="fw-800 text-primary-mooduit small leading-tight mb-0.5">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="fw-800 text-primary-mooduit small leading-tight mb-0.5 truncate line-clamp-1">
                           {t.catatan || t.kategori}
                         </div>
-                        <div className="text-muted x-small font-medium">
+                        <div className="text-muted x-small font-medium truncate">
                           {t.tanggal}
                         </div>
                       </div>
                     </div>
                     <div
-                      className={`fw-800 small ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718]"}`}
+                      className={`fw-800 small shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718]"}`}
                     >
                       {t.jenis === "pemasukan" ? "+" : "-"} Rp{" "}
                       {Number(t.nominal).toLocaleString("id-ID")}
