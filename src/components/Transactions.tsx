@@ -33,6 +33,10 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   const [searchTerm, setSearchTerm] = useState('');
   const [filterJenis, setFilterJenis] = useState('semua');
   
+  // Modal states for Filter
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [tempFilter, setTempFilter] = useState('semua');
+  
   // Menu and Modal States
   const [menuTerbuka, setMenuTerbuka] = useState<any>(null); // Stores the transaction ID that was clicked
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -223,18 +227,67 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     }
   };
 
-  // Filter transactions based on Search Term & Filter Jenis
+  // Filter transactions based on Search Term & Filter Jenis / Kategori
   const filteredTransactions = (transactions || []).filter(t => {
     if (!t) return false;
-    const matchesSearch = 
-      (t.catatan || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-      (t.kategori || '').toLowerCase().includes((searchTerm || '').toLowerCase());
-    
-    if (filterJenis === 'semua') {
-      return matchesSearch;
+    const searchLower = (searchTerm || '').toLowerCase().trim();
+    const notesLower = String(t.catatan || t.description || '').toLowerCase();
+    const catLower = String(t.kategori || t.category || '').toLowerCase();
+
+    const matchesSearch = !searchLower || notesLower.includes(searchLower) || catLower.includes(searchLower);
+    if (!matchesSearch) return false;
+
+    if (filterJenis === 'semua' || filterJenis === 'all') {
+      return true;
     }
-    return matchesSearch && t.jenis === filterJenis;
+
+    const txJenis = String(t.jenis || t.type || '').toLowerCase();
+
+    if (filterJenis === 'pengeluaran' || filterJenis === 'expense') {
+      return txJenis === 'pengeluaran' || txJenis === 'expense';
+    }
+
+    if (filterJenis === 'pemasukan' || filterJenis === 'income') {
+      return txJenis === 'pemasukan' || txJenis === 'income';
+    }
+
+    let reqJenis: string | null = null;
+    let targetCategory = filterJenis;
+
+    if (filterJenis.startsWith('exp:')) {
+      reqJenis = 'pengeluaran';
+      targetCategory = filterJenis.slice(4);
+    } else if (filterJenis.startsWith('inc:')) {
+      reqJenis = 'pemasukan';
+      targetCategory = filterJenis.slice(4);
+    }
+
+    if (reqJenis) {
+      const matchesJenis = (reqJenis === 'pengeluaran' && (txJenis === 'pengeluaran' || txJenis === 'expense')) ||
+                           (reqJenis === 'pemasukan' && (txJenis === 'pemasukan' || txJenis === 'income'));
+      if (!matchesJenis) return false;
+    }
+
+    const targetCatLower = targetCategory.toLowerCase().trim();
+    return catLower === targetCatLower || catLower.includes(targetCatLower);
   });
+
+  const getFilterLabel = (val: string) => {
+    if (val === 'semua' || val === 'all') return t('Semua Jenis & Kategori', 'All Types & Categories');
+    if (val === 'pengeluaran') return `📉 ${t('Pengeluaran', 'Expenses')}`;
+    if (val === 'pemasukan') return `📈 ${t('Pemasukan', 'Income')}`;
+    if (val.startsWith('exp:')) {
+      const id = val.slice(4);
+      const item = kategoriPengeluaran.find(k => k.id === id);
+      return `${item?.icon || '📉'} ${t(id, id)}`;
+    }
+    if (val.startsWith('inc:')) {
+      const id = val.slice(4);
+      const item = kategoriPemasukan.find(k => k.id === id);
+      return `${item?.icon || '📈'} ${t(id, id)}`;
+    }
+    return val;
+  };
 
   // Calculate dynamic Total Spendings this month
   const totalPengeluaran = (transactions || [])
@@ -498,7 +551,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       </div>
 
       {/* SEARCH AND FILTER CONTROLS */}
-      <div className="d-flex flex-column flex-sm-row gap-3 mb-4 riwayat-search-container">
+      <div className="d-flex flex-column flex-sm-row gap-3 mb-3 riwayat-search-container">
         <div className="position-relative flex-grow-1">
           <span className="position-absolute translate-middle-y text-muted" style={{ top: '50%', left: '16px' }}>
             <Search size={18} className="text-gray-400" />
@@ -514,18 +567,54 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         </div>
         
         <div className="d-flex gap-2">
-          <select
-            value={filterJenis}
-            onChange={(e) => setFilterJenis(e.target.value)}
-            className="bg-white border border-gray-100 rounded-2xl py-3 px-4 text-xs font-bold text-[#112F58] focus:outline-none shadow-sm"
-            id="filter_jenis_select"
+          {/* TOMBOL FILTER FIX HOVER: Terkunci abu-abu tanpa transisi warna ke putih/navy */}
+          <button
+            type="button"
+            onClick={() => {
+              setTempFilter(filterJenis);
+              setIsFilterModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-400 dark:border-slate-500 rounded-xl font-bold text-slate-500 dark:text-slate-400 shadow-sm shrink-0 cursor-pointer"
+            id="filter_modal_trigger_btn"
           >
-            <option value="semua">📂 {t('Semua Jenis', 'All Types')}</option>
-            <option value="pengeluaran">📉 {t('Pengeluaran', 'Expenses')}</option>
-            <option value="pemasukan">📈 {t('Pemasukan', 'Income')}</option>
-          </select>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="18" 
+              height="18" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            Filter
+            {filterJenis !== 'semua' && filterJenis !== 'all' && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* ACTIVE FILTER BADGE */}
+      {filterJenis !== 'semua' && filterJenis !== 'all' && (
+        <div className="d-flex align-items-center gap-2 mb-4 bg-blue-50/80 border border-blue-100 rounded-2xl px-3.5 py-2 w-fit">
+          <span className="text-xs text-gray-500 font-semibold">{t('Filter Aktif:', 'Active Filter:')}</span>
+          <span className="text-xs font-extrabold text-[#112F58] d-flex align-items-center gap-1.5">
+            {getFilterLabel(filterJenis)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFilterJenis('semua')}
+            className="p-1 hover:bg-blue-100 rounded-full transition-all text-gray-400 hover:text-gray-700 border-0 cursor-pointer d-flex align-items-center justify-content-center"
+            title={t('Hapus Filter', 'Remove Filter')}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* TRANSACTIONS LIST CONTAINER */}
       <div className="flex flex-col w-full rounded-3xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 riwayat-card mb-4 p-4 md:p-5">
@@ -790,6 +879,161 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   onClick={handleSimpanEdit}
                 >
                   {t('Simpan Perubahan', 'Save Changes')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CHIP-BASED FILTER MODAL */}
+      <AnimatePresence>
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 0.99, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden font-sans"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-[#112f58] dark:text-slate-200 shrink-0 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                  </div>
+                  <div>
+                    <h5 className="font-extrabold text-[#112F58] dark:text-white text-base mb-0">
+                      {t('Filter Transaksi', 'Filter Transactions')}
+                    </h5>
+                    <p className="text-gray-400 text-xs mb-0 mt-0.5">
+                      {t('Pilih kategori atau tipe transaksi yang ingin ditampilkan', 'Choose transaction type or category to display')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/20 dark:hover:text-red-400 rounded-full transition-all border-0 cursor-pointer bg-transparent outline-none focus:outline-none"
+                >
+                  <X size={20} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              {/* Modal Body - Chips groups LOGIKA DIPERBAIKI (INDUK TETAP MENYALA JIKA ANAK DIPILIH) */}
+              <div className="p-5 overflow-y-auto space-y-6 flex-1">
+                {/* Group A: Tipe Transaksi */}
+                <div>
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
+                    {t('Tipe Transaksi', 'Transaction Type')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTempFilter('pengeluaran')}
+                      className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
+                        (tempFilter === 'pengeluaran' || tempFilter.startsWith('exp:'))
+                          ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
+                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                      }`}
+                    >
+                      <span>📉</span>
+                      <span>{t('Pengeluaran', 'Expenses')}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTempFilter('pemasukan')}
+                      className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
+                        (tempFilter === 'pemasukan' || tempFilter.startsWith('inc:'))
+                          ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
+                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                      }`}
+                    >
+                      <span>📈</span>
+                      <span>{t('Pemasukan', 'Income')}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Group B: Kategori Pengeluaran */}
+                <div>
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
+                    {t('Kategori Pengeluaran', 'Expense Categories')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {kategoriPengeluaran.map((cat) => {
+                      const val = `exp:${cat.id}`;
+                      const isSelected = tempFilter === val;
+                      return (
+                        <button
+                          key={`chip-exp-${cat.id}`}
+                          type="button"
+                          onClick={() => setTempFilter(val)}
+                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
+                            isSelected
+                              ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
+                              : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                          }`}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{t(cat.id, cat.id)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Group C: Kategori Pemasukan */}
+                <div>
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
+                    {t('Kategori Pemasukan', 'Income Categories')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {kategoriPemasukan.map((cat) => {
+                      const val = `inc:${cat.id}`;
+                      const isSelected = tempFilter === val;
+                      return (
+                        <button
+                          key={`chip-inc-${cat.id}`}
+                          type="button"
+                          onClick={() => setTempFilter(val)}
+                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
+                            isSelected
+                              ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
+                              : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                          }`}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{t(cat.id, cat.id)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 flex gap-3 items-center sticky bottom-0">
+                <button
+                  type="button"
+                  onClick={() => setTempFilter('semua')}
+                  className="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 rounded-xl font-bold text-xs transition-all cursor-pointer"
+                >
+                  {t('Atur Ulang', 'Reset')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterJenis(tempFilter);
+                    setIsFilterModalOpen(false);
+                  }}
+                  className="flex-1 py-3 px-4 bg-[#112f58] hover:opacity-90 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer border-0"
+                >
+                  {t('Terapkan', 'Apply')}
                 </button>
               </div>
             </motion.div>

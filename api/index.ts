@@ -2229,8 +2229,8 @@ app.post("/api/ambient/advice", async (req, res) => {
     const formattedSaldo = saldoNum.toLocaleString("id-ID");
 
     const systemInstruction = lang === "en"
-      ? `You are MOODUIT Ambient AI. The user's current remaining balance is Rp ${formattedSaldo}. Give 1 short financial advice or motivational sentence (maximum 15 words) in a light, modern Gen-Z tone relevant to their balance. If the balance is high, tell them to save/invest. If the balance is low, tell them to slow down spending. Include 1 emoji. Do not wrap text in quotes.`
-      : `Kamu adalah MOODUIT Ambient AI. Sisa saldo pengguna saat ini adalah Rp ${formattedSaldo}. Berikan 1 kalimat nasihat keuangan atau motivasi singkat (maksimal 15 kata) ala Gen-Z yang relevan dengan kondisi dompetnya. Jika saldo banyak, suruh menabung/investasi. Jika saldo sedikit, suruh ngerem pengeluaran. Sertakan 1 emoji. Jangan gunakan tanda kutip pembungkus.`;
+      ? `You are MOODUIT Ambient AI. The user's current remaining balance is Rp ${formattedSaldo}. JAWAB MAKSIMAL 1 KALIMAT PENDEK. JANGAN LEBIH DARI 15 KATA. Give 1 short financial advice or motivational sentence in a light, modern Gen-Z tone relevant to their balance. If the balance is high, tell them to save/invest. If the balance is low, tell them to slow down spending. Include 1 emoji. Do not wrap text in quotes.`
+      : `Kamu adalah MOODUIT Ambient AI. Sisa saldo pengguna saat ini adalah Rp ${formattedSaldo}. JAWAB MAKSIMAL 1 KALIMAT PENDEK. JANGAN LEBIH DARI 15 KATA. Berikan 1 kalimat nasihat keuangan atau motivasi singkat ala Gen-Z yang relevan dengan kondisi dompetnya. Jika saldo banyak, suruh menabung/investasi. Jika saldo sedikit, suruh ngerem pengeluaran. Sertakan 1 emoji. Jangan gunakan tanda kutip pembungkus.`;
 
     const prompt = lang === "en"
       ? `Give 1 sentence financial advice for user with balance Rp ${formattedSaldo}.`
@@ -2253,6 +2253,7 @@ app.post("/api/ambient/advice", async (req, res) => {
           config: {
             systemInstruction: systemInstruction,
             temperature: 0.8,
+            maxOutputTokens: 30,
           }
         });
         if (response && response.text) {

@@ -1356,6 +1356,7 @@ export default function Dashboard({
   // Real-time Ambient AI Advisor fetch effect
   React.useEffect(() => {
     let isMounted = true;
+    if (isLoading) return;
     const fetchAdvice = async () => {
       setIsAmbientLoading(true);
       try {
@@ -1400,7 +1401,7 @@ export default function Dashboard({
     return () => {
       isMounted = false;
     };
-  }, [totalSaldo, language]);
+  }, [totalSaldo, language, isLoading]);
 
   const summaryCards = [
     {
@@ -1490,7 +1491,9 @@ export default function Dashboard({
             </motion.button>
           )}
         </div>
-        {totalSaldo <= 50000 ? (
+        {isLoading ? (
+          <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 animate-pulse rounded my-1" />
+        ) : totalSaldo <= 50000 ? (
           <p className="mb-0 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 text-sm">
             <span>⚠️</span>
             <span>
@@ -1527,19 +1530,8 @@ export default function Dashboard({
           >
             Ambient AI Advisor
           </div>
-          {isAmbientLoading ? (
-            <p
-              className="mb-0 fw-bold text-brown-mooduit animate-pulse flex items-center gap-2 mooduit-ambient-ai-desc"
-              style={{ fontSize: "15px", lineHeight: "1.5" }}
-            >
-              <span className="animate-spin text-amber-600">✨</span>
-              <span>
-                {t(
-                  "✨ AI sedang menganalisa aura dompetmu...",
-                  "✨ AI is analyzing your wallet aura..."
-                )}
-              </span>
-            </p>
+          {isAmbientLoading || isLoading ? (
+            <div className="w-full h-10 bg-slate-200/50 dark:bg-slate-700/50 rounded-lg animate-pulse"></div>
           ) : (
             <p
               className="mb-0 fw-bold text-brown-mooduit text-justify mooduit-ambient-ai-desc"

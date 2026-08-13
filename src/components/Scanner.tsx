@@ -14,6 +14,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
   const [step, setStep] = useState<'capture' | 'loading' | 'result'>('capture');
   const [kameraError, setKameraError] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  
+  // State hasilOcr diperbarui dengan penambahan 'jenis' transaksi
   const [hasilOcr, setHasilOcr] = useState<{
     totalHarga: number;
     tanggal: string;
@@ -22,21 +24,25 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     uangBayar: number;
     icon: string;
     items?: { namaItem: string; harga: number }[];
+    jenis: 'pengeluaran' | 'pemasukan';
   }>({
     totalHarga: 0,
     tanggal: '',
-    kategori: 'Lainnya',
+    kategori: 'Kebutuhan Pokok',
     nama: '',
     uangBayar: 0,
-    icon: '🧾',
-    items: []
+    icon: '🛒',
+    items: [],
+    jenis: 'pengeluaran'
   });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
 
-  const daftarKategori = [
+  // Kategori dipisah menjadi Pengeluaran dan Pemasukan
+  const kategoriPengeluaran = [
     { id: "Kebutuhan Pokok", icon: "🛒" },
     { id: "Transportasi", icon: "🚗" },
     { id: "Hiburan", icon: "🎬" },
@@ -48,31 +54,38 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     { id: "Lainnya", icon: "📦" }
   ];
 
+  const kategoriPemasukan = [
+    { id: "Gaji & Upah", icon: "💰" },
+    { id: "Bonus & THR", icon: "🎉" },
+    { id: "Hasil Usaha", icon: "🏪" },
+    { id: "Investasi", icon: "📈" },
+    { id: "Pemberian", icon: "🎁" },
+    { id: "Lainnya", icon: "📦" }
+  ];
+
+  const kategoriAktif = hasilOcr.jenis === "pengeluaran" ? kategoriPengeluaran : kategoriPemasukan;
+
   useEffect(() => {
     let stream: MediaStream | null = null;
     let timer: any = null;
 
     const startCamera = async () => {
-      // Matikan stream sebelumnya jika ada
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
 
       try {
-        // Coba dengan facingMode yang diminta
         try {
           stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: facingMode } 
           });
         } catch (err) {
           console.warn(`Gagal memuat kamera ${facingMode}, mencoba fallback...`);
-          // Fallback ke kamera apa saja yang tersedia
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Paksa video untuk memutar stream
           videoRef.current.play().catch(e => console.warn("Auto-play dicegah browser:", e));
         }
         setKameraError(false);
@@ -85,13 +98,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     };
 
     if (step === 'capture') {
-      // Berikan delay sedikit (150ms) untuk memastikan element video termount sempurna di DOM
       timer = setTimeout(() => {
         startCamera();
       }, 150);
     }
 
-    // Cleanup: matikan kamera saat komponen ditutup, mode berubah, atau step berubah
     return () => {
       clearTimeout(timer);
       setIsCameraActive(false);
@@ -163,11 +174,12 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       setHasilOcr({
         totalHarga: data.totalAmount || 0,
         tanggal: data.date || new Date().toISOString().split('T')[0],
-        kategori: data.category || "Lainnya",
+        kategori: data.category || "Kebutuhan Pokok",
         nama: data.merchantName && data.merchantName.trim() !== "" ? data.merchantName : "Merchant Tidak Terdeteksi",
         uangBayar: data.cashPaid || data.totalAmount || 0,
-        icon: data.icon || "🧾",
-        items: data.items || []
+        icon: data.icon || "🛒",
+        items: data.items || [],
+        jenis: 'pengeluaran' // Default hasil scan selalu pengeluaran
       });
       
       setStep('result');
@@ -185,7 +197,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
         nama: "Merchant Tidak Terdeteksi",
         uangBayar: 0,
         icon: "📦",
-        items: []
+        items: [],
+        jenis: 'pengeluaran'
       });
       setStep('result');
       toast.error("Gagal menganalisis struk. Silakan coba lagi.");
@@ -200,7 +213,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       catatan: hasilOcr.nama,
       kategori: hasilOcr.kategori,
       tanggal: hasilOcr.tanggal,
-      jenis: 'pengeluaran',
+      jenis: hasilOcr.jenis, // Sekarang mengikuti state 'jenis' yang baru
       icon: hasilOcr.icon
     };
 
@@ -230,7 +243,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
           return prev;
         });
       }
-      // Trigger success modal with exact streak details from API response!
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
           type: inserted.type,
@@ -240,12 +252,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       }
     }).catch((err) => {
       console.error("Failed to persist OCR transaction to DB:", err);
-      // Fallback trigger in case of failure
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(undefined, undefined, {
-          type: scannedData?.suggestedType || 'expense',
-          amount: scannedData?.totalAmount || 0,
-          category: scannedData?.suggestedCategory || 'Scanning Struk'
+          type: newTransaction.jenis,
+          amount: newTransaction.nominal,
+          category: newTransaction.kategori
         });
       }
     });
@@ -302,8 +313,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
             </div>
 
             <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center mb-5 mx-auto">
-              
-              {/* INI ADALAH ELEMEN VIDEO UTAMA - JANGAN DIHAPUS/DIGANTI */}
               <video 
                 ref={videoRef} 
                 autoPlay={true}
@@ -314,7 +323,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               
               <canvas ref={canvasRef} className="hidden"></canvas>
               
-              {/* OVERLAY PEMBIDIK */}
               <div className="absolute inset-x-8 top-12 bottom-20 border-2 border-white/30 z-10 rounded-xl pointer-events-none">
                  <div className="absolute top-1/2 left-0 w-full h-[2px] bg-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.8)] z-30 animate-pulse"></div>
               </div>
@@ -324,7 +332,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="d-flex align-items-center justify-content-center gap-4">
               <button 
                 className="d-flex flex-column align-items-center gap-1 btn border-0 p-0 text-muted hover:text-primary-mooduit transition-all"
@@ -412,7 +419,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
                 </div>
               </div>
 
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6 pt-4 text-left">
+                {/* NOMINAL UTAMA */}
                 <div>
                   <label className="text-gray-400 x-small fw-bold uppercase tracking-widest mb-2 block">Total Belanja (Dicatat)</label>
                   <div className="flex items-baseline gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100">
@@ -429,64 +437,88 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-gray-400 x-small fw-bold uppercase tracking-widest mb-1 block">Merchant</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-[#112F58] focus:border-[#112F58] focus:outline-none" 
-                      value={hasilOcr.nama}
-                      onChange={(e) => setHasilOcr(prev => ({ ...prev, nama: e.target.value }))}
-                    />
-                  </div>
+                {/* MERCHANT / CATATAN */}
+                <div>
+                  <label className="text-gray-400 x-small fw-bold uppercase tracking-widest mb-1 block">Merchant / Catatan</label>
+                  <input 
+                    type="text" 
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-[#112F58] focus:border-[#112F58] focus:outline-none" 
+                    value={hasilOcr.nama}
+                    onChange={(e) => setHasilOcr(prev => ({ ...prev, nama: e.target.value }))}
+                  />
+                </div>
 
-                  {hasilOcr.items && hasilOcr.items.length > 0 && (
-                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                      <label className="text-gray-400 text-[10px] fw-bold uppercase tracking-widest mb-2 block">Daftar Barang Belanja (Itemized)</label>
-                      <div className="space-y-1.5" style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                        {hasilOcr.items.map((it, idx) => (
-                          <div key={idx} className="d-flex justify-content-between align-items-center text-xs">
-                            <span className="text-gray-600 font-medium">{it.namaItem}</span>
-                            <span className="text-[#112F58] font-bold">Rp {it.harga.toLocaleString('id-ID')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-4 w-full">
-                    <div className="flex-1 w-full">
-                      <label className="text-gray-400 x-small fw-800 uppercase block mb-1">Tanggal</label>
-                      <input 
-                        type="date" 
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold text-[#112F58] focus:border-[#112F58] focus:outline-none" 
-                        value={hasilOcr.tanggal}
-                        onChange={(e) => setHasilOcr(prev => ({ ...prev, tanggal: e.target.value }))}
-                      />
-                    </div>
-                    <div className="flex-1 w-full">
-                      <label className="text-gray-400 x-small fw-800 uppercase block mb-1">Kategori</label>
-                      <select 
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold text-[#112F58] focus:border-[#112F58] focus:outline-none appearance-none"
-                        value={hasilOcr.kategori}
-                        onChange={(e) => {
-                          const selectedKat = daftarKategori.find(k => k.id === e.target.value);
-                          setHasilOcr(prev => ({ ...prev, kategori: e.target.value, icon: selectedKat ? selectedKat.icon : "📦" }));
-                        }}
-                      >
-                        {daftarKategori.map(kat => (
-                          <option key={kat.id} value={kat.id}>{kat.icon} {kat.id}</option>
-                        ))}
-                      </select>
-                    </div>
+                {/* TOGGLE PENGELUARAN / PEMASUKAN DENGAN HOVER LENGKUNG */}
+                <div>
+                  <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">Jenis Transaksi</label>
+                  <div className="flex bg-gray-100 dark:bg-slate-800 rounded-xl overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
+                    <button 
+                      type="button"
+                      onClick={() => setHasilOcr(prev => ({ ...prev, jenis: "pengeluaran", kategori: "Kebutuhan Pokok", icon: "🛒" }))}
+                      className={`flex-1 py-2.5 text-xs font-bold transition-all duration-300 border-0 cursor-pointer rounded-l-lg rounded-r-none ${hasilOcr.jenis === "pengeluaran" ? "bg-white dark:bg-slate-700 text-red-500 shadow-sm" : "bg-transparent text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700/50 hover:text-gray-600 dark:hover:text-gray-200"}`}
+                    >
+                      📉 Pengeluaran
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setHasilOcr(prev => ({ ...prev, jenis: "pemasukan", kategori: "Gaji & Upah", icon: "💰" }))}
+                      className={`flex-1 py-2.5 text-xs font-bold transition-all duration-300 border-0 cursor-pointer rounded-r-lg rounded-l-none ${hasilOcr.jenis === "pemasukan" ? "bg-white dark:bg-slate-700 text-emerald-500 shadow-sm" : "bg-transparent text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700/50 hover:text-gray-600 dark:hover:text-gray-200"}`}
+                    >
+                      📈 Pemasukan
+                    </button>
                   </div>
                 </div>
+
+                {/* KATEGORI GRID DENGAN SOLID NAVY SAAT AKTIF */}
+                <div>
+                  <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-2 px-1">Pilih Kategori</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {kategoriAktif.map((kat) => (
+                       <button 
+                        key={kat.id}
+                        type="button"
+                        onClick={() => setHasilOcr(prev => ({ ...prev, kategori: kat.id, icon: kat.icon }))}
+                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${hasilOcr.kategori === kat.id ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" : "bg-gray-50 dark:bg-slate-800 border-transparent hover:border-[#112f58]/30 dark:hover:border-slate-500 text-gray-500 dark:text-gray-300"}`}
+                      >
+                        <span className="text-xl">{kat.icon}</span>
+                        <span className={`text-[10px] font-bold tracking-tight text-center truncate w-full ${hasilOcr.kategori === kat.id ? 'text-white' : ''}`}>{kat.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* TANGGAL */}
+                <div>
+                  <label className="text-gray-400 x-small fw-800 uppercase block mb-1">Tanggal</label>
+                  <input 
+                    type="date" 
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold text-[#112F58] focus:border-[#112F58] focus:outline-none" 
+                    value={hasilOcr.tanggal}
+                    onChange={(e) => setHasilOcr(prev => ({ ...prev, tanggal: e.target.value }))}
+                  />
+                </div>
+
+                {/* DAFTAR ITEM (HANYA MUNCUL JIKA ADA) */}
+                {hasilOcr.items && hasilOcr.items.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 mt-4">
+                    <label className="text-gray-400 text-[10px] fw-bold uppercase tracking-widest mb-2 block">Daftar Barang Belanja (Itemized)</label>
+                    <div className="space-y-1.5 pr-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                      {hasilOcr.items.map((it, idx) => (
+                        <div key={idx} className="d-flex justify-content-between align-items-center text-xs pb-1 border-b border-gray-200 last:border-0">
+                          <span className="text-gray-600 font-medium truncate pr-2">{it.namaItem}</span>
+                          <span className="text-[#112F58] font-bold shrink-0">Rp {it.harga.toLocaleString('id-ID')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pb-8">
               <button 
-                className="w-100 py-4 rounded-[1.5rem] bg-[#112F58] text-white font-bold text-lg shadow-xl hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-100 py-4 rounded-[1.5rem] bg-[#112F58] text-white font-bold text-lg shadow-xl hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
                 onClick={saveTransaction}
               >
                 <Save size={24} />
@@ -494,7 +526,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               </button>
               
               <button 
-                className="w-100 py-3 rounded-xl text-muted text-sm font-bold hover:text-[#112F58] transition-colors"
+                className="w-100 py-3 rounded-xl text-muted text-sm font-bold hover:text-[#112F58] transition-colors border-0 bg-transparent cursor-pointer"
                 onClick={() => setStep('capture')}
               >
                 Ulangi Scan Struk
