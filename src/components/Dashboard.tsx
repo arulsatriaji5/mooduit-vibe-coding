@@ -634,38 +634,35 @@ export default function Dashboard({
 
     return (
       <div className="mt-2">
-        <div className="small text-muted font-semibold mb-2" style={{ fontSize: "11px" }}>
+        <div className="text-xs sm:text-sm text-muted font-bold mb-2">
           🚀 {t("Alokasi Cepat", "Quick Allocate")}
         </div>
-        <div className="d-flex flex-wrap gap-1 mb-2">
+        <div className="d-flex flex-wrap gap-1.5 mb-2">
           <button
             type="button"
-            className="btn btn-sm py-1 px-2.5 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold"
-            style={{ fontSize: "11.5px", transition: "all 0.15s", cursor: "pointer" }}
+            className="btn btn-sm py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold text-xs sm:text-sm cursor-pointer transition-all"
             onClick={() => handlePreset(25000)}
           >
             +25k
           </button>
           <button
             type="button"
-            className="btn btn-sm py-1 px-2.5 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold"
-            style={{ fontSize: "11.5px", transition: "all 0.15s", cursor: "pointer" }}
+            className="btn btn-sm py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold text-xs sm:text-sm cursor-pointer transition-all"
             onClick={() => handlePreset(100000)}
           >
             +100k
           </button>
           <button
             type="button"
-            className="btn btn-sm py-1 px-2.5 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold"
-            style={{ fontSize: "11.5px", transition: "all 0.15s", cursor: "pointer" }}
+            className="btn btn-sm py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold text-xs sm:text-sm cursor-pointer transition-all"
             onClick={() => handlePreset(250000)}
           >
             +250k
           </button>
           <button
             type="button"
-            className="btn btn-sm py-1 px-2.5 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold"
-            style={{ fontSize: "11.5px", transition: "all 0.15s", backgroundColor: customActive ? "#112F58" : "", color: customActive ? "#ffffff" : "", cursor: "pointer" }}
+            className="btn btn-sm py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-primary-mooduit rounded-full border-0 font-bold text-xs sm:text-sm cursor-pointer transition-all"
+            style={{ backgroundColor: customActive ? "#112F58" : "", color: customActive ? "#ffffff" : "" }}
             onClick={() => setShowCustomInput(prev => ({ ...prev, [key]: !prev[key] }))}
           >
             {customActive ? "×" : "+Custom"}
@@ -682,22 +679,22 @@ export default function Dashboard({
               className="overflow-hidden mt-2"
             >
               <div className="input-group input-group-sm">
-                <span className="input-group-text bg-light text-primary-mooduit border border-end-0" style={{ fontSize: "12px", background: "#f8f9fa", border: "1px solid #ced4da" }}>Rp</span>
+                <span className="input-group-text bg-light text-primary-mooduit border border-end-0 text-xs sm:text-sm font-bold" style={{ background: "#f8f9fa", border: "1px solid #ced4da" }}>Rp</span>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control text-xs sm:text-sm"
                   placeholder={t("Nominal", "Amount")}
                   value={inputValue}
                   onChange={(e) => {
                     const formatted = formatInput(e.target.value);
                     setPocketInputs(prev => ({ ...prev, [key]: formatted }));
                   }}
-                  style={{ fontSize: "12px", border: "1px solid #ced4da" }}
+                  style={{ border: "1px solid #ced4da" }}
                 />
                 <button
                   type="submit"
-                  className="btn btn-sm text-white"
-                  style={{ fontSize: "11px", border: "none", backgroundColor: "#112F58", borderRadius: "0 8px 8px 0" }}
+                  className="btn btn-sm text-white text-xs sm:text-sm font-bold px-3"
+                  style={{ border: "none", backgroundColor: "#112F58", borderRadius: "0 8px 8px 0" }}
                 >
                   {t("Kirim", "Send")}
                 </button>
@@ -1411,15 +1408,15 @@ export default function Dashboard({
     <div className="container py-4 pb-5 mb-5">
       <header className="mb-4">
         <div className="d-flex align-items-center flex-wrap gap-3 mb-1">
-          <h3 className="fw-800 text-primary-mooduit mb-0">
+          <h1 className="fw-800 text-primary-mooduit text-2xl sm:text-3xl mb-0">
             {t(`${currentGreeting.id}, ${userName}! 👋`, `${currentGreeting.en}, ${userName}! 👋`)}
-          </h3>
+          </h1>
           <div className="streak-badge-container flex items-center gap-2">
             <div 
               className={`streak-badge ${streakActive && streakCount > 0 ? 'streak-badge-menyala' : 'streak-badge-padam'}`}
             >
               <span className="streak-badge-fire">🔥</span>
-              <span className="streak-badge-text">
+              <span className="streak-badge-text text-xs sm:text-sm">
                 {streakCount}
               </span>
             </div>
@@ -1431,7 +1428,7 @@ export default function Dashboard({
                 onClick={handleRestoreStreak}
                 disabled={isRestoring}
                 type="button"
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shadow-sm disabled:opacity-50"
                 title={t(`Pulihkan streak yang hangus (${lostStreak} hari). Sisa pemulihan bulan ini: ${Math.max(0, 2 - restoreCount)}/2`, `Restore lost streak (${lostStreak} days). Remaining restores this month: ${Math.max(0, 2 - restoreCount)}/2`)}
               >
                 <span>⚡</span>
@@ -1447,19 +1444,19 @@ export default function Dashboard({
               animate={{ scale: 1, opacity: 1 }}
               type="button"
               onClick={() => setShowBirthdayModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-black text-xs shadow-md shadow-pink-500/25 animate-pulse border-0 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-black text-xs sm:text-sm shadow-md shadow-pink-500/25 animate-pulse border-0 cursor-pointer hover:scale-105 active:scale-95 transition-all"
               style={{ borderRadius: '9999px' }}
               title={t("Kado Ulang Tahun Kamu! 🎉 Klik untuk membuka modal kado", "Your Birthday Gift! 🎉 Click to open surprise modal")}
             >
               <span className="text-sm select-none">🎁</span>
-              <span className="tracking-wide uppercase text-[11px] font-black">{t("Kado Ulang Tahun", "Birthday Gift")}</span>
+              <span className="tracking-wide uppercase text-xs font-black">{t("Kado Ulang Tahun", "Birthday Gift")}</span>
             </motion.button>
           )}
         </div>
         {isLoading ? (
-          <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 animate-pulse rounded my-1" />
+          <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700 animate-pulse rounded my-1" />
         ) : totalSaldo <= 50000 ? (
-          <p className="mb-0 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 text-sm">
+          <p className="mb-0 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 text-sm sm:text-base">
             <span>⚠️</span>
             <span>
               {t(
@@ -1469,7 +1466,7 @@ export default function Dashboard({
             </span>
           </p>
         ) : (
-          <p className="text-muted mb-0">
+          <p className="text-muted text-sm sm:text-base mb-0">
             {t(
               "Status dompetmu lagi terpantau sehat hari ini.",
               "Your wallet status is looking healthy today.",
@@ -1490,8 +1487,7 @@ export default function Dashboard({
         </div>
         <div className="w-full">
           <div
-            className="small fw-800 text-brown-mooduit opacity-75 text-uppercase tracking-wider mb-1 mooduit-ambient-ai-title"
-            style={{ fontSize: "10px" }}
+            className="text-xs sm:text-sm font-extrabold text-brown-mooduit opacity-80 uppercase tracking-wider mb-1 mooduit-ambient-ai-title"
           >
             Ambient AI Advisor
           </div>
@@ -1499,8 +1495,7 @@ export default function Dashboard({
             <div className="w-full h-10 bg-slate-200/50 dark:bg-slate-700/50 rounded-lg animate-pulse"></div>
           ) : (
             <p
-              className="mb-0 fw-bold text-brown-mooduit text-justify mooduit-ambient-ai-desc"
-              style={{ fontSize: "15px", lineHeight: "1.5" }}
+              className="mb-0 font-bold text-brown-mooduit text-justify text-sm sm:text-base leading-relaxed mooduit-ambient-ai-desc"
             >
               {ambientAdvice}
             </p>
@@ -1532,7 +1527,7 @@ export default function Dashboard({
           
           {/* TEXT HEADER & TOGGLE MATA (INLINE & CLEAN) */}
           <div className="flex items-center gap-2 mb-1.5">
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium m-0 p-0 leading-none">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold m-0 p-0 leading-none">
               {t("Total Saldo", "Total Balance")}
             </p>
             <div className="mooduit-tooltip-wrapper">
@@ -1561,7 +1556,7 @@ export default function Dashboard({
           {isLoading ? (
             <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse my-1" />
           ) : (
-            <h2 className="text-2xl font-bold text-[#112F58] dark:text-white">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#112F58] dark:text-white">
               {showBalance ? `Rp ${totalSaldo.toLocaleString("id-ID")}` : "Rp ••••••••"}
             </h2>
           )}
@@ -1578,14 +1573,14 @@ export default function Dashboard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                 </svg>
               </div>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                 {t("Pemasukan", "Income")}
               </span>
             </div>
             {isLoading ? (
               <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
             ) : (
-              <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold m-0" style={{ color: darkMode ? '#ffffff' : '#112F58', wordBreak: 'break-word', lineHeight: '1.2' }}>
                 {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
@@ -1599,14 +1594,14 @@ export default function Dashboard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
                 </svg>
               </div>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                 {t("Pengeluaran", "Expenses")}
               </span>
             </div>
             {isLoading ? (
               <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
             ) : (
-              <h3 style={{ margin: 0, fontWeight: 'bold', color: darkMode ? '#ffffff' : '#112F58', fontSize: 'clamp(16px, 4.5vw, 24px)', wordBreak: 'break-word', lineHeight: '1.2' }}>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold m-0" style={{ color: darkMode ? '#ffffff' : '#112F58', wordBreak: 'break-word', lineHeight: '1.2' }}>
                 {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
@@ -1618,10 +1613,10 @@ export default function Dashboard({
       {/* SECTION KANTONG MASA DEPAN */}
       <div className="mb-4">
         <div className="d-flex flex-column mb-3">
-          <h4 className="fw-800 text-primary-mooduit mb-1 d-flex align-items-center gap-2" style={{ fontSize: "1.2rem" }}>
+          <h2 className="fw-800 text-primary-mooduit text-xl sm:text-2xl mb-1 d-flex align-items-center gap-2">
             💼 {t("Kantong Masa Depan", "Future Pockets")}
-          </h4>
-          <p className="text-muted small mb-0">
+          </h2>
+          <p className="text-muted text-sm sm:text-base leading-relaxed mb-0">
             {t(
               "Alokasikan sisa saldo aktifmu ke pos tabungan khusus (secara logis mengurangi saldo aktif utama).",
               "Allocate your remaining active balance to target savings pockets (automatically deducts active cash)."
@@ -1634,10 +1629,10 @@ export default function Dashboard({
           <div className="col-12 col-md-4">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <span className="fw-800 text-muted small">{t("Dana Darurat", "Emergency Fund")}</span>
+                <span className="font-bold text-muted text-xs sm:text-sm">{t("Dana Darurat", "Emergency Fund")}</span>
                 <span className="fs-4">🚨</span>
               </div>
-              <h3 className="fw-800 text-primary-mooduit mb-3" style={{ fontSize: "1.5rem", fontWeight: "800" }}>
+              <h3 className="fw-800 text-primary-mooduit text-xl sm:text-2xl mb-3">
                 Rp {savingsPockets.darurat.toLocaleString("id-ID")}
               </h3>
               {renderQuickAllocate("darurat")}
@@ -1648,10 +1643,10 @@ export default function Dashboard({
           <div className="col-12 col-md-4">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <span className="fw-800 text-muted small">{t("Investasi", "Investments")}</span>
+                <span className="font-bold text-muted text-xs sm:text-sm">{t("Investasi", "Investments")}</span>
                 <span className="fs-4">📈</span>
               </div>
-              <h3 className="fw-800 text-primary-mooduit mb-3" style={{ fontSize: "1.5rem", fontWeight: "800" }}>
+              <h3 className="fw-800 text-primary-mooduit text-xl sm:text-2xl mb-3">
                 Rp {savingsPockets.investasi.toLocaleString("id-ID")}
               </h3>
               {renderQuickAllocate("investasi")}
@@ -1662,10 +1657,10 @@ export default function Dashboard({
           <div className="col-12 col-md-4">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <span className="fw-800 text-muted small">{t("Tabungan", "Goal Savings")}</span>
+                <span className="font-bold text-muted text-xs sm:text-sm">{t("Tabungan", "Goal Savings")}</span>
                 <span className="fs-4">🏦</span>
               </div>
-              <h3 className="fw-800 text-primary-mooduit mb-3" style={{ fontSize: "1.5rem", fontWeight: "800" }}>
+              <h3 className="fw-800 text-primary-mooduit text-xl sm:text-2xl mb-3">
                 Rp {savingsPockets.tabungan.toLocaleString("id-ID")}
               </h3>
               {renderQuickAllocate("tabungan")}
@@ -1680,14 +1675,13 @@ export default function Dashboard({
         <div className="col-12 col-lg-7">
           <div className="card-mooduit p-4 shadow-sm h-100">
             <div className="d-flex justify-content-between align-items-center mb-4">
-              <h5
-                className="fw-800 text-primary-mooduit mb-0"
-                style={{ fontSize: "1.1rem" }}
+              <h2
+                className="fw-800 text-primary-mooduit text-lg sm:text-xl mb-0"
               >
                 {t("Transaksi Terakhir", "Recent Transactions")}
-              </h5>
+              </h2>
               <button
-                className="btn btn-link text-primary-mooduit fw-bold text-decoration-none small p-0 border-0 bg-transparent"
+                className="btn btn-link text-primary-mooduit fw-bold text-decoration-none text-xs sm:text-sm p-0 border-0 bg-transparent"
                 onClick={() => onNavigate("history")}
               >
                 {t("Lihat Semua", "See All")}
@@ -1724,16 +1718,16 @@ export default function Dashboard({
                         {t.icon || "🧾"}
                       </div>
                       <div className="flex-1 min-w-0 pr-2">
-                        <div className="fw-800 text-primary-mooduit dark:text-white small leading-tight mb-0.5 truncate line-clamp-1">
+                        <div className="fw-800 text-primary-mooduit dark:text-white text-sm sm:text-base leading-tight mb-0.5 truncate line-clamp-1">
                           {t.catatan || t.kategori}
                         </div>
-                        <div className="text-muted x-small font-medium truncate">
+                        <div className="text-muted text-xs sm:text-sm font-medium truncate">
                           {t.tanggal}
                         </div>
                       </div>
                     </div>
                     <div
-                      className={`fw-800 small shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718] dark:text-rose-400"}`}
+                      className={`fw-800 text-sm sm:text-base shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718] dark:text-rose-400"}`}
                     >
                       {t.jenis === "pemasukan" ? "+" : "-"} Rp{" "}
                       {Number(t.nominal).toLocaleString("id-ID")}
@@ -1746,15 +1740,14 @@ export default function Dashboard({
                 <div className="bg-light dark:bg-slate-800 p-3 rounded-circle mb-3">
                   <ArrowUpRight size={24} className="text-muted opacity-50" />
                 </div>
-                <p className="text-muted small mb-3">
+                <p className="text-muted text-sm sm:text-base text-center mb-3 leading-relaxed">
                   {t(
                     "Belum ada transaksi. Yuk mulai catat pengeluaran pertamamu!",
                     "No transactions yet. Let's start tracking your first expense!",
                   )}
                 </p>
                 <button
-                  className="btn btn-sm btn-mooduit-outline px-3 py-1 rounded-lg fw-bold"
-                  style={{ fontSize: "11px" }}
+                  className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
                   onClick={() => onNavigate("scanner")}
                 >
                   + {t("Scan Struk AI", "Scan Receipt AI")}
@@ -1768,12 +1761,11 @@ export default function Dashboard({
         <div className="col-12 col-lg-5">
           <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
             <div className="d-flex justify-content-between align-items-center mb-4">
-              <h5
-                className="fw-800 text-primary-mooduit dark:text-white mb-0"
-                style={{ fontSize: "1.1rem" }}
+              <h2
+                className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0"
               >
                 {t("Target Impian", "Dream Target")}
-              </h5>
+              </h2>
               <Target size={20} className="text-primary-mooduit dark:text-white opacity-50" />
             </div>
 
@@ -1781,14 +1773,14 @@ export default function Dashboard({
               <div className="space-y-3">
                 {targetImpian.length === 0 ? (
                   <div className="text-center p-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl d-flex flex-column align-items-center justify-content-center h-100 py-5">
-                    <p className="mb-3">
+                    <p className="mb-3 text-sm sm:text-base leading-relaxed">
                       {t(
                         "Belum ada target impian. Yuk, tambah target pertamamu!",
                         "No dream targets yet. Let's add your first target!",
                       )}
                     </p>
                     <button
-                      className="btn btn-mooduit-outline px-4 py-2 rounded-xl fw-bold small"
+                      className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
                       onClick={() => setIsTargetModalOpen(true)}
                     >
                       + {t("Tambah Impian Baru", "Add New Dream")}
@@ -1828,13 +1820,12 @@ export default function Dashboard({
                             </svg>
                           </div>
                           <div>
-                            <h4
-                              className="font-bold text-[#112F58] dark:text-white capitalize mb-1"
-                              style={{ fontSize: "14px" }}
+                            <h3
+                              className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-1"
                             >
                               {target.nama || target.name}
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-slate-400 mb-0">
+                            </h3>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400 mb-0">
                               Rp{" "}
                               {Number(
                                 (target.harga || target.price || "0")
@@ -1916,7 +1907,7 @@ export default function Dashboard({
                       </div>
                     ))}
                     <button
-                      className="btn btn-link text-primary-mooduit dark:text-sky-400 fw-bold text-decoration-none x-small p-0 mt-2 text-start border-0 bg-transparent shadow-none"
+                      className="btn btn-link text-primary-mooduit dark:text-sky-400 font-bold text-decoration-none text-xs sm:text-sm p-0 mt-2 text-start border-0 bg-transparent shadow-none"
                       onClick={() => setIsTargetModalOpen(true)}
                     >
                       + {t("Tambah Impian Baru", "Add New Dream")}
@@ -1942,7 +1933,7 @@ export default function Dashboard({
             {/* HEADER CHAT */}
             <div className="bg-[#112F58] p-4 flex justify-between items-center text-white shrink-0 mooduit-chat-header">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold flex items-center gap-2 mb-0" style={{ fontSize: '1.1rem' }}>✨ MOODUIT AI Advisor</h3>
+                <h3 className="font-bold flex items-center gap-2 mb-0 text-base sm:text-lg">✨ MOODUIT AI Advisor</h3>
               </div>
               <button 
                 type="button"
@@ -1969,25 +1960,25 @@ export default function Dashboard({
                   key={i}
                   initial={{ opacity: 0, x: msg.isAi ? -10 : 10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className={`p-3 rounded-2xl shadow-sm ${
+                  className={`p-3.5 rounded-2xl shadow-sm ${
                     msg.isAi
                       ? (darkMode ? "bg-slate-800 border border-slate-700 text-white rounded-tl-none align-self-start" : "bg-white rounded-tl-none text-primary-mooduit align-self-start")
                       : "bg-primary-mooduit rounded-tr-none text-white align-self-end"
                   }`}
                   style={{ maxWidth: "85%" }}
                 >
-                  <p 
-                    className="small mb-0 fw-medium leading-relaxed font-sans"
+                  <div 
+                    className="text-sm sm:text-base mb-0 font-medium leading-relaxed font-sans"
                     dangerouslySetInnerHTML={renderMarkdown(msg.text)}
                   />
                   {msg.isTransactionSuccess && msg.transactionDetails && (
                     <div className="bg-[#112F58] border border-[#244c7d] text-white rounded-lg p-3 md:p-4 my-2 shadow-md flex items-start gap-3 font-sans animate-fade-in">
                       <span className="text-emerald-400 text-xl shrink-0 mt-0.5">✅</span>
                       <div className="text-left flex-1 min-w-0">
-                        <div className="font-semibold text-white text-sm mb-1">
+                        <div className="font-semibold text-white text-sm sm:text-base mb-1">
                           {language === "id" ? "Transaksi Berhasil Dicatat!" : "Transaction Successfully Recorded!"}
                         </div>
-                        <div className="text-slate-200 text-sm font-medium">
+                        <div className="text-slate-200 text-xs sm:text-sm font-medium">
                           {msg.transactionDetails.type === "income" ? (language === "id" ? "Pemasukan" : "Income") : (language === "id" ? "Pengeluaran" : "Expense")} • Rp {msg.transactionDetails.amount.toLocaleString("id-ID")} ({msg.transactionDetails.category})
                         </div>
                         {msg.transactionDetails.notes && (
@@ -2000,7 +1991,7 @@ export default function Dashboard({
                   )}
                   {msg.isAi && (
                     <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 bg-transparent dark:bg-transparent">
-                      <span className="text-[10px] text-slate-400 font-sans font-medium">MOODUIT AI</span>
+                      <span className="text-xs text-slate-400 font-sans font-semibold">MOODUIT AI</span>
                       <button
                         type="button"
                         onClick={() => speakMessage(msg.text, i)}
@@ -2012,8 +2003,8 @@ export default function Dashboard({
                         title={speakingMsgIndex === i ? t("Hentikan Suara", "Stop Voice") : t("Dengarkan Suara AI", "Listen to AI Voice")}
                         style={{ outline: "none" }}
                       >
-                        {speakingMsgIndex === i ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                        <span className="text-[10px] font-semibold">
+                        {speakingMsgIndex === i ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                        <span className="text-xs font-bold">
                           {speakingMsgIndex === i ? (language === "id" ? "Stop" : "Stop") : (language === "id" ? "Dengarkan" : "Listen")}
                         </span>
                       </button>
@@ -2022,8 +2013,8 @@ export default function Dashboard({
                 </motion.div>
               ))}
               {isTyping && (
-                <div className={`p-2 px-3 rounded-2xl rounded-tl-none shadow-sm align-self-start ${darkMode ? "bg-slate-800 text-slate-300" : "bg-white text-[#112F58]"}`}>
-                  <div className="small text-muted fw-bold">
+                <div className={`p-2.5 px-3.5 rounded-2xl rounded-tl-none shadow-sm align-self-start ${darkMode ? "bg-slate-800 text-slate-300" : "bg-white text-[#112F58]"}`}>
+                  <div className="text-xs sm:text-sm text-muted font-bold">
                     Bentar, lagi mikir nih... ✨
                   </div>
                 </div>
@@ -2033,7 +2024,7 @@ export default function Dashboard({
             {/* INPUT AREA */}
             <div className={`p-3 border-t shrink-0 ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
               {isListening && (
-                <div className="mb-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-rose-500 text-xs font-semibold animate-pulse">
+                <div className="mb-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-rose-500 text-xs sm:text-sm font-semibold animate-pulse">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
                   <span>{t("🎙️ Bicara sekarang... MOODUIT sedang mendengarkan", "🎙️ Speak now... MOODUIT is listening")}</span>
                 </div>
@@ -2044,11 +2035,9 @@ export default function Dashboard({
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full border-none bg-transparent dark:bg-transparent !bg-transparent p-1 shadow-none resize-none flex-1 outline-none focus:ring-0 text-slate-800 dark:text-slate-100"
+                  className="w-full border-none bg-transparent dark:bg-transparent !bg-transparent p-1 shadow-none resize-none flex-1 outline-none focus:ring-0 text-slate-800 dark:text-slate-100 text-sm sm:text-base leading-normal"
                   placeholder={isListening ? t("Mendengarkan suara kamu...", "Listening to your voice...") : t("Tanya AI atau ucapkan transaksi...", "Ask AI or speak transaction...")}
                   style={{
-                    fontSize: "13px",
-                    lineHeight: "18px",
                     minHeight: "44px",
                     maxHeight: "120px",
                     outline: "none",
@@ -2142,13 +2131,13 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
-              style={{ maxWidth: "420px" }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "440px" }}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="fw-800 text-primary-mooduit dark:text-white mb-0">
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
                   {t("Edit Target Impian", "Edit Dream Target")}
-                </h5>
+                </h3>
                 <button
                   type="button"
                   className="btn-close dark:filter dark:invert"
@@ -2158,12 +2147,12 @@ export default function Dashboard({
 
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="small text-muted font-bold mb-1">
+                  <label className="text-xs sm:text-sm text-muted font-bold mb-1 block">
                     {t("Nama Target Impian", "Target Name")}
                   </label>
                   <input
                     type="text"
-                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    className="form-control rounded-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={editNama}
                     onChange={(e) => setEditNama(e.target.value)}
                     placeholder="Contoh: Beli Laptop Baru"
@@ -2171,12 +2160,12 @@ export default function Dashboard({
                 </div>
 
                 <div>
-                  <label className="small text-muted font-bold mb-1">
+                  <label className="text-xs sm:text-sm text-muted font-bold mb-1 block">
                     {t("Target Harga (Rp)", "Target Price (IDR)")}
                   </label>
                   <input
                     type="text"
-                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    className="form-control rounded-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={editHarga}
                     onChange={(e) => setEditHarga(formatInput(e.target.value))}
                     placeholder="Contoh: 15.000.000"
@@ -2188,7 +2177,7 @@ export default function Dashboard({
                 {editIndex !== null && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-sm font-bold flex items-center gap-1"
+                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1"
                     onClick={(e) => {
                       handleDeleteItem(editIndex, e);
                       setIsEditModalOpen(false);
@@ -2201,14 +2190,14 @@ export default function Dashboard({
                 <div className="d-flex gap-2 ms-auto">
                   <button
                     type="button"
-                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-sm font-bold"
+                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
                     onClick={() => setIsEditModalOpen(false)}
                   >
                     {t("Batal", "Cancel")}
                   </button>
                   <button
                     type="button"
-                    className="btn btn-mooduit rounded-xl px-4 py-2 text-sm font-bold"
+                    className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
                     onClick={handleUpdateItem}
                   >
                     {t("Simpan", "Save")}
@@ -2235,13 +2224,13 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
-              style={{ maxWidth: "420px" }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "440px" }}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="fw-800 text-primary-mooduit dark:text-white mb-0">
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
                   {t("Tambah Target Impian Baru", "Add New Dream Target")}
-                </h5>
+                </h3>
                 <button
                   type="button"
                   className="btn-close dark:filter dark:invert"
@@ -2251,12 +2240,12 @@ export default function Dashboard({
 
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="small text-muted font-bold mb-1">
+                  <label className="text-xs sm:text-sm text-muted font-bold mb-1 block">
                     {t("Nama Impian", "Dream Target Name")}
                   </label>
                   <input
                     type="text"
-                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    className="form-control rounded-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={newTargetName}
                     onChange={(e) => setNewTargetName(e.target.value)}
                     placeholder="Contoh: Beli Sepeda Lipat"
@@ -2264,12 +2253,12 @@ export default function Dashboard({
                 </div>
 
                 <div>
-                  <label className="small text-muted font-bold mb-1">
+                  <label className="text-xs sm:text-sm text-muted font-bold mb-1 block">
                     {t("Target Harga (Rp)", "Target Price (IDR)")}
                   </label>
                   <input
                     type="text"
-                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    className="form-control rounded-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={newTargetPrice}
                     onChange={(e) => setNewTargetPrice(formatInput(e.target.value))}
                     placeholder="Contoh: 5.000.000"
@@ -2280,7 +2269,7 @@ export default function Dashboard({
               <div className="d-flex justify-content-end gap-2">
                 <button
                   type="button"
-                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-sm font-bold"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
                   onClick={() => setIsTargetModalOpen(false)}
                 >
                   {t("Batal", "Cancel")}
@@ -2288,7 +2277,7 @@ export default function Dashboard({
                 <button
                   type="button"
                   disabled={!newTargetName || !newTargetPrice}
-                  className="btn btn-mooduit rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50"
+                  className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold disabled:opacity-50"
                   onClick={handleAddTarget}
                 >
                   {t("Tambah Target", "Add Target")}
@@ -2318,10 +2307,10 @@ export default function Dashboard({
               style={{ maxWidth: "440px" }}
             >
               <div className="text-5xl mb-3 animate-bounce">🎉</div>
-              <h4 className="fw-800 text-primary-mooduit dark:text-white mb-2">
+              <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-2">
                 {t("Wujudkan Impian Ini?", "Achieve this Dream?")}
-              </h4>
-              <p className="text-muted small mb-4">
+              </h3>
+              <p className="text-muted text-sm sm:text-base leading-relaxed mb-4">
                 {t(
                   `Apakah kamu sudah siap mewujudkan "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" seharga Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? Transaksi pengeluaran akan dicatat otomatis.`,
                   `Are you ready to purchase "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" for Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? An expense transaction will be recorded automatically.`
@@ -2331,14 +2320,14 @@ export default function Dashboard({
               <div className="d-flex gap-2 justify-content-center">
                 <button
                   type="button"
-                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 font-bold"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold"
                   onClick={() => setIsCelebrationOpen(false)}
                 >
                   {t("Nanti Dulu", "Not Yet")}
                 </button>
                 <button
                   type="button"
-                  className="btn btn-mooduit rounded-xl px-4 py-2.5 font-bold bg-[#112F58] text-white hover:bg-[#1a447d]"
+                  className="btn btn-mooduit rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold bg-[#112F58] text-white hover:bg-[#1a447d]"
                   onClick={handleBuyTarget}
                 >
                   🚀 {t("Ya, Wujudkan!", "Yes, Achieve it!")}
@@ -2374,15 +2363,15 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 font-extrabold text-sm mb-3">
+              <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 font-extrabold text-xs sm:text-sm mb-3">
                 {streakCount} {t("HARI STREAK!", "DAYS STREAK!")}
               </div>
 
-              <h4 className="fw-800 text-primary-mooduit dark:text-white mb-2" style={{ fontSize: "1.4rem" }}>
+              <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-2">
                 {streakIncreasedToday
                   ? t("Streak Kamu Menyala! 🔥", "Your Streak is on Fire! 🔥")
                   : t("Transaksi Berhasil Dicatat! ✨", "Transaction Logged! ✨")}
-              </h4>
+              </h3>
 
               <div className="p-3 bg-slate-50 dark:bg-slate-700/60 rounded-2xl mb-4 border border-slate-100 dark:border-slate-600">
                 {isMotivationLoading ? (
@@ -2390,7 +2379,7 @@ export default function Dashboard({
                     <div className="w-5 h-5 border-2 border-[#112F58] border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <p className="text-slate-700 dark:text-slate-200 text-sm font-medium mb-0 leading-relaxed italic">
+                  <p className="text-slate-700 dark:text-slate-200 text-sm sm:text-base font-medium mb-0 leading-relaxed italic">
                     "{aiMotivationText || motivationQuotes[quoteIndex]?.[language === "en" ? "en" : "id"] || currentDailyQuote[language === "en" ? "en" : "id"]}"
                   </p>
                 )}
@@ -2399,7 +2388,7 @@ export default function Dashboard({
               <button
                 type="button"
                 onClick={handleCloseCelebration}
-                className="btn btn-mooduit w-full py-2.5 rounded-xl font-bold bg-[#112F58] text-white hover:bg-[#1a447d] shadow-md cursor-pointer"
+                className="btn btn-mooduit w-full py-2.5 rounded-xl text-sm sm:text-base font-bold bg-[#112F58] text-white hover:bg-[#1a447d] shadow-md cursor-pointer"
               >
                 {t("Mantap! Lanjutkan 🔥", "Awesome! Continue 🔥")}
               </button>

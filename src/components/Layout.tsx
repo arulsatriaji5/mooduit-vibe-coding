@@ -155,8 +155,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               <img src={userAvatar} alt="Avatar" className="w-100 h-100" />
             </div>
             <div className="flex-grow-1 overflow-hidden">
-               <div className="text-white small fw-bold text-truncate">{userName}</div>
-               <div className="text-white opacity-50 x-small" style={{ fontSize: '10px' }}>{t('Pengguna Aktif', 'Active User')}</div>
+               <div className="text-white text-sm fw-bold text-truncate">{userName}</div>
+               <div className="text-white opacity-60 text-xs">{t('Pengguna Aktif', 'Active User')}</div>
             </div>
           </div>
         </aside>
@@ -179,7 +179,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-transparent hover:border-blue-200 shadow-sm transition-all" 
                 />
               ) : (
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-[#001F3F] font-bold flex items-center justify-center shadow-sm border border-blue-200">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-[#001F3F] font-bold flex items-center justify-center shadow-sm border border-blue-200 text-sm">
                   {userName ? userName.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
@@ -231,8 +231,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 } : {}}
               >
                 <div className={isScanner ? 'mb-0' : 'mb-0.5'}>{item.icon}</div>
-                {!isScanner && <span className="fw-bold" style={{ fontSize: '9px' }}>{item.label}</span>}
-                {isScanner && <span className="fw-800" style={{ fontSize: '10px', marginTop: '2px' }}>Scan</span>}
+                {!isScanner && <span className="fw-bold text-xs leading-none">{item.label}</span>}
+                {isScanner && <span className="fw-800 text-xs mt-0.5 leading-none">Scan</span>}
                 {(activePage === item.id && !isScanner) && (
                   <motion.div 
                     layoutId="activeTab"
@@ -265,7 +265,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               style={{ width: '90%', maxWidth: '360px' }}
             >
               <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="fw-800 text-primary-mooduit mb-0">{t('Catat Transaksi', 'Record Transaction')}</h5>
+                <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">{t('Catat Transaksi', 'Record Transaction')}</h2>
                 <button className="btn btn-light rounded-circle p-1 cursor-pointer" onClick={() => setShowActionModal(false)}><X size={20}/></button>
               </div>
 
@@ -282,8 +282,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     <Camera size={24} />
                   </div>
                   <div className="text-start">
-                    <h4 className="font-bold text-white mb-0" style={{ fontSize: '1.05rem' }}>{t('Scan Struk', 'Scan Receipt')}</h4>
-                    <p className="text-sm text-blue-100 opacity-80 mb-0">{t('Foto nota atau screenshot mutasi', 'Photograph receipt or transaction screenshot')}</p>
+                    <h3 className="font-bold text-white mb-0 text-base md:text-lg">{t('Scan Struk', 'Scan Receipt')}</h3>
+                    <p className="text-xs sm:text-sm text-blue-100 opacity-85 mb-0 leading-relaxed">{t('Foto nota atau screenshot mutasi', 'Photograph receipt or transaction screenshot')}</p>
                   </div>
                 </button>
 
@@ -299,8 +299,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     <Keyboard size={24} />
                   </div>
                   <div className="text-start">
-                    <h4 className="font-bold text-white mb-0" style={{ fontSize: '1.05rem' }}>{t('Input Manual', 'Manual Input')}</h4>
-                    <p className="text-sm text-blue-100 opacity-80 mb-0">{t('Masukkan data secara detail', 'Enter detailed data')}</p>
+                    <h3 className="font-bold text-white mb-0 text-base md:text-lg">{t('Input Manual', 'Manual Input')}</h3>
+                    <p className="text-xs sm:text-sm text-blue-100 opacity-85 mb-0 leading-relaxed">{t('Masukkan data secara detail', 'Enter detailed data')}</p>
                   </div>
                 </button>
               </div>
@@ -330,7 +330,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
             >
               {/* HEADER */}
               <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100">
-                <h2 className="text-[#112F58] text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Tambah Transaksi', 'Add Transaction')}</h2>
+                <h2 className="text-[#112F58] text-xl sm:text-2xl font-extrabold tracking-wide m-0">{t('Tambah Transaksi', 'Add Transaction')}</h2>
                 <button 
                   onClick={() => setIsManualModalOpen(false)} 
                   className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"
@@ -342,12 +342,11 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               {/* KONTEN (Scrollable) */}
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                 
-                {/* TOGGLE PENGELUARAN / PEMASUKAN DENGAN DESAIN SEGMENTED LENGKUNG SEMPURNA & TANPA EMOJI */}
+                {/* TOGGLE PENGELUARAN / PEMASUKAN */}
                 <div>
-                  <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">
+                  <label className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider block mb-1.5 px-1 font-sans">
                     Jenis Transaksi
                   </label>
-                  {/* Wrapper luar dibikin tanpa padding, border tipis agar tombol inner pas ke sudut */}
                   <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
                     <button 
                       type="button"
@@ -355,7 +354,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                         setManualJenis("pengeluaran");
                         setManualKategori("Kebutuhan Pokok");
                       }}
-                      /* Pengeluaran: Kiri melengkung (rounded-l-xl), Kanan lurus/kotak (rounded-r-none) */
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
                         manualJenis === "pengeluaran" 
                           ? "bg-[#112F58] text-white" 
@@ -370,7 +368,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                         setManualJenis("pemasukan");
                         setManualKategori("Gaji & Upah");
                       }}
-                      /* Pemasukan: Kiri lurus/kotak (rounded-l-none), Kanan melengkung (rounded-r-xl) */
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
                         manualJenis === "pemasukan" 
                           ? "bg-[#112F58] text-white" 
@@ -384,7 +381,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
 
                 {/* INPUT NOMINAL BESAR */}
                 <div>
-                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Jumlah Nominal', 'Total Nominal')}</label>
+                  <label className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 sm:mb-2 block px-1">{t('Jumlah Nominal', 'Total Nominal')}</label>
                   <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden focus-within:border-[#112F58] focus-within:bg-white transition-all duration-300">
                     <span className={`pl-4 sm:pl-5 text-xl sm:text-2xl font-bold ${manualJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`}>Rp</span>
                     <input 
@@ -397,9 +394,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                   </div>
                 </div>
 
-                {/* GRID KATEGORI (DEFAULT PUTIH, HOVER NAVY, AKTIF SOLID NAVY) */}
+                {/* GRID KATEGORI */}
                 <div>
-                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
+                  <label className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
                     {kategoriAktif.map((kat) => (
                       <button 
@@ -413,7 +410,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                         }`}
                       >
                         <span className="text-xl sm:text-2xl drop-shadow-sm">{kat.icon}</span>
-                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
+                        <span className={`text-xs sm:text-sm text-center font-bold leading-tight break-words transition-colors ${
                           manualKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
                         }`}>
                           {kat.id.toUpperCase()}
@@ -426,7 +423,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 {/* TANGGAL & CATATAN */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Tanggal', 'Date')}</label>
+                    <label className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 sm:mb-2 block px-1">{t('Tanggal', 'Date')}</label>
                     <input 
                       type="date" 
                       value={manualTanggal} 
@@ -435,7 +432,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                     />
                   </div>
                   <div>
-                    <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Catatan', 'Notes')}</label>
+                    <label className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 sm:mb-2 block px-1">{t('Catatan', 'Notes')}</label>
                     <input 
                       type="text" 
                       value={manualCatatan} 

@@ -312,11 +312,11 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
           <div className="bg-primary-mooduit text-white p-2 rounded-lg">
             <Calculator size={24} />
           </div>
-          <h3 className="fw-800 text-primary-mooduit mb-0">
+          <h1 className="fw-800 text-primary-mooduit text-2xl md:text-3xl mb-1">
             {showResult ? activeLang.title : activeLang.titleSetup}
-          </h3>
+          </h1>
         </div>
-        <p className="text-muted">
+        <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base leading-relaxed">
           {showResult 
             ? activeLang.subtitle 
             : activeLang.subtitleSetup}
@@ -325,10 +325,10 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
 
       {/* TABS SELECTOR */}
       {!showResult && (
-        <div className="d-flex p-1 bg-gray-100 rounded-2xl mb-4 max-w-sm border border-gray-200">
+        <div className="d-flex p-1 bg-gray-100 dark:bg-slate-800 rounded-2xl mb-4 max-w-sm border border-gray-200 dark:border-slate-700">
           <button
             onClick={() => setActiveTab('formula_50_30_20')}
-            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm transition-all d-flex align-items-center justify-content-center gap-2 border-0 ${
+            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm sm:text-base transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
               activeTab === 'formula_50_30_20'
                 ? 'bg-[#112F58] text-white shadow-sm'
                 : 'bg-transparent text-muted hover:text-dark'
@@ -339,7 +339,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
           </button>
           <button
             onClick={() => setActiveTab('custom_budget')}
-            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm transition-all d-flex align-items-center justify-content-center gap-2 border-0 ${
+            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm sm:text-base transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
               activeTab === 'custom_budget'
                 ? 'bg-[#112F58] text-white shadow-sm'
                 : 'bg-transparent text-muted hover:text-dark'
@@ -361,19 +361,19 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     <div className="bg-[#112F58]/10 text-[#112F58] p-2.5 rounded-xl">
                       <Calculator size={20} />
                     </div>
-                    <h5 className="fw-800 text-primary-mooduit mb-0">{activeLang.aturanFinansial503020}</h5>
+                    <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">{activeLang.aturanFinansial503020}</h2>
                   </div>
-                  <p className="text-muted small leading-relaxed mb-4">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed mb-4">
                     {activeLang.desc503020}
                   </p>
 
                   <div className="mb-4">
-                    <label className="form-label small fw-bold text-gray-700">{activeLang.inputPendapatan}</label>
+                    <label className="form-label text-xs sm:text-sm fw-bold text-gray-700 dark:text-gray-300">{activeLang.inputPendapatan}</label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-gray-200 fw-bold text-muted">Rp</span>
                       <input 
                         type="text" 
-                        className="form-control py-3 rounded-r-xl border-gray-200 font-bold text-lg focus:border-[#112F58] focus:outline-none" 
+                        className="form-control py-3 rounded-r-xl border-gray-200 font-bold text-base md:text-lg focus:border-[#112F58] focus:outline-none" 
                         placeholder={activeLang.placeholderPendapatan}
                         value={pendapatan}
                         onChange={(e) => {
@@ -382,7 +382,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-2 italic">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-2 italic">
                       {activeLang.allocNote}
                     </p>
                   </div>
@@ -390,7 +390,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
 
                 <div className="mt-4">
                   <button
-                    className="btn w-100 py-3.5 rounded-xl text-white fw-bold d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[0.99] active:scale-95 shadow-md border-0"
+                    className="btn w-100 py-3.5 rounded-xl text-white fw-bold d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[0.99] active:scale-95 shadow-md border-0 text-sm md:text-base cursor-pointer"
                     style={{ backgroundColor: '#112F58' }}
                     onClick={hitungBudget}
                   >
@@ -409,8 +409,8 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h5 className="fw-800 text-primary-mooduit mb-0">{activeLang.hasilKalkulasi}</h5>
-                    <div className="badge border border-[#112F58]/25 bg-[#112F58]/5 text-[#112F58] px-3 py-1.5 rounded-full text-xs font-bold">
+                    <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">{activeLang.hasilKalkulasi}</h2>
+                    <div className="badge border border-[#112F58]/25 bg-[#112F58]/5 text-[#112F58] px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold">
                       {activeLang.targetIdeal}
                     </div>
                   </div>
@@ -424,11 +424,11 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <Plus size={16} />
                           </div>
                           <div>
-                            <span className="small fw-800 text-[#112F58] block">{activeLang.kebutuhanPokok}</span>
-                            <span className="text-[11px] text-gray-500 block">{activeLang.kebutuhanDesc}</span>
+                            <span className="text-sm sm:text-base fw-800 text-[#112F58] block">{activeLang.kebutuhanPokok}</span>
+                            <span className="text-xs sm:text-sm text-gray-500 leading-relaxed block">{activeLang.kebutuhanDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-lg text-[#112F58]">
+                        <span className="fw-800 text-base sm:text-lg text-[#112F58]">
                           {formatIDR(hasilBudget.kebutuhan)}
                         </span>
                       </div>
@@ -448,11 +448,11 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <Smile size={16} />
                           </div>
                           <div>
-                            <span className="small fw-800 text-amber-800 block">{activeLang.keinginanLifestyle}</span>
-                            <span className="text-[11px] text-amber-600 block">{activeLang.keinginanDesc}</span>
+                            <span className="text-sm sm:text-base fw-800 text-amber-800 block">{activeLang.keinginanLifestyle}</span>
+                            <span className="text-xs sm:text-sm text-amber-600 leading-relaxed block">{activeLang.keinginanDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-lg text-amber-800 font-sans">
+                        <span className="fw-800 text-base sm:text-lg text-amber-800 font-sans">
                           {formatIDR(hasilBudget.keinginan)}
                         </span>
                       </div>
@@ -472,11 +472,11 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <PiggyBank size={16} />
                           </div>
                           <div>
-                            <span className="small fw-800 text-emerald-800 block">{activeLang.tabunganMasaDepan}</span>
-                            <span className="text-[11px] text-[#059669] block">{activeLang.tabunganDesc}</span>
+                            <span className="text-sm sm:text-base fw-800 text-emerald-800 block">{activeLang.tabunganMasaDepan}</span>
+                            <span className="text-xs sm:text-sm text-[#059669] leading-relaxed block">{activeLang.tabunganDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-lg text-emerald-800">
+                        <span className="fw-800 text-base sm:text-lg text-emerald-800">
                           {formatIDR(hasilBudget.tabungan)}
                         </span>
                       </div>
@@ -491,7 +491,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
 
                   <div className="d-flex gap-3">
                     <button
-                      className="btn flex-grow-1 py-3 text-sm fw-bold border-2 border-dashed border-[#112F58] hover:bg-[#112F58]/5 text-[#112F58] rounded-xl transition-all"
+                      className="btn flex-grow-1 py-3 text-sm sm:text-base fw-bold border-2 border-dashed border-[#112F58] hover:bg-[#112F58]/5 text-[#112F58] rounded-xl transition-all cursor-pointer"
                       onClick={() => {
                         setIncome(pendapatan);
                         setExpenses(formatInput(String(hasilBudget.kebutuhan)));
@@ -501,7 +501,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       {activeLang.gunakanSimulasi}
                     </button>
                     <button
-                      className="btn py-3 px-4 text-sm fw-bold text-white rounded-xl shadow-sm transition-all border-0"
+                      className="btn py-3 px-4 text-sm sm:text-base fw-bold text-white rounded-xl shadow-sm transition-all border-0 cursor-pointer"
                       style={{ backgroundColor: '#112F58' }}
                       onClick={async () => {
                         const user_email = localStorage.getItem("userEmail") || "";
@@ -531,8 +531,8 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   <div className="bg-[#112F58]/5 p-4 rounded-full text-primary-mooduit mb-3.5">
                     <BookOpen size={40} className="opacity-75" />
                   </div>
-                  <h6 className="fw-bold text-primary-mooduit">{activeLang.belumAdaAnggaran}</h6>
-                  <p className="text-muted text-xs max-w-sm mt-1 leading-relaxed">
+                  <h3 className="fw-bold text-primary-mooduit text-lg md:text-xl">{activeLang.belumAdaAnggaran}</h3>
+                  <p className="text-muted text-sm md:text-base max-w-sm mt-1 leading-relaxed">
                     {activeLang.belumAdaDesc}
                   </p>
                 </div>
@@ -543,36 +543,36 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
           <div className="row g-4">
             <div className="col-12 col-lg-7">
               <div className="card-mooduit p-4 shadow-sm h-100">
-                <h5 className="fw-bold mb-4">{activeLang.dataKeuanganDasar}</h5>
+                <h2 className="fw-bold text-xl md:text-2xl mb-4">{activeLang.dataKeuanganDasar}</h2>
                 
                 <div className="mb-4">
-                  <label className="form-label small fw-bold">{activeLang.pendapatanRutin}</label>
+                  <label className="form-label text-xs sm:text-sm fw-bold">{activeLang.pendapatanRutin}</label>
                   <input 
                     type="text" 
-                    className="form-control py-2 rounded-xl" 
+                    className="form-control py-2.5 text-sm md:text-base rounded-xl" 
                     placeholder={activeLang.placeholderPendapatan}
                     value={income}
                     onChange={(e) => setIncome(formatInput(e.target.value))}
                   />
-                  <p className="text-xs text-gray-500 mt-1 italic">{activeLang.pendapatanRutinDesc}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 italic">{activeLang.pendapatanRutinDesc}</p>
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label small fw-bold">{activeLang.pengeluaranPasti}</label>
+                  <label className="form-label text-xs sm:text-sm fw-bold">{activeLang.pengeluaranPasti}</label>
                   <input 
                     type="text" 
-                    className="form-control py-2 rounded-xl" 
+                    className="form-control py-2.5 text-sm md:text-base rounded-xl" 
                     placeholder={language === 'en' ? 'Example: 3,000,000' : 'Contoh: 3.000.000'}
                     value={expenses}
                     onChange={(e) => setExpenses(formatInput(e.target.value))}
                   />
-                  <p className="text-xs text-gray-500 mt-1 italic">{activeLang.pengeluaranPastiDesc}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 italic">{activeLang.pengeluaranPastiDesc}</p>
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label small fw-bold">{activeLang.targetDanaDarurat}</label>
+                  <label className="form-label text-xs sm:text-sm fw-bold">{activeLang.targetDanaDarurat}</label>
                   <select 
-                    className="form-select py-2 rounded-xl" 
+                    className="form-select py-2.5 text-sm md:text-base rounded-xl" 
                     value={emergencyTarget}
                     onChange={(e) => setEmergencyTarget(e.target.value)}
                   >
@@ -588,9 +588,9 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
             <div className="col-12 col-lg-5">
               <div className="card-mooduit p-4 shadow-sm h-100">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                  <h5 className="fw-bold mb-0">{activeLang.targetImpian}</h5>
+                  <h2 className="fw-bold text-xl md:text-2xl mb-0">{activeLang.targetImpian}</h2>
                   <button 
-                    className="btn btn-sm btn-mooduit-outline d-flex align-items-center gap-1 py-1"
+                    className="btn btn-sm btn-mooduit-outline d-flex align-items-center gap-1 py-1.5 px-3 text-xs sm:text-sm"
                     onClick={addWishlistItem}
                   >
                     <Plus size={16} />
@@ -601,7 +601,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                 <div className="d-flex flex-column gap-3 mb-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {wishlist.length === 0 ? (
                     <div className="text-center py-5 bg-light rounded-xl border border-dashed border-muted opacity-60">
-                      <p className="small text-muted mb-0">{activeLang.belumAdaTarget}<br/>{activeLang.klikTambahItem}</p>
+                      <p className="text-xs sm:text-sm text-muted leading-relaxed mb-0">{activeLang.belumAdaTarget}<br/>{activeLang.klikTambahItem}</p>
                     </div>
                   ) : wishlist.map((item) => (
                     <div key={item.id} className="p-3 bg-light rounded-xl border border-light position-relative">
@@ -615,7 +615,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         <div className="col-12">
                           <input 
                             type="text" 
-                            className="form-control form-control-sm border-0 bg-transparent fw-bold" 
+                            className="form-control form-control-sm border-0 bg-transparent fw-bold text-sm md:text-base" 
                             placeholder={activeLang.namaBarang}
                             value={item.name}
                             onChange={(e) => handleWishlistChange(item.id, 'name', e.target.value)}
@@ -623,10 +623,10 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         </div>
                         <div className="col-12">
                           <div className="input-group input-group-sm">
-                            <span className="input-group-text bg-transparent border-0 small opacity-50">Rp</span>
+                            <span className="input-group-text bg-transparent border-0 text-xs sm:text-sm opacity-50">Rp</span>
                             <input 
                               type="text" 
-                              className="form-control border-0 bg-transparent" 
+                              className="form-control border-0 bg-transparent text-sm md:text-base" 
                               placeholder={activeLang.harga} 
                               value={item.price}
                               onChange={(e) => handleWishlistChange(item.id, 'price', e.target.value)}
@@ -639,7 +639,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                 </div>
 
                 <button 
-                  className={`btn w-100 py-3 rounded-lg fw-bold d-flex align-items-center justify-content-center gap-2 mt-auto transition-all text-white ${isGenerating ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  className={`btn w-100 py-3 rounded-lg fw-bold d-flex align-items-center justify-content-center gap-2 mt-auto transition-all text-white text-sm md:text-base border-0 cursor-pointer ${isGenerating ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'}`}
                   style={{ backgroundColor: '#112F58' }}
                   onClick={handleGenerate}
                   disabled={isGenerating}
@@ -682,45 +682,43 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
             <div className="grid-layout w-full">
               {/* KOLOM KIRI: HASIL & REKOMENDASI */}
               <div className="w-full">
-                <h3 className="text-sm text-gray-500 font-semibold mb-2 uppercase">{activeLang.jajanTitle}</h3>
+                <h3 className="text-xs sm:text-sm text-gray-500 font-semibold mb-2 uppercase tracking-wider">{activeLang.jajanTitle}</h3>
                 
                 {isDataKosong ? (
                   <div className="mb-8">
-                    <p className="text-2xl italic text-gray-400 font-semibold mb-2">{activeLang.aiMengumpulkan}</p>
-                    <p className="text-sm text-gray-600">{activeLang.aiMengumpulkanDesc}</p>
+                    <p className="text-xl md:text-2xl italic text-gray-400 font-semibold mb-2">{activeLang.aiMengumpulkan}</p>
+                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">{activeLang.aiMengumpulkanDesc}</p>
                   </div>
                 ) : (
                   <div className="mb-8">
-                     {/* HERO NUMBER: JATAH JAJAN & HIBURAN (RESPONSIVE FIX) */}
-                     <h2 className="whitespace-nowrap" style={{ 
-                       fontSize: 'clamp(28px, 7vw, 54px)', /* Mengecil dinamis di HP, membesar di Desktop */
-                       fontWeight: '900', 
-                       color: '#22c55e', /* Warna Hijau Terang / Success */
+                     {/* HERO NUMBER: JATAH JAJAN & HIBURAN */}
+                     <h2 className="whitespace-nowrap font-black" style={{ 
+                       fontSize: 'clamp(28px, 7vw, 54px)',
+                       color: '#22c55e',
                        margin: '8px 0 16px 0',
-                       whiteSpace: 'nowrap',
                        lineHeight: '1.1',
                        letterSpacing: '-1px'
                      }}>
                        {formatIDR(jajanVal < 0 ? 0 : jajanVal)}
                      </h2>
-                     <p className="text-sm text-gray-600">{activeLang.jajanDesc}</p>
+                     <p className="text-sm md:text-base text-gray-600 leading-relaxed">{activeLang.jajanDesc}</p>
                   </div>
                 )}
  
                 {/* KARTU REKOMENDASI */}
-                <h4 className="font-bold text-[#112F58] mb-4">{activeLang.rekomendasi}</h4>
+                <h3 className="font-bold text-lg md:text-xl text-[#112F58] mb-4">{activeLang.rekomendasi}</h3>
                 <div className="space-y-4">
                    <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-gray-50 border border-gray-100 rounded-xl gap-2 sm:gap-0">
-                      <span className="text-gray-700 font-medium text-sm sm:text-base">{activeLang.kebutuhanPokokSesuai}</span>
-                      <span className="font-bold text-[#112F58] text-sm sm:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(expensesVal)}</span>
+                      <span className="text-gray-700 font-medium text-sm md:text-base">{activeLang.kebutuhanPokokSesuai}</span>
+                      <span className="font-bold text-[#112F58] text-sm md:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(expensesVal)}</span>
                    </div>
                    <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-green-50 border border-green-100 rounded-xl gap-2 sm:gap-0">
-                      <span className="text-green-700 font-medium text-sm sm:text-base">{activeLang.keinginanJajanJatah}</span>
-                      <span className="font-bold text-green-700 text-sm sm:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(jajanVal < 0 ? 0 : jajanVal)}</span>
+                      <span className="text-green-700 font-medium text-sm md:text-base">{activeLang.keinginanJajanJatah}</span>
+                      <span className="font-bold text-green-700 text-sm md:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(jajanVal < 0 ? 0 : jajanVal)}</span>
                    </div>
                    <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-yellow-50 border border-yellow-100 rounded-xl gap-2 sm:gap-0">
-                      <span className="text-yellow-700 font-medium text-sm sm:text-base">{activeLang.masaDepanCicilan}</span>
-                      <span className="font-bold text-yellow-700 text-sm sm:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(cicilanDarurat)}</span>
+                      <span className="text-yellow-700 font-medium text-sm md:text-base">{activeLang.masaDepanCicilan}</span>
+                      <span className="font-bold text-yellow-700 text-sm md:text-base whitespace-nowrap">{isDataKosong ? activeLang.autoDihitung : formatIDR(cicilanDarurat)}</span>
                    </div>
                 </div>
               </div>
@@ -728,9 +726,9 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
               {/* KOLOM KANAN: AI ADVISOR CARD */}
               <div className="w-full">
                 <div className="p-4 bg-light rounded-2xl border border-light h-100 d-flex flex-column shadow-sm w-full">
-                  <h5 className="fw-bold mb-3 text-primary-mooduit">{activeLang.analisaAIAdvisor}</h5>
+                  <h3 className="fw-bold mb-3 text-lg md:text-xl text-primary-mooduit">{activeLang.analisaAIAdvisor}</h3>
                   <div className="flex-grow-1">
-                    <p className="small text-muted leading-relaxed mb-4">
+                    <p className="text-sm md:text-base text-muted leading-relaxed mb-4">
                       {isDataKosong ? (
                         language === 'en' ? (
                           <>Oh, AI cannot give a time estimate for <span className="fw-bold text-primary-mooduit capitalize">{targetPertama?.name || 'your dream goal'}</span> yet because your data is incomplete. Please enter your income first!</>
@@ -751,17 +749,17 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         )
                       )}
                     </p>
-                      <div className="w-full px-2.5 py-3 bg-white rounded-xl mb-4 shadow-sm border border-primary-mooduit border-opacity-10">
+                      <div className="w-full px-3 py-3 bg-white rounded-xl mb-4 shadow-sm border border-primary-mooduit border-opacity-10">
                         <div className="d-flex align-items-center gap-2 text-primary-mooduit mb-1">
                           <Sparkles size={16} />
-                          <span className="x-small fw-800 text-uppercase tracking-wider">AI TIP</span>
+                          <span className="text-xs fw-800 text-uppercase tracking-wider">AI TIP</span>
                         </div>
                         {isDataKosong ? (
-                          <p className="mb-0 x-small fw-medium text-muted">
+                          <p className="mb-0 text-xs sm:text-sm leading-relaxed fw-medium text-muted">
                             {activeLang.aiEmptyTip}
                           </p>
                         ) : (
-                          <p className="mb-0 x-small fw-medium text-muted">
+                          <p className="mb-0 text-xs sm:text-sm leading-relaxed fw-medium text-muted">
                             {language === 'en' 
                               ? `Reduce dining out on weekdays to accelerate your dream goal! You can save an extra Rp ${(jajanVal * 0.2).toLocaleString('id-ID')} per month.`
                               : `Kurangi jajan di luar weekend biar progres impian-mu makin ngebut! Kamu bisa hemat sampai Rp ${(jajanVal * 0.2).toLocaleString('id-ID')} tambahan per bulan.`}
@@ -774,7 +772,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     {!isPlanSaved ? (
                       <>
                         <button 
-                         className="btn w-100 py-3 rounded-lg fw-800 shadow-sm transition-all hover:scale-[1.02] text-white cursor-pointer border-0"
+                         className="btn w-100 py-3 rounded-lg fw-800 shadow-sm transition-all hover:scale-[1.02] text-white cursor-pointer border-0 text-sm md:text-base"
                          style={{ backgroundColor: '#112F58' }}
                          onClick={async () => {
                            const user_email = localStorage.getItem("userEmail") || "";
@@ -797,7 +795,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                           {activeLang.saveRencana}
                         </button>
                         <button 
-                         className="btn btn-mooduit-outline w-100 py-3 rounded-lg fw-800 transition-all cursor-pointer"
+                         className="btn btn-mooduit-outline w-100 py-3 rounded-lg fw-800 transition-all cursor-pointer text-sm md:text-base"
                          onClick={() => setShowResult(false)}
                         >
                           {activeLang.hitungUlang}
@@ -805,7 +803,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       </>
                     ) : (
                       <button 
-                        className="w-full py-3.5 border-2 border-[#001F3F] text-[#001F3F] font-semibold rounded-xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent text-center"
+                        className="w-full py-3.5 border-2 border-[#001F3F] text-[#001F3F] font-semibold rounded-xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent text-center text-sm md:text-base"
                         onClick={() => {
                           setIsPlanSaved(false);
                           setShowResult(false);

@@ -421,20 +421,20 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
         `}
       </style>
       
-      {/* 1. Header (DIPERBAIKI: Menggunakan Inline Style Warna agar 100% muncul) */}
+      {/* 1. Header */}
       <header className="w-full">
         <div className="d-flex align-items-center gap-3 mb-2">
           <div className="bg-[#112F58] text-white p-2.5 rounded-2xl shadow-sm">
             <PieChart size={24} />
           </div>
           <div>
-            <h3 
-              className="fw-800 font-bold text-xl md:text-2xl mb-0" 
+            <h1 
+              className="fw-800 font-bold text-2xl md:text-3xl mb-1" 
               style={{ color: darkMode ? '#ffffff' : '#112F58' }}
             >
               {t('Analisa Keuangan Cerdas', 'Smart Financial Analysis')}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-0 mt-0.5">
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-0 mt-0.5">
               {t('Alat alokasi real-time perbandingan pengeluaran & pemasukan dengan Target Alokasi 50/30/20.', 'Real-time tool comparing your spending & earnings against the 50/30/20 Ideal Budget allocation.')}
             </p>
           </div>
@@ -462,17 +462,17 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
             <div className="d-flex justify-content-between align-items-center mb-3 border-b border-gray-100 dark:border-slate-700 pb-3">
               <div className="d-flex align-items-center gap-2">
                 <span className="text-xl">🤖</span>
-                <h3 className="font-bold m-0" style={{ fontSize: '16px', color: darkMode ? '#ffffff' : '#112F58' }}>
+                <h2 className="font-bold text-lg md:text-xl m-0" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
                   {language === 'id' ? 'Saran AI Advisor' : 'AI Advisor Suggestion'}
-                </h3>
+                </h2>
               </div>
-              <span className="text-[10px] font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-0.5 rounded-full">
                 {t('LIVE', 'LIVE')}
               </span>
             </div>
 
             <p 
-              className="text-sm leading-relaxed mb-4 whitespace-pre-wrap"
+              className="text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap"
               style={{ color: darkMode ? '#f8fafc' : '#334155' }} 
             >
               {!isEmpty ? (
@@ -493,19 +493,19 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                 }}
               >
                 <div 
-                  className="text-[10px] font-bold tracking-wider uppercase mb-1"
+                  className="text-xs font-bold tracking-wider uppercase mb-1"
                   style={{ color: darkMode ? '#94a3b8' : '#64748b' }} 
                 >
                   {activeTab === 'pengeluaran' ? t('DETEKSI & POIN UTAMA', 'HIGHLIGHTS') : t('PILAR UTAMA', 'MAIN PILLAR')}
                 </div>
                 <div 
-                  className="font-extrabold text-sm mb-1"
+                  className="font-extrabold text-sm sm:text-base mb-1"
                   style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
                 >
                   {activeTab === 'pengeluaran' ? insight.highlightName : incomeInsight.highlightName}
                 </div>
                 <p 
-                  className="text-xs m-0 leading-snug"
+                  className="text-xs sm:text-sm m-0 leading-relaxed"
                   style={{ color: darkMode ? '#cbd5e1' : '#475569' }} 
                 >
                   {activeTab === 'pengeluaran' ? insight.highlightDesc : incomeInsight.highlightDesc}
@@ -524,7 +524,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
           >
             <button
               onClick={() => setActiveTab('pengeluaran')}
-              className="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center transition-all border-0 cursor-pointer"
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center transition-all border-0 cursor-pointer"
               style={{
                 backgroundColor: activeTab === 'pengeluaran' ? '#112F58' : 'transparent',
                 color: activeTab === 'pengeluaran' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
@@ -535,7 +535,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
             </button>
             <button
               onClick={() => setActiveTab('pemasukan')}
-              className="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center transition-all border-0 cursor-pointer"
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center transition-all border-0 cursor-pointer"
               style={{
                 backgroundColor: activeTab === 'pemasukan' ? '#112F58' : 'transparent',
                 color: activeTab === 'pemasukan' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
@@ -561,14 +561,14 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                 <div className="bg-orange-50 border border-orange-100 p-4 rounded-full inline-flex items-center justify-center mb-4">
                   <AlertCircle size={48} className="text-amber-500" />
                 </div>
-                <h4 
-                  className="font-extrabold text-xl mb-2"
+                <h2 
+                  className="font-extrabold text-xl md:text-2xl mb-2"
                   style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                 >
                   {t('Data Masih Kosong', 'Data is Empty')}
-                </h4>
+                </h2>
                 <p 
-                  className="text-sm max-w-sm mx-auto leading-relaxed"
+                  className="text-sm md:text-base max-w-sm mx-auto leading-relaxed"
                   style={{ color: darkMode ? '#94a3b8' : '#64748b' }}
                 >
                   {t('Laporan visual ini akan langsung terisi begitu kamu mencatat transaksi pertamamu.', 'This visual report will load instantly once you record your first transaction.')}
@@ -584,13 +584,13 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                 animate={{ opacity: 1, y: 0 }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-5 border-b border-gray-100 dark:border-slate-700 pb-3">
-                   <h5 
-                     className="fw-extrabold font-bold text-base sm:text-lg mb-0"
-                     style={{ color: darkMode ? '#ffffff' : '#112F58' }} /* DIPERBAIKI */
+                   <h2 
+                     className="fw-extrabold font-bold text-xl sm:text-2xl mb-0"
+                     style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                    >
                      {activeTab === 'pengeluaran' ? t('Rincian Pengeluaran', 'Spending Details') : t('Rincian Pemasukan', 'Income Details')}
-                   </h5>
-                   <div className={`d-flex align-items-center gap-1.5 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-full ${activeTab === 'pengeluaran' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>
+                   </h2>
+                   <div className={`d-flex align-items-center gap-1.5 font-bold text-xs sm:text-sm px-3 py-1 rounded-full ${activeTab === 'pengeluaran' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>
                      {activeTab === 'pengeluaran' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
                      <span>{t('Real-time', 'Real-time')}</span>
                    </div>
@@ -601,9 +601,8 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                   <div className="relative flex justify-center w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] shrink-0">
                     <Doughnut data={activeTab === 'pengeluaran' ? donutData : incomeDonutData} options={donutOptions} />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full">
-                      {/* DIPERBAIKI: Menggunakan Inline Style untuk memastikan warna Navy/Putih muncul */}
                       <div 
-                        className="font-black text-[15px] sm:text-[17px] leading-tight"
+                        className="font-black text-base sm:text-lg leading-tight"
                         style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
                       >
                         Rp<br/>{(activeTab === 'pengeluaran' ? totalSemua : totalPemasukanSemua).toLocaleString('id-ID')}
@@ -636,20 +635,18 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                           <div key={i} className="flex flex-col">
                             <div className="flex items-center justify-between mb-1.5 font-sans">
                               <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold shrink-0" style={{ backgroundColor: item.bg, color: item.color }}>
+                                <span className="px-2 py-0.5 rounded text-xs font-bold shrink-0" style={{ backgroundColor: item.bg, color: item.color }}>
                                   {item.percent}
                                </span>
-                               {/* DIPERBAIKI: Teks Legenda dikunci inline stylenya */}
                                <span 
-                                 className="text-xs font-bold truncate max-w-[120px] sm:max-w-[180px]"
+                                 className="text-xs sm:text-sm font-bold truncate max-w-[120px] sm:max-w-[180px]"
                                  style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }} 
                                >
                                   {item.icon} {labelTranslations[item.name] || item.name}
                                 </span>
                               </div>
-                              {/* DIPERBAIKI: Warna Nominal Legend dikunci inline stylenya */}
                               <span 
-                                className="text-xs font-bold shrink-0"
+                                className="text-xs sm:text-sm font-bold shrink-0"
                                 style={{ color: darkMode ? '#38bdf8' : '#112F58' }}
                               >
                                 Rp {item.value.toLocaleString('id-ID')}
@@ -675,21 +672,19 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
               >
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-gray-100 dark:border-slate-700 pb-3 gap-2">
                   <div>
-                    {/* DIPERBAIKI: Header Alokasi Budget */}
-                    <h5 
-                      className="fw-extrabold font-bold text-base sm:text-lg mb-1"
+                    <h2 
+                      className="fw-extrabold font-bold text-xl sm:text-2xl mb-1"
                       style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                     >
                       {activeTab === 'pengeluaran' ? t('Alokasi Budget 50/30/20', '50/30/20 Budgeting') : t('Rencana Target 50/30/20', '50/30/20 Income Target')}
-                    </h5>
-                    <p className="text-[11px] text-gray-500 m-0">
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 m-0">
                       {t("Total Pendapatan Terhitung: Rp ", "Calculated Income Base: Rp ")}
                       {income.toLocaleString('id-ID')}
                     </p>
                   </div>
-                  {/* DIPERBAIKI: Target Ideal Badge */}
                   <div 
-                    className="text-[10px] font-bold bg-slate-100 px-2.5 py-1 rounded-full shrink-0"
+                    className="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full shrink-0"
                     style={{ color: '#112F58' }}
                   >
                     {t('Target Ideal', 'Ideal Target')}
@@ -700,30 +695,28 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                 <div className="flex flex-nowrap md:grid md:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
                   
                   {/* Kartu 1: Kebutuhan (Needs) */}
-                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl flex flex-col justify-between">
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-4 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl flex flex-col justify-between">
                     <div>
-                      {/* DIPERBAIKI */}
                       <span 
-                        className="text-[11px] font-extrabold block mb-1"
+                        className="text-xs sm:text-sm font-extrabold block mb-1"
                         style={{ color: darkMode ? '#93c5fd' : '#112F58' }}
                       >
                         🛒 {t('KEBUTUHAN (50%)', 'NEEDS (50%)')}
                       </span>
-                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                      <p className="text-xs text-gray-500 leading-relaxed mb-3">
                         {t('Pokok, Transport, Kesehatan, Pendidikan, Tagihan', 'Groceries, Transport, Health, Education, Bills')}
                       </p>
                     </div>
                     {activeTab === 'pengeluaran' ? (
                       <div className="mt-auto">
                         <div className="text-end mb-1">
-                          {/* DIPERBAIKI */}
                           <span 
-                            className="text-sm font-bold block leading-none"
+                            className="text-sm sm:text-base font-bold block leading-none"
                             style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                           >
                             Rp {actualSpendingNeeds.toLocaleString('id-ID')}
                           </span>
-                          <span className="text-[9px] text-gray-500 block mt-1">Batas: Rp {budgetLimitNeeds.toLocaleString('id-ID')}</span>
+                          <span className="text-xs text-gray-500 block mt-1">Batas: Rp {budgetLimitNeeds.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
                           <div 
@@ -734,7 +727,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                             }}
                           ></div>
                         </div>
-                        <div className="flex justify-between text-[10px] font-bold">
+                        <div className="flex justify-between text-xs font-bold">
                           <span className="text-gray-500">Penyerapan</span>
                           <span style={{ color: percentNeedsUsed > 100 ? '#dc2626' : (darkMode ? '#93c5fd' : '#112F58') }}>
                             {percentNeedsUsed.toFixed(0)}%
@@ -743,9 +736,9 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                       </div>
                     ) : (
                       <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
+                        <span className="text-xs text-gray-400 block">Target Alokasi</span>
                         <span 
-                          className="text-sm font-extrabold"
+                          className="text-sm sm:text-base font-extrabold"
                           style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                         >
                           Rp {budgetLimitNeeds.toLocaleString('id-ID')}
@@ -755,61 +748,61 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                   </div>
 
                   {/* Kartu 2: Keinginan (Wants) */}
-                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex flex-col justify-between">
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex flex-col justify-between">
                     <div>
-                      <span className="text-[11px] font-extrabold text-amber-800 block mb-1">🎬 {t('KEINGINAN (30%)', 'WANTS (30%)')}</span>
-                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                      <span className="text-xs sm:text-sm font-extrabold text-amber-800 block mb-1">🎬 {t('KEINGINAN (30%)', 'WANTS (30%)')}</span>
+                      <p className="text-xs text-gray-500 leading-relaxed mb-3">
                         {t('Makan jajan, Hiburan, Belanja, Gaya hidup', 'Dining out, Entertainment, Shopping, Lifestyle')}
                       </p>
                     </div>
                     {activeTab === 'pengeluaran' ? (
                       <div className="mt-auto">
                         <div className="text-end mb-1">
-                          <span className="text-sm font-bold text-amber-800 block leading-none">Rp {actualSpendingWants.toLocaleString('id-ID')}</span>
-                          <span className="text-[9px] text-gray-500 block mt-1">Batas: Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
+                          <span className="text-sm sm:text-base font-bold text-amber-800 block leading-none">Rp {actualSpendingWants.toLocaleString('id-ID')}</span>
+                          <span className="text-xs text-gray-500 block mt-1">Batas: Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
                           <div className={`h-full rounded-full ${percentWantsUsed > 100 ? 'bg-red-600' : 'bg-amber-600'}`} style={{ width: `${Math.min(percentWantsUsed, 100)}%` }}></div>
                         </div>
-                        <div className="flex justify-between text-[10px] font-bold">
+                        <div className="flex justify-between text-xs font-bold">
                           <span className="text-gray-500">Penyerapan</span>
                           <span className={percentWantsUsed > 100 ? "text-red-600" : "text-amber-800"}>{percentWantsUsed.toFixed(0)}%</span>
                         </div>
                       </div>
                     ) : (
                       <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
-                        <span className="text-sm font-extrabold text-amber-800">Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
+                        <span className="text-xs text-gray-400 block">Target Alokasi</span>
+                        <span className="text-sm sm:text-base font-extrabold text-amber-800">Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Kartu 3: Tabungan (Savings) */}
-                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex flex-col justify-between">
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex flex-col justify-between">
                     <div>
-                      <span className="text-[11px] font-extrabold text-emerald-800 block mb-1">💼 {t('TABUNGAN (20%)', 'SAVINGS (20%)')}</span>
-                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                      <span className="text-xs sm:text-sm font-extrabold text-emerald-800 block mb-1">💼 {t('TABUNGAN (20%)', 'SAVINGS (20%)')}</span>
+                      <p className="text-xs text-gray-500 leading-relaxed mb-3">
                         {t('Dana Darurat, Investasi, Tabungan Impian', 'Emergency Funds, Investments, Goals')}
                       </p>
                     </div>
                     {activeTab === 'pengeluaran' ? (
                       <div className="mt-auto">
                         <div className="text-end mb-1">
-                          <span className="text-sm font-bold text-emerald-800 block leading-none">Rp {actualSpendingSavings.toLocaleString('id-ID')}</span>
-                          <span className="text-[9px] text-gray-500 block mt-1">Target Minimum: Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
+                          <span className="text-sm sm:text-base font-bold text-emerald-800 block leading-none">Rp {actualSpendingSavings.toLocaleString('id-ID')}</span>
+                          <span className="text-xs text-gray-500 block mt-1">Target Minimum: Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
                           <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(percentSavingsUsed, 100)}%` }}></div>
                         </div>
-                        <div className="flex justify-between text-[10px] font-bold">
+                        <div className="flex justify-between text-xs font-bold">
                           <span className="text-gray-500">Tercapai</span>
                           <span className="text-emerald-800">{percentSavingsUsed.toFixed(0)}%</span>
                         </div>
                       </div>
                     ) : (
                       <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
-                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
-                        <span className="text-sm font-extrabold text-emerald-800">Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
+                        <span className="text-xs text-gray-400 block">Target Alokasi</span>
+                        <span className="text-sm sm:text-base font-extrabold text-emerald-800">Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
                       </div>
                     )}
                   </div>

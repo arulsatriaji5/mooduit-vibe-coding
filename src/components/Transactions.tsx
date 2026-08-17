@@ -33,6 +33,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [tempFilter, setTempFilter] = useState('semua');
+  const [filterTab, setFilterTab] = useState<'pengeluaran' | 'pemasukan'>('pengeluaran');
   
   const [menuTerbuka, setMenuTerbuka] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -89,13 +90,13 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   }, [propsTransactions]);
 
   useEffect(() => {
-    if (isEditModalOpen || isMonthDropdownOpen) {
+    if (isEditModalOpen || isMonthDropdownOpen || isFilterModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isEditModalOpen, isMonthDropdownOpen]);
+  }, [isEditModalOpen, isMonthDropdownOpen, isFilterModalOpen]);
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -337,7 +338,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full right-0 mt-2 w-full min-w-[160px] sm:min-w-[180px] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 z-50 overflow-hidden py-2"
+                    className="absolute top-full right-0 mt-2 w-full min-w-[160px] sm:min-w-[180px] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 z-[99999] overflow-hidden py-2"
                   >
                     <div
                       onClick={() => { setFilterBulan('semua'); setIsMonthDropdownOpen(false); }}
@@ -362,7 +363,15 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
           <button
             type="button"
-            onClick={() => { setTempFilter(filterJenis); setIsFilterModalOpen(true); }}
+            onClick={() => { 
+              setTempFilter(filterJenis); 
+              if (filterJenis === 'pemasukan' || filterJenis.startsWith('inc:')) {
+                setFilterTab('pemasukan');
+              } else {
+                setFilterTab('pengeluaran');
+              }
+              setIsFilterModalOpen(true); 
+            }}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
           >
             <Filter size={16} />
@@ -372,7 +381,6 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         </div>
       </div>
 
-      {/* FILTER BADGE: Warna NAVY MOODUIT */}
       {filterJenis !== 'semua' && (
         <div className="d-flex align-items-center gap-2 mb-3 bg-[#112F58] border border-[#112F58] rounded-xl px-3.5 py-2 w-fit shadow-md">
           <span className="text-xs text-white/70 font-semibold">{t('Filter:', 'Filter:')}</span>
@@ -474,7 +482,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       {/* EDIT MODAL DIALOG CONTAINER */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-[9999] bg-[#112F58]/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
+          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-[#112F58]/40 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300">
             <motion.div 
               className="absolute inset-0 bg-[#112F58]/20" 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
@@ -485,7 +493,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
               className="bg-white dark:bg-slate-900 w-full max-w-md sm:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative z-10 max-h-[90vh]"
               initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%", opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
             >
-              <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800">
+              <div className="shrink-0 p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800">
                 <h2 className="text-[#112F58] dark:text-white text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Edit Transaksi', 'Edit Transaction')}</h2>
                 <button 
                   onClick={() => setIsEditModalOpen(false)} 
@@ -495,14 +503,14 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                 </button>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto no-scrollbar" style={{ scrollbarWidth: 'none' }}>
                 
                 {/* TOGGLE PENGELUARAN / PEMASUKAN PERSIS GAMBAR 1 */}
                 <div>
                   <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">
                     Jenis Transaksi
                   </label>
-                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
                     <button 
                       type="button"
                       onClick={() => {
@@ -512,7 +520,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
                         editJenis === "pengeluaran" 
                           ? "bg-[#112F58] text-white" 
-                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                          : "bg-white text-slate-400 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-500"
                       }`}
                     >
                       {t('Pengeluaran', 'Expenses')}
@@ -526,7 +534,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
                         editJenis === "pemasukan" 
                           ? "bg-[#112F58] text-white" 
-                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                          : "bg-white text-slate-400 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-500"
                       }`}
                     >
                       {t('Pemasukan', 'Income')}
@@ -551,7 +559,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   </div>
                 </div>
 
-                {/* GRID KATEGORI EDIT MODAL PERSIS GAMBAR 1 */}
+                {/* GRID KATEGORI EDIT MODAL (DI PERBAIKI: Menggunakan rounded-xl, Border Tepat, Teks Abu-abu/Putih) */}
                 <div>
                   <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
@@ -560,17 +568,17 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                         key={kat.id}
                         type="button"
                         onClick={() => setEditKategori(kat.id)}
-                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl border transition-all duration-200 cursor-pointer group ${
                           editKategori === kat.id 
-                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
-                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
+                            ? "bg-[#112F58] border-[#112F58] text-white shadow-md" 
+                            : "bg-white dark:bg-slate-800 border-[#112F58] dark:border-[#112F58] hover:bg-slate-50 dark:hover:bg-slate-700"
                         }`}
                       >
                         <span className="text-xl sm:text-2xl drop-shadow-sm">{kat.icon}</span>
-                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
-                          editKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
+                        <span className={`text-[9px] sm:text-[10px] text-center font-extrabold leading-tight break-words uppercase transition-colors ${
+                          editKategori === kat.id ? 'text-white' : 'text-gray-400 dark:text-gray-500'
                         }`}>
-                          {kat.id.toUpperCase()}
+                          {kat.id}
                         </span>
                       </button>
                     ))}
@@ -600,12 +608,12 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white">
+              <div className="shrink-0 p-4 sm:p-6 pt-3 sm:pt-4 bg-white border-t border-gray-100">
                 <button 
                   className="w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#112F58] text-white font-bold text-base sm:text-lg shadow-lg hover:bg-[#0c2240] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
                   onClick={handleSimpanEdit}
                 >
-                  <Edit2 size={18} strokeWidth={2.5} />
+                  <Edit2 size={20} strokeWidth={2.5} />
                   <span>{t('Simpan Perubahan', 'Save Changes')}</span>
                 </button>
               </div>
@@ -616,37 +624,38 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
       <AnimatePresence>
         {isFilterModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300">
             <motion.div
               initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
+              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden relative z-10 max-h-[90vh]"
             >
-              <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="shrink-0 p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                 <h2 className="text-[#112F58] dark:text-white text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Filter', 'Filter')}</h2>
                 <button onClick={() => setIsFilterModalOpen(false)} className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"><X size={18} /></button>
               </div>
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh]" style={{ scrollbarWidth: 'none' }}>
+              
+              <div className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto no-scrollbar" style={{ scrollbarWidth: 'none' }}>
                 
                 {/* TOGGLE PENGELUARAN / PEMASUKAN FILTER KONSISTEN GAMBAR 1 */}
                 <div>
-                  <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">{t('Tipe Transaksi', 'Transaction Type')}</label>
-                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                  <label className="text-[11px] font-extrabold text-gray-400 block mb-3">{t('Tipe Transaksi', 'Transaction Type')}</label>
+                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
                     <button 
-                      onClick={() => setTempFilter('pengeluaran')} 
+                      onClick={() => { setFilterTab('pengeluaran'); setTempFilter('pengeluaran'); }}
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
-                        (tempFilter === 'pengeluaran' || tempFilter.startsWith('exp:')) 
+                        filterTab === 'pengeluaran' 
                           ? "bg-[#112F58] text-white" 
-                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                          : "bg-white text-slate-400 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-500"
                       }`}
                     >
                       {t('Pengeluaran', 'Expenses')}
                     </button>
                     <button 
-                      onClick={() => setTempFilter('pemasukan')} 
+                      onClick={() => { setFilterTab('pemasukan'); setTempFilter('pemasukan'); }}
                       className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
-                        (tempFilter === 'pemasukan' || tempFilter.startsWith('inc:')) 
+                        filterTab === 'pemasukan' 
                           ? "bg-[#112F58] text-white" 
-                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                          : "bg-white text-slate-400 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-500"
                       }`}
                     >
                       {t('Pemasukan', 'Income')}
@@ -654,59 +663,41 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   </div>
                 </div>
 
-                {/* GRID KATEGORI FILTER: Persis Gambar 1 */}
+                {/* GRID KATEGORI FILTER MODAL (DI PERBAIKI: Menggunakan rounded-xl standar Tailwind) */}
                 <div>
-                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pengeluaran', 'Expenses')}</label>
+                  <label className="text-[11px] font-extrabold text-gray-400 block mb-3">
+                    {filterTab === 'pengeluaran' ? t('Kategori Pengeluaran', 'Expense Categories') : t('Kategori Pemasukan', 'Income Categories')}
+                  </label>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
-                    {kategoriPengeluaran.map((cat) => (
-                      <button 
-                        key={cat.id} 
-                        onClick={() => setTempFilter(`exp:${cat.id}`)} 
-                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
-                          tempFilter === `exp:${cat.id}` 
-                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
-                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
-                        }`}
-                      >
-                        <span className="text-xl sm:text-2xl drop-shadow-sm">{cat.icon}</span>
-                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
-                          tempFilter === `exp:${cat.id}` ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
-                        }`}>
-                          {cat.id.toUpperCase()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pemasukan', 'Income')}</label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
-                    {kategoriPemasukan.map((cat) => (
-                      <button 
-                        key={cat.id} 
-                        onClick={() => setTempFilter(`inc:${cat.id}`)} 
-                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
-                          tempFilter === `inc:${cat.id}` 
-                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
-                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
-                        }`}
-                      >
-                        <span className="text-xl sm:text-2xl drop-shadow-sm">{cat.icon}</span>
-                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
-                          tempFilter === `inc:${cat.id}` ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
-                        }`}>
-                          {cat.id.toUpperCase()}
-                        </span>
-                      </button>
-                    ))}
+                    {(filterTab === 'pengeluaran' ? kategoriPengeluaran : kategoriPemasukan).map((cat) => {
+                      const isActive = tempFilter === (filterTab === 'pengeluaran' ? `exp:${cat.id}` : `inc:${cat.id}`);
+                      return (
+                        <button 
+                          key={cat.id} 
+                          onClick={() => setTempFilter(filterTab === 'pengeluaran' ? `exp:${cat.id}` : `inc:${cat.id}`)} 
+                          className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl border transition-all duration-200 cursor-pointer group ${
+                            isActive 
+                              ? 'bg-[#112F58] border-[#112F58] text-white shadow-md scale-[1.02]' 
+                              : 'bg-white dark:bg-slate-800 border-[#112F58] dark:border-[#112F58] hover:bg-slate-50 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <span className="text-xl sm:text-2xl drop-shadow-sm">{cat.icon}</span>
+                          <span className={`text-[9px] sm:text-[10px] text-center font-extrabold leading-tight break-words uppercase transition-colors ${
+                            isActive ? 'text-white' : 'text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {cat.id}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
               
-              <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white flex gap-3">
-                <button onClick={() => setTempFilter('semua')} className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl font-bold border-0 cursor-pointer transition-colors">{t('Reset', 'Reset')}</button>
-                <button onClick={() => { setFilterJenis(tempFilter); setIsFilterModalOpen(false); }} className="flex-1 py-3 bg-[#112F58] hover:bg-[#0c2240] text-white rounded-xl font-bold border-0 cursor-pointer transition-colors shadow-md">{t('Terapkan', 'Apply')}</button>
+              {/* FOOTER (ANTI-NYANGKUT) */}
+              <div className="shrink-0 p-4 sm:p-6 pt-3 sm:pt-4 bg-white flex gap-3 border-t border-gray-100">
+                <button onClick={() => setTempFilter('semua')} className="flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg border-0 cursor-pointer transition-colors">{t('Reset', 'Reset')}</button>
+                <button onClick={() => { setFilterJenis(tempFilter); setIsFilterModalOpen(false); }} className="flex-1 py-3 sm:py-4 bg-[#112F58] hover:bg-[#0c2240] text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg border-0 cursor-pointer transition-colors shadow-lg">{t('Terapkan', 'Apply')}</button>
               </div>
             </motion.div>
           </div>

@@ -249,7 +249,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               className="w-full flex flex-col gap-5 !bg-transparent"
             >
               {/* Judul Halaman */}
-              <h1 className="text-2xl md:text-3xl font-bold text-[#112F58] dark:text-white mb-2 md:mb-4 text-left w-full">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#112F58] dark:text-white mb-2 md:mb-4 text-left w-full">
                 {t("Pengaturan", "Settings")}
               </h1>
 
@@ -271,31 +271,12 @@ export default function Settings({ onLogout }: SettingsProps) {
                       </div>
                       <div className="min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, overflow: 'hidden' }}>
                         <h2 
-                          className="truncate"
-                          style={{ 
-                            fontSize: '18px', 
-                            fontWeight: 'bold', 
-                            color: darkMode ? '#ffffff' : '#112F58', 
-                            margin: 0,
-                            transition: 'color 0.3s ease',
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap'
-                          }}
+                          className="truncate text-base sm:text-lg font-bold text-[#112F58] dark:text-white mb-0.5"
                         >
                           {userName}
                         </h2>
                         <p 
-                          className="truncate"
-                          style={{ 
-                            fontSize: '14px', 
-                            color: darkMode ? '#cbd5e1' : '#64748b', 
-                            margin: 0,
-                            transition: 'color 0.3s ease',
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap'
-                          }}
+                          className="truncate text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-0 font-medium"
                         >
                           {userEmail}
                         </p>
@@ -305,7 +286,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   </div>
                 </div>
 
-                <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Aplikasi", "Application")}</h6>
+                <h2 className="font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-3 px-2">{t("Aplikasi", "Application")}</h2>
                 
                 {/* Container Mode Gelap Berbentuk Kapsul/Pil Halus Standalone */}
                 <div style={{
@@ -340,14 +321,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                     </div>
                     
                     {/* INLINE STYLE MUTLAK UNTUK TEKS */}
-                    <span className="truncate" style={{ 
-                      color: theme === 'dark' ? '#ffffff' : '#112F58', 
-                      fontWeight: 'bold', 
-                      fontSize: '15px',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap'
-                    }}>
+                    <span className="truncate text-sm sm:text-base font-bold text-[#112F58] dark:text-white">
                       {t("Mode Gelap", "Dark Mode")}
                     </span>
                   </div>
@@ -398,13 +372,13 @@ export default function Settings({ onLogout }: SettingsProps) {
                     <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom w-full overflow-hidden flex-nowrap" style={{ minWidth: 0 }}>
                       <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="p-2 bg-light rounded-lg flex-shrink-0"><Languages size={20} /></div>
-                        <span className="fw-500 truncate" style={{ minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t("Bahasa", "Language")}</span>
+                        <span className="font-semibold text-sm sm:text-base truncate text-slate-800 dark:text-slate-100" style={{ minWidth: 0 }}>{t("Bahasa", "Language")}</span>
                       </div>
                       <div className="d-flex align-items-center gap-2 flex-shrink-0">
                         <select
                           value={language}
                           onChange={(e) => setLanguage(e.target.value as 'id' | 'en')}
-                          className="bg-transparent border-0 font-bold focus:outline-none cursor-pointer pr-1 text-sm text-[#112F58] max-w-[120px] md:max-w-none truncate"
+                          className="bg-transparent border-0 font-bold focus:outline-none cursor-pointer pr-1 text-xs sm:text-sm text-[#112F58] dark:text-sky-400 max-w-[120px] md:max-w-none truncate"
                           id="language_select"
                         >
                           <option value="id">{t("Bahasa Indonesia", "Indonesian")}</option>
@@ -422,10 +396,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                       <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="privacy-icon-wrapper flex-shrink-0"><BookOpen size={20} /></div>
                         <div className="text-left min-w-0 flex-1">
-                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block text-sm sm:text-base" style={{ margin: 0 }}>
                             {t("Panduan Aplikasi", "App Guide")}
                           </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                          <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
                             {t("Fitur, cara penggunaan & tips keuangan", "Features, usage guide & money tips")}
                           </span>
                         </div>
@@ -435,7 +409,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   </div>
                 </div>
 
-                <h6 className="fw-bold text-muted small text-uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h6>
+                <h2 className="font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-sm uppercase tracking-wider mb-3 px-2">{t("Keamanan", "Security")}</h2>
                 <div className="w-full card-mooduit overflow-hidden mb-4 p-0 box-border">
                   <div className="list-group list-group-flush border-0">
                     {/* Keamanan Akun */}
@@ -454,10 +428,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                       <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="privacy-icon-wrapper flex-shrink-0"><Lock size={20} /></div>
                         <div className="text-left min-w-0 flex-1">
-                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block text-sm sm:text-base" style={{ margin: 0 }}>
                             {t("Keamanan Akun", "Account Security")}
                           </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                          <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
                             {t("Kata sandi, email, dan proteksi akun", "Password, email, and account protection")}
                           </span>
                         </div>
@@ -475,10 +449,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                       <div className="privacy-left d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="privacy-icon-wrapper flex-shrink-0"><Shield size={20} /></div>
                         <div className="text-left min-w-0 flex-1">
-                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block" style={{ fontSize: '14px', margin: 0 }}>
+                          <span className="privacy-text truncate font-bold text-slate-800 dark:text-slate-100 block text-sm sm:text-base" style={{ margin: 0 }}>
                             {t("Privasi & Keamanan", "Privacy & Security")}
                           </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
+                          <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
                             {t("Aturan & enkripsi perlindungan data", "Data protection rules & encryption")}
                           </span>
                         </div>
@@ -490,15 +464,15 @@ export default function Settings({ onLogout }: SettingsProps) {
 
                 <button 
                   onClick={handleLogout}
-                  className="w-full mooduit-logout-btn"
+                  className="w-full mooduit-logout-btn text-sm sm:text-base"
                 >
                   <LogOut size={20} />
                   {t("Keluar Akun", "Logout")}
                 </button>
 
                 <div className="text-center mt-4">
-                  <p className="text-muted small mb-0">MOODUIT v1.0.0 Alpha</p>
-                  <p className="text-muted small">{t("Dibuat dengan ❤️ untuk Gen Z", "Made with ❤️ for Gen Z")}</p>
+                  <p className="text-muted text-xs sm:text-sm mb-0">MOODUIT v1.0.0 Alpha</p>
+                  <p className="text-muted text-xs sm:text-sm">{t("Dibuat dengan ❤️ untuk Gen Z", "Made with ❤️ for Gen Z")}</p>
                 </div>
               </div>
             </motion.div>
@@ -546,47 +520,47 @@ export default function Settings({ onLogout }: SettingsProps) {
                   accept="image/*" 
                   className="hidden" 
                 />
-                <p className="mooduit-profile-avatar-tip">
+                <p className="mooduit-profile-avatar-tip text-xs sm:text-sm">
                   {t("Klik untuk mengubah foto profil", "Click to change profile picture")}
                 </p>
               </div>
 
               {/* PERSONAL INFO FORM */}
               <div className="w-full card-mooduit p-4 md:p-5 flex flex-col gap-4">
-                <h3 className="mooduit-section-subtitle">{t("Data Diri", "Personal Info")}</h3>
+                <h3 className="mooduit-section-subtitle text-lg sm:text-xl font-bold">{t("Data Diri", "Personal Info")}</h3>
                 
                 <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Nama Lengkap", "Full Name")}</label>
+                  <label className="mooduit-form-label text-sm sm:text-base font-semibold">{t("Nama Lengkap", "Full Name")}</label>
                   <input 
                     type="text" 
                     value={userName} 
                     onChange={(e) => setUserName(e.target.value)}
-                    className="mooduit-form-input"
+                    className="mooduit-form-input text-sm sm:text-base"
                     placeholder={t("Masukkan nama lengkap", "Enter full name")}
                   />
                 </div>
 
                 <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Email", "Email Address")}</label>
+                  <label className="mooduit-form-label text-sm sm:text-base font-semibold">{t("Email", "Email Address")}</label>
                   <input 
                     type="email" 
                     value={userEmail} 
                     disabled 
                     readOnly
-                    className="mooduit-form-input readonly-input"
+                    className="mooduit-form-input readonly-input text-sm sm:text-base"
                   />
-                  <span className="mooduit-form-tip">{t("Email tidak dapat diubah", "Email address cannot be changed")}</span>
+                  <span className="mooduit-form-tip text-xs sm:text-sm">{t("Email tidak dapat diubah", "Email address cannot be changed")}</span>
                 </div>
 
                 <div className="mooduit-form-group">
-                  <label className="mooduit-form-label">{t("Tanggal Lahir 🎂", "Date of Birth 🎂")}</label>
+                  <label className="mooduit-form-label text-sm sm:text-base font-semibold">{t("Tanggal Lahir 🎂", "Date of Birth 🎂")}</label>
                   <input 
                     type="date" 
                     value={userDob} 
                     onChange={(e) => setUserDob(e.target.value)}
-                    className="mooduit-form-input"
+                    className="mooduit-form-input text-sm sm:text-base"
                   />
-                  <span className="mooduit-form-tip">{t("Diperlukan untuk kado & kejutan ulang tahun kamu! 🎉", "Needed for your birthday surprise! 🎉")}</span>
+                  <span className="mooduit-form-tip text-xs sm:text-sm">{t("Diperlukan untuk kado & kejutan ulang tahun kamu! 🎉", "Needed for your birthday surprise! 🎉")}</span>
                 </div>
               </div>
 
@@ -597,7 +571,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                   toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
                   setActiveView('main');
                 }}
-                className="w-full mooduit-save-profile-btn"
+                className="w-full mooduit-save-profile-btn text-sm sm:text-base"
               >
                 {t("Simpan Perubahan", "Save Changes")}
               </button>
@@ -630,10 +604,10 @@ export default function Settings({ onLogout }: SettingsProps) {
               {/* Header */}
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                  <h5 className="font-bold text-[#112F58] dark:text-white mb-1" style={{ fontSize: '18px', margin: 0 }}>
+                  <h3 className="font-bold text-[#112F58] dark:text-white mb-1 text-lg sm:text-xl">
                     {t("Pilih Avatar Kamu", "Choose Your Avatar")}
-                  </h5>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 m-0 mt-1">
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 m-0 mt-1">
                     {t("Pilih salah satu karakter lucu di bawah ini!", "Select one of the cute characters below!")}
                   </p>
                 </div>
@@ -680,7 +654,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                         className="w-16 h-16 object-cover bg-white rounded-full p-1 shadow-sm"
                       />
                       {isSelected && (
-                        <div className="absolute top-1 right-1 bg-[#112F58] text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
+                        <div className="absolute top-1 right-1 bg-[#112F58] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                           ✓
                         </div>
                       )}
@@ -691,7 +665,7 @@ export default function Settings({ onLogout }: SettingsProps) {
 
               <button 
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="w-full text-white font-semibold py-3 rounded-full transition-all text-sm shadow-md"
+                className="w-full text-white font-bold py-3 rounded-full transition-all text-sm sm:text-base shadow-md"
                 style={{ backgroundColor: '#112F58', border: 'none' }}
               >
                 {t("Simpan", "Save")}
@@ -720,9 +694,9 @@ export default function Settings({ onLogout }: SettingsProps) {
             >
               {/* Header */}
               <div className="security-modal-header">
-                <h5 className="security-modal-title">
+                <h3 className="security-modal-title text-lg sm:text-xl font-bold">
                   {t("Kebijakan Privasi & Keamanan", "Privacy & Security Policy")}
-                </h5>
+                </h3>
                 <button 
                   onClick={() => setIsPrivacyModalOpen(false)}
                   className="security-modal-close"
@@ -734,16 +708,16 @@ export default function Settings({ onLogout }: SettingsProps) {
 
               {/* Body */}
               <div className="security-modal-body">
-                <div className="security-badge">
-                  <Shield size={14} />
+                <div className="security-badge text-xs sm:text-sm">
+                  <Shield size={16} />
                   <span>AES-256 Secured</span>
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     🛡️ {t("Enkripsi Standar Militer", "Military-Grade Encryption")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "MOODUIT melindungi seluruh data sensitif kamu menggunakan teknologi enkripsi AES-256 bit tingkat lanjut. Proses enkripsi dilakukan secara end-to-end, memastikan informasi keuangan, catatan, dan transaksi harian tidak dapat diakses oleh pihak luar.",
                       "MOODUIT secures all your sensitive data using advanced AES-256 bit encryption. The encryption process is executed end-to-end, ensuring that your financial information, journals, and daily transactions remain completely inaccessible to external parties."
@@ -752,10 +726,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     ☁️ {t("Penyimpanan Cloud & Firestore Aman", "Secure Cloud & Firestore Storage")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Infrastruktur backend kami berbasis Google Cloud Platform & Firebase Firestore dengan aturan keamanan (Security Rules) yang diperketat secara berlapis. Akses data diautentikasi dengan token aman dan didelegasikan secara ketat berdasarkan kepemilikan akun pengguna.",
                       "Our backend infrastructure runs on Google Cloud Platform & Firebase Firestore, fortified by multi-layered Security Rules. Data access is authenticated via secure tokens and strictly delegated based on user account ownership."
@@ -764,10 +738,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     🔒 {t("Jaminan Privasi Data 100%", "100% Data Privacy Guarantee")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Privasi kamu adalah prioritas mutlak bagi kami. Kami tidak pernah menjual, menyewakan, atau membagikan aktivitas finansial, catatan suasana hati, maupun informasi demografi kamu kepada platform iklan pihak ketiga atau perantara data.",
                       "Your privacy is our absolute priority. We never sell, rent, or share your financial logs, mood tracking records, or demographic information with third-party advertising networks or data brokers."
@@ -780,7 +754,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               <div className="security-modal-footer">
                 <button 
                   onClick={() => setIsPrivacyModalOpen(false)}
-                  className="security-modal-btn"
+                  className="security-modal-btn text-sm sm:text-base font-bold"
                   type="button"
                 >
                   {t("Mengerti", "I Understand")}
@@ -814,9 +788,9 @@ export default function Settings({ onLogout }: SettingsProps) {
             >
               {/* Header */}
               <div className="security-modal-header">
-                <h5 className="security-modal-title">
+                <h3 className="security-modal-title text-lg sm:text-xl font-bold">
                   {t("Keamanan Akun", "Account Security")}
-                </h5>
+                </h3>
                 <button 
                   onClick={() => setIsSecurityModalOpen(false)}
                   className="security-modal-close"
@@ -832,12 +806,12 @@ export default function Settings({ onLogout }: SettingsProps) {
                   /* TAHAP 1 */
                   <div className="flex flex-col gap-4 animate-fade-in text-left">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 text-left">
+                      <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 text-left">
                         {t("Email Terdaftar", "Registered Email")}
                       </label>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 flex items-center gap-3">
-                        <span className="text-lg flex-shrink-0">📧</span>
-                        <div className="text-left font-semibold break-all">
+                      <div className="p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                        <span className="text-xl flex-shrink-0">📧</span>
+                        <div className="text-left font-semibold text-sm sm:text-base break-all">
                           {userEmail}
                         </div>
                       </div>
@@ -846,7 +820,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                     <div className="mt-2 text-left">
                       <button
                         onClick={() => setIsEditingPassword(true)}
-                        className="w-full py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border-0"
+                        className="w-full py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-bold text-sm sm:text-base rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border-0"
                       >
                         🔑 {t("Ubah Kata Sandi", "Change Password")}
                       </button>
@@ -855,20 +829,20 @@ export default function Settings({ onLogout }: SettingsProps) {
                 ) : (
                   /* TAHAP 2 */
                   <div className="flex flex-col gap-3 text-left">
-                    <h3 className="text-sm font-bold text-[#112F58] dark:text-sky-400 mb-1 flex items-center gap-2">
+                    <h4 className="text-base sm:text-lg font-bold text-[#112F58] dark:text-sky-400 mb-1 flex items-center gap-2">
                       🔐 {t("Ubah Kata Sandi Baru", "Set New Password")}
-                    </h3>
+                    </h4>
 
                     {/* Password Lama */}
                     {!isGoogleUser && (
                       <div className="mooduit-form-group">
-                        <label className="mooduit-form-label text-left">{t("Kata Sandi Lama", "Old Password")}</label>
+                        <label className="mooduit-form-label text-left text-sm sm:text-base font-semibold">{t("Kata Sandi Lama", "Old Password")}</label>
                         <div className="relative w-full">
                           <input 
                             type={showOld ? "text" : "password"} 
                             value={oldPassword}
                             onChange={(e) => setOldPassword(e.target.value)}
-                            className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
+                            className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all text-sm sm:text-base"
                             placeholder={t("Masukkan kata sandi lama", "Enter old password")}
                           />
                           <button 
@@ -884,13 +858,13 @@ export default function Settings({ onLogout }: SettingsProps) {
 
                     {/* Password Baru */}
                     <div className="mooduit-form-group">
-                      <label className="mooduit-form-label text-left">{t("Kata Sandi Baru", "New Password")}</label>
+                      <label className="mooduit-form-label text-left text-sm sm:text-base font-semibold">{t("Kata Sandi Baru", "New Password")}</label>
                       <div className="relative w-full">
                         <input 
                           type={showNew ? "text" : "password"} 
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all text-sm sm:text-base"
                           placeholder={t("Masukkan kata sandi baru", "Enter new password")}
                         />
                         <button 
@@ -905,13 +879,13 @@ export default function Settings({ onLogout }: SettingsProps) {
 
                     {/* Konfirmasi Password */}
                     <div className="mooduit-form-group">
-                      <label className="mooduit-form-label text-left">{t("Konfirmasi Kata Sandi Baru", "Confirm New Password")}</label>
+                      <label className="mooduit-form-label text-left text-sm sm:text-base font-semibold">{t("Konfirmasi Kata Sandi Baru", "Confirm New Password")}</label>
                       <div className="relative w-full">
                         <input 
                           type={showConfirm ? "text" : "password"} 
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 font-medium placeholder:text-gray-500 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#001F3F] focus:border-transparent transition-all text-sm sm:text-base"
                           placeholder={t("Ulangi kata sandi baru", "Repeat new password")}
                         />
                         <button 
@@ -932,7 +906,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                 {!isEditingPassword ? (
                   <button 
                     onClick={() => setIsSecurityModalOpen(false)}
-                    className="px-5 py-2.5 rounded-xl bg-[#001F3F] hover:bg-[#00172E] text-white font-semibold text-sm transition-all border-0 cursor-pointer shadow-sm"
+                    className="px-5 py-2.5 rounded-xl bg-[#001F3F] hover:bg-[#00172E] text-white font-bold text-sm sm:text-base transition-all border-0 cursor-pointer shadow-sm"
                     type="button"
                   >
                     {t("Tutup", "Close")}
@@ -947,7 +921,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                         setNewPassword('');
                         setConfirmPassword('');
                       }}
-                      className="px-6 py-3.5 bg-white border-2 border-gray-300 text-gray-800 font-bold rounded-xl hover:bg-gray-100 hover:text-black transition-all cursor-pointer shadow-sm text-center"
+                      className="px-6 py-3.5 bg-white border-2 border-gray-300 text-gray-800 font-bold rounded-xl hover:bg-gray-100 hover:text-black transition-all cursor-pointer shadow-sm text-center text-sm sm:text-base"
                     >
                       {t("Batal", "Cancel")}
                     </button>
@@ -1012,7 +986,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                           toast.error(err.message || 'Error occurred');
                         });
                       }}
-                      className="px-6 py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-bold text-sm rounded-xl transition-all border-0 cursor-pointer shadow-md flex-1 sm:flex-none text-center"
+                      className="px-6 py-3.5 bg-[#001F3F] hover:bg-[#00172E] text-white font-bold text-sm sm:text-base rounded-xl transition-all border-0 cursor-pointer shadow-md flex-1 sm:flex-none text-center"
                       type="button"
                     >
                       {t("Simpan Kata Sandi", "Save Password")}
@@ -1050,10 +1024,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                     <BookOpen size={20} />
                   </div>
                   <div>
-                    <h5 className="security-modal-title">
+                    <h3 className="security-modal-title text-lg sm:text-xl font-bold">
                       {t("Panduan Aplikasi MOODUIT", "MOODUIT App Guide")}
-                    </h5>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0 mt-0.5">
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-0 mt-0.5">
                       {t("Kenali & manfaatkan seluruh fitur keuanganmu", "Discover & master your financial features")}
                     </p>
                   </div>
@@ -1071,10 +1045,10 @@ export default function Settings({ onLogout }: SettingsProps) {
               {/* Body */}
               <div className="security-modal-body">
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     ✨ {t("1. MOODUIT AI Advisor", "1. MOODUIT AI Advisor")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Asisten keuangan pribadi Gen Z yang cerdas dan realistis. Kamu bisa berkonsultasi rencana belanja, mendapat teguran/roasting bijak jika pembelian terlalu konsumtif (>10% saldo), serta mencatat transaksi otomatis langsung via chat!",
                       "Your smart & realistic Gen Z financial advisor. Consult shopping plans, get realistic roasting/feedback if a purchase is too impulsive (>10% balance), and auto-record transactions directly via chat!"
@@ -1083,10 +1057,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     📸 {t("2. Scan Transaksi (OCR)", "2. Smart Receipt Scanner")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Foto atau unggah foto struk belanjaanmu. AI secara otomatis membaca nama toko, tanggal, total nominal, dan rincian item barang tanpa perlu input manual.",
                       "Snap or upload receipt photos. AI automatically detects merchant name, date, total amount, and itemized list without manual typing."
@@ -1095,10 +1069,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     🧮 {t("3. Smart Budgeting (50/30/20)", "3. Smart Budgeting (50/30/20)")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Bagi otomatis pendapatan bulananmu ke dalam 50% Kebutuhan Pokok, 30% Keinginan, dan 20% Tabungan/Investasi untuk menjaga alur keuangan sehat.",
                       "Automatically divide monthly income into 50% Needs, 30% Wants, and 20% Savings/Investments for a balanced financial life."
@@ -1107,10 +1081,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     🛡️ {t("4. Dana Darurat & Wishlist", "4. Emergency Fund & Wishlist")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Hitung dan kumpulkan fondasi keamanan finansial 3-6 kali pengeluaran bulanan, serta wujudkan target barang impian secara terencana.",
                       "Calculate and build a 3-6 month safety net, and systematically track savings for your dream items."
@@ -1119,10 +1093,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                 </div>
 
                 <div className="security-section">
-                  <h6 className="security-section-title">
+                  <h4 className="security-section-title text-base sm:text-lg font-bold">
                     📊 {t("5. Analisa & Riwayat", "5. Analysis & History")}
-                  </h6>
-                  <p className="security-section-text">
+                  </h4>
+                  <p className="security-section-text text-sm sm:text-base leading-relaxed">
                     {t(
                       "Pantau grafik pengeluaran berdasarkan kategori dan cek seluruh riwayat catatan keuanganmu kapan saja.",
                       "Monitor expense charts by category and review all your financial logs anytime."
@@ -1135,7 +1109,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               <div className="security-modal-footer">
                 <button 
                   onClick={() => setIsGuideModalOpen(false)}
-                  className="security-modal-btn"
+                  className="security-modal-btn text-sm sm:text-base font-bold"
                   type="button"
                 >
                   {t("Paham, Terima Kasih!", "Got It, Thanks!")}

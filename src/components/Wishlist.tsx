@@ -8,7 +8,7 @@ export default function Wishlist() {
   return (
     <div className="container py-4 pb-5 mb-5 h-100 flex-grow-1">
       <div className="d-flex justify-content-between align-items-center mb-5">
-        <h4 className="fw-800 text-primary-mooduit mb-0">Wishlist & Goals</h4>
+        <h1 className="fw-800 text-primary-mooduit text-2xl md:text-3xl mb-0">Wishlist & Goals</h1>
       </div>
 
       <div className="row justify-content-center">
@@ -31,12 +31,12 @@ export default function Wishlist() {
               </motion.div>
             </div>
 
-            <h3 className="fw-800 text-primary-mooduit mb-3">Belum Ada Target Impian</h3>
-            <p className="text-muted mb-5 px-4 mb-5">
+            <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-3">Belum Ada Target Impian</h2>
+            <p className="text-muted text-sm md:text-base leading-relaxed mb-5 px-4">
               Yuk, tentukan barang impian atau tujuan finansialmu, biar AI kami bantu atur tabungannya!
             </p>
 
-            <button className="btn btn-mooduit-primary btn-lg w-100 rounded-2xl py-3 fw-800 shadow-lg d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[1.02]">
+            <button className="btn btn-mooduit-primary btn-lg w-100 rounded-2xl py-3 fw-800 shadow-lg d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[1.02] text-sm md:text-base cursor-pointer">
               <Plus size={24} />
               <span>Tambah Wishlist Baru</span>
             </button>

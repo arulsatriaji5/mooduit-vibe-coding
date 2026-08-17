@@ -243,9 +243,9 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       // Fallback trigger in case of failure
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(undefined, undefined, {
-          type: 'expense',
-          amount: newTransaction.nominal,
-          category: newTransaction.kategori
+          type: scannedData?.suggestedType || 'expense',
+          amount: scannedData?.totalAmount || 0,
+          category: scannedData?.suggestedCategory || 'Scanning Struk'
         });
       }
     });
@@ -396,7 +396,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
             className="w-100"
             style={{ maxWidth: '440px' }}
           >
-            <div className="text-center mb-5 mt-4">
+            <div className="text-center mb-5">
               <div className="bg-white rounded-circle shadow-lg d-inline-flex align-items-center justify-content-center mb-4" style={{ width: '80px', height: '80px', fontSize: '32px' }}>
                 {hasilOcr.icon}
               </div>
@@ -412,7 +412,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
                 </div>
               </div>
 
-              <div className="space-y-6 pt-4 text-left">
+              <div className="space-y-6 pt-4">
                 <div>
                   <label className="text-gray-400 x-small fw-bold uppercase tracking-widest mb-2 block">Total Belanja (Dicatat)</label>
                   <div className="flex items-baseline gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100">
@@ -446,8 +446,8 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
                       <div className="space-y-1.5" style={{ maxHeight: '120px', overflowY: 'auto' }}>
                         {hasilOcr.items.map((it, idx) => (
                           <div key={idx} className="d-flex justify-content-between align-items-center text-xs">
-                            <span className="text-gray-600 font-medium truncate pr-2">{it.namaItem}</span>
-                            <span className="text-[#112F58] font-bold shrink-0">Rp {it.harga.toLocaleString('id-ID')}</span>
+                            <span className="text-gray-600 font-medium">{it.namaItem}</span>
+                            <span className="text-[#112F58] font-bold">Rp {it.harga.toLocaleString('id-ID')}</span>
                           </div>
                         ))}
                       </div>
@@ -484,10 +484,9 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               </div>
             </div>
 
-            <div className="space-y-3 pb-20">
-              {/* TOMBOL KONFIRMASI (Sedikit kotak, rounded-xl) */}
+            <div className="space-y-3">
               <button 
-                className="w-100 py-4 rounded-xl bg-[#112F58] text-white font-bold text-lg shadow-xl hover:bg-[#0c2240] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
+                className="w-100 py-4 rounded-[1.5rem] bg-[#112F58] text-white font-bold text-lg shadow-xl hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-2"
                 onClick={saveTransaction}
               >
                 <Save size={24} />
@@ -495,7 +494,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               </button>
               
               <button 
-                className="w-100 py-3 rounded-xl text-muted text-sm font-bold hover:text-[#112F58] transition-colors border-0 bg-transparent cursor-pointer"
+                className="w-100 py-3 rounded-xl text-muted text-sm font-bold hover:text-[#112F58] transition-colors"
                 onClick={() => setStep('capture')}
               >
                 Ulangi Scan Struk
