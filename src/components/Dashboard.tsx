@@ -75,7 +75,7 @@ export default function Dashboard({
     }
   }, []);
 
-  // Daily Streak and Celebration Pop-up States (Sourced strictly from Database)
+  // Daily Streak and Celebration Pop-up States
   const [streakCount, setStreakCount] = React.useState<number>(0);
   const [streakActive, setStreakActive] = React.useState<boolean>(false);
   const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
@@ -88,7 +88,7 @@ export default function Dashboard({
 
   // Dynamic Ambient AI Advisor states
   const [ambientAdvice, setAmbientAdvice] = React.useState<string>("");
-  const [isAmbientLoading, setIsAmbientLoading] = React.useState<boolean>(true);
+  const [isAmbientLoading, setIsAmbientLoading] = React.useState<boolean>(false);
 
   const motivationQuotes = React.useMemo(() => [
     {
@@ -146,7 +146,6 @@ export default function Dashboard({
   const [restoreCount, setRestoreCount] = React.useState<number>(0);
   const [isRestoring, setIsRestoring] = React.useState<boolean>(false);
 
-  // Expose triggerTransactionSuccess and showStreakCelebration murni ke global window object
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const triggerFn = (apiStreak?: number, apiIncreased?: boolean, txContext?: { type?: string; amount?: number; category?: string }) => {
@@ -165,7 +164,6 @@ export default function Dashboard({
         setStreakIncreasedToday(true);
         setShowCelebration(true);
 
-        // Fetch AI motivation asynchronously in real-time
         generateStreakMotivation(txContext);
 
         const email = localStorage.getItem("userEmail") || "";
@@ -227,7 +225,6 @@ export default function Dashboard({
     setShowCelebration(false);
   };
 
-  // Dynamic Daily Financial Motivation quotes (Indonesian & English translation support)
   const dailyQuotes = React.useMemo(() => [
     {
       id: "Setiap koin yang kamu simpan hari ini adalah pondasi kebebasan finansialmu di masa depan. Selangkah demi selangkah menuju impian!",
@@ -264,6 +261,7 @@ export default function Dashboard({
     const index = day % dailyQuotes.length;
     return dailyQuotes[index];
   }, [dailyQuotes]);
+
   const [aiInsight, setAiInsight] = React.useState<string>(
     "Menganalisa dompetmu...",
   );
@@ -284,13 +282,11 @@ export default function Dashboard({
   >([]);
   const [isTyping, setIsTyping] = React.useState(false);
 
-  // Speech-to-Text (STT) & Text-to-Speech (TTS) states
   const [isListening, setIsListening] = React.useState(false);
   const [speakingMsgIndex, setSpeakingMsgIndex] = React.useState<number | null>(null);
   const [isVoiceInteraction, setIsVoiceInteraction] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
 
-  // Initial welcome message when chat opens (AI DOES NOT SPEAK AUTOMATICALLY)
   React.useEffect(() => {
     if (isChatOpen && messages.length === 0) {
       const welcome = language === "id"
@@ -300,7 +296,6 @@ export default function Dashboard({
     }
   }, [isChatOpen, messages.length, language]);
 
-  // STT: Speech-to-Text handler using Web Speech API
   const toggleListening = () => {
     if (isListening) {
       if (recognitionRef.current) {
@@ -337,7 +332,7 @@ export default function Dashboard({
         const transcript = event.results[0][0].transcript;
         if (transcript) {
           setChatInput((prev) => (prev ? prev + " " + transcript : transcript));
-          setIsVoiceInteraction(true); // User initiated via Voice Note (Mic)!
+          setIsVoiceInteraction(true); 
           toast.success(
             language === "id" ? "Suara berhasil ditranskrip! 🎙️" : "Voice transcribed! 🎙️"
           );
@@ -373,7 +368,6 @@ export default function Dashboard({
     }
   };
 
-  // TTS: Text-to-Speech handler using Web SpeechSynthesis
   const speakMessage = (text: string, index: number) => {
     if (!("speechSynthesis" in window)) {
       toast.error(
@@ -393,7 +387,6 @@ export default function Dashboard({
     window.speechSynthesis.cancel();
     setSpeakingMsgIndex(index);
 
-    // Clean text of html tags & markdown formatting
     const cleanText = text
       .replace(/<[^>]*>/g, "")
       .replace(/\*+/g, "")
@@ -407,7 +400,6 @@ export default function Dashboard({
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Try finding an Indonesian voice if available
     try {
       const voices = window.speechSynthesis.getVoices();
       const idVoice = voices.find(
@@ -427,12 +419,9 @@ export default function Dashboard({
     window.speechSynthesis.speak(utterance);
   };
 
-  // AI Voice response ONLY plays if user initiated message via Voice Note (Mic) interaction
-  // Handled directly inside handleSendMessage after backend AI response is received!
   const [wishlist, setWishlist] = React.useState<any[]>([]);
   const [targetImpian, setTargetImpian] = React.useState<any[]>([]);
-  const [isEditTargetModalOpen, setIsEditTargetModalOpen] =
-    React.useState(false);
+  const [isEditTargetModalOpen, setIsEditTargetModalOpen] = React.useState(false);
   const [isTargetModalOpen, setIsTargetModalOpen] = React.useState(false);
   const [newTargetName, setNewTargetName] = React.useState("");
   const [newTargetPrice, setNewTargetPrice] = React.useState("");
@@ -452,13 +441,11 @@ export default function Dashboard({
     if (!selectedTargetForCelebration) return;
     const target = selectedTargetForCelebration;
 
-    // 1. Hapus Target Impian tersebut dari daftar impian aktif
     const updatedWishlist = wishlist.filter((t) => t.id !== target.id);
     setWishlist(updatedWishlist);
     setTargetImpian(updatedWishlist);
     syncWishlistWithDb(updatedWishlist);
 
-    // 2. OTOMATIS tambahkan entri transaksi baru
     const nominalTarget = Number((target.harga || target.price || "0").toString().replace(/\D/g, ""));
     const newTx = {
       id: "purchase_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
@@ -495,7 +482,6 @@ export default function Dashboard({
       }
     } catch (err) {
       console.error("Failed to insert purchase transaction:", err);
-      // Fallback update
       setLocalTransactions(prev => [newTx, ...prev]);
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(undefined, undefined, {
@@ -522,7 +508,6 @@ export default function Dashboard({
   const [editHarga, setEditHarga] = React.useState("");
   const chatScrollRef = React.useRef<HTMLDivElement>(null);
 
-  // Dynamically calculate pocket balances from transactions ledger!
   const savingsPockets = React.useMemo(() => {
     let darurat = 0;
     let investasi = 0;
@@ -607,7 +592,6 @@ export default function Dashboard({
       tanggal: new Date().toISOString().split('T')[0]
     };
 
-    // Insert into DB/local transactions list
     try {
       if (propsSetTransactions && typeof propsSetTransactions === "function") {
         const { insertTransaction } = await import("../utils/api");
@@ -619,7 +603,6 @@ export default function Dashboard({
       }
     } catch (err) {
       console.error("Failed to insert pocket transaction:", err);
-      // Fallback local update
       setLocalTransactions(prev => [newTx, ...prev]);
     }
 
@@ -871,9 +854,6 @@ export default function Dashboard({
       setUserName(savedName);
     }
 
-    // Removed old local savingsPockets loader since it's computed dynamically from transactions ledger
-
-    // Load wishlist and budgets from database
     const user_email = localStorage.getItem("userEmail") || "";
     if (user_email) {
       setIsSyncing(true);
@@ -895,7 +875,6 @@ export default function Dashboard({
           setIsSyncing(false);
         });
 
-        // Load budget plans
         Promise.all([
           fetchBudgetPlan(user_email),
           fetchBudgetPlanCustom(user_email)
@@ -945,14 +924,11 @@ export default function Dashboard({
       setBudgetsData([]);
     }
 
-    // Load transactions
     if (propsTransactions === undefined) {
-      // Return empty or wait for props to pass down
       setLocalTransactions([]);
     }
   }, [propsTransactions]);
 
-  // Effect to load and periodically sync current streak using local-timezone awareness
   React.useEffect(() => {
     const syncStreakWithLocalTime = () => {
       const user_email = localStorage.getItem("userEmail") || "";
@@ -965,7 +941,6 @@ export default function Dashboard({
     };
 
     syncStreakWithLocalTime();
-    // Periodically sync every 30s to trigger instant midnight 00:00 local time flame extinguish if no transaction today
     const streakInterval = setInterval(syncStreakWithLocalTime, 30000);
     return () => clearInterval(streakInterval);
   }, []);
@@ -986,29 +961,22 @@ export default function Dashboard({
 
   const renderMarkdown = (text: string) => {
     if (!text) return { __html: "" };
-    // Escape HTML of user text to prevent XSS but allow safe formatting tags
     let escaped = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
     
-    // Replace **bold** with <strong>bold</strong>
     escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    // Replace *italic* with <em>italic</em>
     escaped = escaped.replace(/\*(.*?)\*/g, "<em>$1</em>");
-    // Replace linebreaks with <br />
     escaped = escaped.replace(/\n/g, "<br />");
     return { __html: escaped };
   };
-
-  // Auto-scroll removed for AI responses so reading position remains stable.
-  // Scroll is triggered explicitly only when user sends a new message.
 
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
     const wasVoiceInput = isVoiceInteraction;
-    setIsVoiceInteraction(false); // consume voice flag
+    setIsVoiceInteraction(false); 
 
     const userMessage = chatInput.trim();
     const updatedMessages = [...messages, { text: userMessage, isAi: false }];
@@ -1016,7 +984,6 @@ export default function Dashboard({
     setChatInput("");
     setIsTyping(true);
 
-    // Scroll to bottom only when user sends a message
     setTimeout(() => {
       if (chatScrollRef.current) {
         chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
@@ -1025,7 +992,6 @@ export default function Dashboard({
 
     const user_email = localStorage.getItem("userEmail") || "";
 
-    // Build the rich financial context payload from real-time frontend states
     const financialContext = {
       totalBalance: totalSaldo,
       totalIncome: totalPemasukan,
@@ -1055,7 +1021,7 @@ export default function Dashboard({
     const tempGeminiKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
 
     let attempts = 0;
-    const maxAttempts = 3; // 1 initial + 2 retries
+    const maxAttempts = 3; 
     let success = false;
     let dataText = "";
     let serverActionPayload: any = null;
@@ -1145,7 +1111,6 @@ export default function Dashboard({
       let cleanText = dataText;
       let transactionData: any = serverActionPayload;
 
-      // Safe JSON Extraction Strategies (fallback)
       if (!transactionData && dataText) {
         try {
           const markdownMatch = dataText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -1752,14 +1717,14 @@ export default function Dashboard({
                 {transactions.slice(0, 5).map((t, idx) => (
                   <div
                     key={t.id || idx}
-                    className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100"
+                    className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100 dark:bg-slate-800/80 dark:border-slate-700"
                   >
                     <div className="d-flex align-items-center gap-3 flex-1 min-w-0 pr-2">
-                      <div className="bg-white p-2.5 rounded-xl shadow-sm text-lg shrink-0">
+                      <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm text-lg shrink-0">
                         {t.icon || "🧾"}
                       </div>
                       <div className="flex-1 min-w-0 pr-2">
-                        <div className="fw-800 text-primary-mooduit small leading-tight mb-0.5 truncate line-clamp-1">
+                        <div className="fw-800 text-primary-mooduit dark:text-white small leading-tight mb-0.5 truncate line-clamp-1">
                           {t.catatan || t.kategori}
                         </div>
                         <div className="text-muted x-small font-medium truncate">
@@ -1768,7 +1733,7 @@ export default function Dashboard({
                       </div>
                     </div>
                     <div
-                      className={`fw-800 small shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718]"}`}
+                      className={`fw-800 small shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718] dark:text-rose-400"}`}
                     >
                       {t.jenis === "pemasukan" ? "+" : "-"} Rp{" "}
                       {Number(t.nominal).toLocaleString("id-ID")}
@@ -1778,7 +1743,7 @@ export default function Dashboard({
               </div>
             ) : (
               <div className="d-flex flex-column align-items-center justify-content-center py-5">
-                <div className="bg-light p-3 rounded-circle mb-3">
+                <div className="bg-light dark:bg-slate-800 p-3 rounded-circle mb-3">
                   <ArrowUpRight size={24} className="text-muted opacity-50" />
                 </div>
                 <p className="text-muted small mb-3">
@@ -1801,21 +1766,21 @@ export default function Dashboard({
 
         {/* Right Col: Target Impian */}
         <div className="col-12 col-lg-5">
-          <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white">
+          <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h5
-                className="fw-800 text-primary-mooduit mb-0"
+                className="fw-800 text-primary-mooduit dark:text-white mb-0"
                 style={{ fontSize: "1.1rem" }}
               >
                 {t("Target Impian", "Dream Target")}
               </h5>
-              <Target size={20} className="text-primary-mooduit opacity-50" />
+              <Target size={20} className="text-primary-mooduit dark:text-white opacity-50" />
             </div>
 
             <div className="flex-grow-1 d-flex flex-column py-2">
               <div className="space-y-3">
                 {targetImpian.length === 0 ? (
-                  <div className="text-center p-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl d-flex flex-column align-items-center justify-content-center h-100 py-5">
+                  <div className="text-center p-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl d-flex flex-column align-items-center justify-content-center h-100 py-5">
                     <p className="mb-3">
                       {t(
                         "Belum ada target impian. Yuk, tambah target pertamamu!",
@@ -1837,7 +1802,7 @@ export default function Dashboard({
                     {targetImpian.map((target) => (
                       <div
                         key={target.id}
-                        className="border border-gray-100 rounded-xl p-4 flex justify-between items-center relative group bg-light hover:bg-gray-50 transition-all cursor-pointer"
+                        className="border border-gray-100 dark:border-slate-700 rounded-xl p-4 flex justify-between items-center relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
                         onClick={() => {
                           const idx = wishlist.findIndex(
                             (w: any) => w.id === target.id,
@@ -1846,7 +1811,7 @@ export default function Dashboard({
                         }}
                       >
                         <div className="flex items-center gap-3 d-flex">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-600 flex items-center justify-center text-blue-500 dark:text-blue-300 shrink-0">
                             <svg
                               className="w-5 h-5"
                               fill="none"
@@ -1864,12 +1829,12 @@ export default function Dashboard({
                           </div>
                           <div>
                             <h4
-                              className="font-bold text-[#112F58] capitalize mb-1"
+                              className="font-bold text-[#112F58] dark:text-white capitalize mb-1"
                               style={{ fontSize: "14px" }}
                             >
                               {target.nama || target.name}
                             </h4>
-                            <p className="text-sm text-gray-500 mb-0">
+                            <p className="text-sm text-gray-500 dark:text-slate-400 mb-0">
                               Rp{" "}
                               {Number(
                                 (target.harga || target.price || "0")
@@ -1951,7 +1916,7 @@ export default function Dashboard({
                       </div>
                     ))}
                     <button
-                      className="btn btn-link text-primary-mooduit fw-bold text-decoration-none x-small p-0 mt-2 text-start border-0 bg-transparent shadow-none"
+                      className="btn btn-link text-primary-mooduit dark:text-sky-400 fw-bold text-decoration-none x-small p-0 mt-2 text-start border-0 bg-transparent shadow-none"
                       onClick={() => setIsTargetModalOpen(true)}
                     >
                       + {t("Tambah Impian Baru", "Add New Dream")}
@@ -2162,7 +2127,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal Target Impian */}
       <AnimatePresence>
         {isEditModalOpen && (
           <div
@@ -2174,98 +2139,88 @@ export default function Dashboard({
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="card-mooduit p-4 shadow-2xl w-100 bg-white"
-              style={{ maxWidth: "400px" }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "420px" }}
             >
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="fw-800 text-primary-mooduit mb-0">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="fw-800 text-primary-mooduit dark:text-white mb-0">
                   {t("Edit Target Impian", "Edit Dream Target")}
                 </h5>
                 <button
-                  className="btn btn-link p-0 text-muted"
+                  type="button"
+                  className="btn-close dark:filter dark:invert"
                   onClick={() => setIsEditModalOpen(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label small fw-bold">
-                  {t("Nama Target", "Target Name")}
-                </label>
-                <input
-                  type="text"
-                  className="form-control py-3 rounded-xl bg-light border-0 fw-medium"
-                  value={editNama}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setEditNama(val.charAt(0).toUpperCase() + val.slice(1));
-                  }}
-                  placeholder={t("Contoh: Laptop Baru", "E.g., New Laptop")}
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="form-label small fw-bold">
-                  {t("Estimasi Harga (Rp)", "Estimated Price (IDR)")}
-                </label>
-                <div className="input-group font-sans">
-                  <span className="input-group-text bg-light border-0 rounded-start-xl fw-bold text-primary-mooduit">
-                    Rp
-                  </span>
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="small text-muted font-bold mb-1">
+                    {t("Nama Target Impian", "Target Name")}
+                  </label>
                   <input
                     type="text"
-                    className="form-control py-3 border-0 bg-light rounded-end-xl fw-800"
+                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    value={editNama}
+                    onChange={(e) => setEditNama(e.target.value)}
+                    placeholder="Contoh: Beli Laptop Baru"
+                  />
+                </div>
+
+                <div>
+                  <label className="small text-muted font-bold mb-1">
+                    {t("Target Harga (Rp)", "Target Price (IDR)")}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={editHarga}
                     onChange={(e) => setEditHarga(formatInput(e.target.value))}
-                    placeholder={t("Contoh: 10.000.000", "E.g., 10,000,000")}
+                    placeholder="Contoh: 15.000.000"
                   />
                 </div>
               </div>
 
-              <div className="d-flex flex-column gap-2 font-sans">
-                <div className="d-flex gap-2">
+              <div className="d-flex justify-content-between align-items-center gap-2">
+                {editIndex !== null && (
                   <button
-                    className="btn btn-mooduit-outline flex-grow-1 py-3 rounded-xl fw-bold"
+                    type="button"
+                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-sm font-bold flex items-center gap-1"
+                    onClick={(e) => {
+                      handleDeleteItem(editIndex, e);
+                      setIsEditModalOpen(false);
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    <span>{t("Hapus", "Delete")}</span>
+                  </button>
+                )}
+                <div className="d-flex gap-2 ms-auto">
+                  <button
+                    type="button"
+                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-sm font-bold"
                     onClick={() => setIsEditModalOpen(false)}
                   >
                     {t("Batal", "Cancel")}
                   </button>
                   <button
-                    className="btn btn-mooduit-primary flex-grow-1 py-3 rounded-xl fw-800"
+                    type="button"
+                    className="btn btn-mooduit rounded-xl px-4 py-2 text-sm font-bold"
                     onClick={handleUpdateItem}
-                    disabled={!editNama || !editHarga}
                   >
-                    {t("Simpan Perubahan", "Save Changes")}
+                    {t("Simpan", "Save")}
                   </button>
                 </div>
-                <button
-                  className="btn w-100 py-2 rounded-xl fw-bold small transition-all border d-flex align-items-center justify-content-center gap-2"
-                  style={{
-                    backgroundColor: "#FEF2F2",
-                    color: "#DC2626",
-                    borderColor: "#FEE2E2",
-                  }}
-                  onClick={(e) => {
-                    if (editIndex !== null) {
-                      handleDeleteItem(editIndex, e);
-                      setIsEditModalOpen(false);
-                    }
-                  }}
-                >
-                  <Trash2 size={16} />
-                  {t("Hapus Target Ini", "Delete This Target")}
-                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Tambah Target Modal */}
+      {/* Add Modal Target Impian */}
       <AnimatePresence>
         {isTargetModalOpen && (
           <div
@@ -2277,73 +2232,64 @@ export default function Dashboard({
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="card-mooduit p-4 shadow-2xl w-100 bg-white"
-              style={{ maxWidth: "400px" }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "420px" }}
             >
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="fw-800 text-primary-mooduit mb-0">
-                  {t("Tambah Impian Baru", "Add New Dream Target")}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="fw-800 text-primary-mooduit dark:text-white mb-0">
+                  {t("Tambah Target Impian Baru", "Add New Dream Target")}
                 </h5>
                 <button
-                  className="btn btn-link p-0 text-muted"
+                  type="button"
+                  className="btn-close dark:filter dark:invert"
                   onClick={() => setIsTargetModalOpen(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label small fw-bold">
-                  {t("Nama Target", "Target Name")}
-                </label>
-                <input
-                  type="text"
-                  className="form-control py-3 rounded-xl bg-light border-0 fw-medium"
-                  value={newTargetName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNewTargetName(
-                      val.charAt(0).toUpperCase() + val.slice(1),
-                    );
-                  }}
-                  placeholder={t("Contoh: Laptop Baru", "E.g., New Laptop")}
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="form-label small fw-bold">
-                  {t("Estimasi Harga (Rp)", "Estimated Price (IDR)")}
-                </label>
-                <div className="input-group font-sans">
-                  <span className="input-group-text bg-light border-0 rounded-start-xl fw-bold text-primary-mooduit">
-                    Rp
-                  </span>
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="small text-muted font-bold mb-1">
+                    {t("Nama Impian", "Dream Target Name")}
+                  </label>
                   <input
                     type="text"
-                    className="form-control py-3 border-0 bg-light rounded-end-xl fw-800"
+                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    value={newTargetName}
+                    onChange={(e) => setNewTargetName(e.target.value)}
+                    placeholder="Contoh: Beli Sepeda Lipat"
+                  />
+                </div>
+
+                <div>
+                  <label className="small text-muted font-bold mb-1">
+                    {t("Target Harga (Rp)", "Target Price (IDR)")}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     value={newTargetPrice}
-                    onChange={(e) =>
-                      setNewTargetPrice(formatInput(e.target.value))
-                    }
-                    placeholder={t("Contoh: 10.000.000", "E.g., 10,000,000")}
+                    onChange={(e) => setNewTargetPrice(formatInput(e.target.value))}
+                    placeholder="Contoh: 5.000.000"
                   />
                 </div>
               </div>
 
-              <div className="d-flex gap-2 font-sans">
+              <div className="d-flex justify-content-end gap-2">
                 <button
-                  className="btn btn-mooduit-outline flex-grow-1 py-3 rounded-xl fw-bold"
+                  type="button"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-sm font-bold"
                   onClick={() => setIsTargetModalOpen(false)}
                 >
                   {t("Batal", "Cancel")}
                 </button>
                 <button
-                  className="btn btn-mooduit-primary flex-grow-1 py-3 rounded-xl fw-800"
-                  onClick={handleAddTarget}
+                  type="button"
                   disabled={!newTargetName || !newTargetPrice}
+                  className="btn btn-mooduit rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50"
+                  onClick={handleAddTarget}
                 >
                   {t("Tambah Target", "Add Target")}
                 </button>
@@ -2351,152 +2297,123 @@ export default function Dashboard({
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-        {/* Modal Popup Apresiasi (Selebrasi Impian Tercapai) */}
+      {/* Celebration Modal Wujudkan Impian */}
+      <AnimatePresence>
         {isCelebrationOpen && selectedTargetForCelebration && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3 animate-fade-in"
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
-              zIndex: 2500,
-              backgroundColor: "rgba(17, 47, 88, 0.5)",
-              backdropFilter: "blur(6px)",
+              zIndex: 2000,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(5px)",
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="card-mooduit p-4 shadow-2xl w-100 bg-white text-center"
-              style={{ maxWidth: "450px", borderRadius: "24px" }}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "440px" }}
             >
-              {/* Celebration Icon/Illustration */}
-              <div className="mb-4 mt-2">
-                <span className="display-4" style={{ fontSize: "3.5rem" }}>🎉</span>
-              </div>
-
-              {/* Title */}
-              <h4 className="fw-800 text-primary-mooduit mb-3" style={{ fontSize: "1.4rem" }}>
-                🎉 {t("SAH! Impianmu Terbeli!", "SOLD! Your Dream Is Achieved!")}
+              <div className="text-5xl mb-3 animate-bounce">🎉</div>
+              <h4 className="fw-800 text-primary-mooduit dark:text-white mb-2">
+                {t("Wujudkan Impian Ini?", "Achieve this Dream?")}
               </h4>
-
-              {/* Description */}
-              <p className="text-gray-600 mb-4 px-2" style={{ fontSize: "0.95rem", lineHeight: "1.6" }}>
+              <p className="text-muted small mb-4">
                 {t(
-                  `Keren banget! Kamu berhasil mewujudkan impian ${selectedTargetForCelebration.nama || selectedTargetForCelebration.name} seharga Rp ${Number(
-                    (selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0")
-                      .toString()
-                      .replace(/\D/g, ""),
-                  ).toLocaleString("id-ID")}. Kerja kerasmu menabung terbayar lunas!`,
-                  `So cool! You have successfully achieved your dream ${selectedTargetForCelebration.nama || selectedTargetForCelebration.name} worth Rp ${Number(
-                    (selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0")
-                      .toString()
-                      .replace(/\D/g, ""),
-                  ).toLocaleString("id-ID")}. Your hard work saving has paid off!`
+                  `Apakah kamu sudah siap mewujudkan "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" seharga Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? Transaksi pengeluaran akan dicatat otomatis.`,
+                  `Are you ready to purchase "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" for Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? An expense transaction will be recorded automatically.`
                 )}
               </p>
 
-              {/* Action Buttons */}
-              <div className="d-flex gap-3 font-sans justify-content-center">
+              <div className="d-flex gap-2 justify-content-center">
                 <button
-                  className="btn btn-mooduit-outline px-4 py-3 rounded-xl fw-bold flex-grow-1"
-                  style={{ minWidth: "120px" }}
-                  onClick={() => {
-                    setIsCelebrationOpen(false);
-                    setSelectedTargetForCelebration(null);
-                  }}
+                  type="button"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 font-bold"
+                  onClick={() => setIsCelebrationOpen(false)}
                 >
-                  {t("Batal", "Cancel")}
+                  {t("Nanti Dulu", "Not Yet")}
                 </button>
                 <button
-                  className="btn btn-mooduit-primary px-4 py-3 rounded-xl fw-800 flex-grow-1"
-                  style={{ minWidth: "150px" }}
+                  type="button"
+                  className="btn btn-mooduit rounded-xl px-4 py-2.5 font-bold bg-[#112F58] text-white hover:bg-[#1a447d]"
                   onClick={handleBuyTarget}
                 >
-                  {t("Catat & Rayakan!", "Record & Celebrate!")}
+                  🚀 {t("Ya, Wujudkan!", "Yes, Achieve it!")}
                 </button>
               </div>
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-        {/* Daily Streak Celebration Pop-up Modal */}
+      {/* Pop-up Celebration Streak / Transaction Success */}
+      <AnimatePresence>
         {showCelebration && (
-          <div className="celebration-modal-overlay">
-            {/* Backdrop */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="celebration-modal-backdrop"
-              onClick={handleCloseCelebration}
-            />
-            {/* Modal Box */}
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              transition={{ type: "spring", duration: 0.5, bounce: 0.25 }}
-              className="celebration-modal-content"
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            style={{
+              zIndex: 3000,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700 relative overflow-hidden"
+              style={{ maxWidth: "460px" }}
             >
-              {/* KONDISI A: SELEBRASI STREAK BARU */}
-              <div className="celebration-orange-accent-wrapper">
-                <span className="celebration-modal-fire animate-bounce inline-block">🔥</span>
-                <span className="streak-celebration-sparkle streak-celebration-sparkle-1">✨</span>
-                <span className="streak-celebration-sparkle streak-celebration-sparkle-2">✨</span>
+              <div className="relative mb-4">
+                <div className="text-6xl select-none animate-pulse">🔥</div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                  <Sparkles size={80} className="text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+                </div>
               </div>
- 
-              <h4 className="celebration-modal-title">
-                {t("Boom! Transaksi Tercatat! 🔥", "Boom! Transaction Recorded! 🔥")}
+
+              <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 font-extrabold text-sm mb-3">
+                {streakCount} {t("HARI STREAK!", "DAYS STREAK!")}
+              </div>
+
+              <h4 className="fw-800 text-primary-mooduit dark:text-white mb-2" style={{ fontSize: "1.4rem" }}>
+                {streakIncreasedToday
+                  ? t("Streak Kamu Menyala! 🔥", "Your Streak is on Fire! 🔥")
+                  : t("Transaksi Berhasil Dicatat! ✨", "Transaction Logged! ✨")}
               </h4>
- 
-              <div className="celebration-modal-text min-h-[56px] flex items-center justify-center text-center my-2 px-2">
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-700/60 rounded-2xl mb-4 border border-slate-100 dark:border-slate-600">
                 {isMotivationLoading ? (
-                  <span className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold italic animate-pulse text-sm py-1.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <span className="animate-spin text-base">✨</span>
-                    <span>
-                      {t(
-                        "✨ MOODUIT AI sedang meracik kata-kata sakti buatmu...",
-                        "✨ MOODUIT AI is brewing inspiring magic for you..."
-                      )}
-                    </span>
-                  </span>
+                  <div className="h-10 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-[#112F58] border-t-transparent rounded-full animate-spin" />
+                  </div>
                 ) : (
-                  <p className="italic font-medium text-slate-700 dark:text-slate-200 text-sm md:text-base leading-relaxed">
-                    “{aiMotivationText || t(
-                      motivationQuotes[quoteIndex]?.id || "Keren banget! Setiap koin yang kamu catat hari ini mendekatkanmu ke kebebasan finansial. Streak kamu menyala! 🔥",
-                      motivationQuotes[quoteIndex]?.en || "Super cool! Every coin you log today brings you closer to financial freedom. Your streak is glowing! 🔥"
-                    )}”
+                  <p className="text-slate-700 dark:text-slate-200 text-sm font-medium mb-0 leading-relaxed italic">
+                    "{aiMotivationText || motivationQuotes[quoteIndex]?.[language === "en" ? "en" : "id"] || currentDailyQuote[language === "en" ? "en" : "id"]}"
                   </p>
                 )}
               </div>
- 
-              <div className="celebration-modal-stats-card">
-                <span className="celebration-modal-stats-val">🔥 {streakCount}</span>
-                <span className="celebration-modal-stats-label">
-                  {t("Hari Beruntun", "Days Streak")}
-                </span>
-              </div>
- 
-              {/* 30% Navy/Dark Blue main action button */}
+
               <button
-                onClick={handleCloseCelebration}
-                className="celebration-modal-btn-navy"
                 type="button"
+                onClick={handleCloseCelebration}
+                className="btn btn-mooduit w-full py-2.5 rounded-xl font-bold bg-[#112F58] text-white hover:bg-[#1a447d] shadow-md cursor-pointer"
               >
-                {t("Mantap, Lanjutkan! 🔥", "Awesome, Continue! 🔥")}
+                {t("Mantap! Lanjutkan 🔥", "Awesome! Continue 🔥")}
               </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* FULL-SCREEN BIRTHDAY SURPRISE MODAL */}
+      {/* Birthday Modal Component */}
       <BirthdayModal
         isOpen={showBirthdayModal}
         onClose={() => setShowBirthdayModal(false)}
         userName={userName}
         userDob={userDob}
-        userAvatar={localStorage.getItem("userAvatar") || undefined}
       />
     </div>
   );

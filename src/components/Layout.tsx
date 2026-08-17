@@ -166,7 +166,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
           {/* Mobile Header */}
           <div className="d-lg-none py-3 px-4 bg-primary-mooduit position-sticky top-0 w-100 d-flex justify-content-between align-items-center shadow-sm" style={{ zIndex: 1000 }}>
             <Logo size={32} showText={true} variant="light" />
-            {/* Profil User di Kanan Atas - Dijadikan Tombol ke Pengaturan */}
             <div 
               onClick={() => onNavigate('settings')}
               className="p-1 cursor-pointer transition-transform active:scale-95 flex items-center justify-center rounded-full"
@@ -189,7 +188,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
           
           <main className="w-full max-w-full px-4 md:px-8 py-4 py-lg-5 overflow-x-hidden box-border">
             <div className="w-full max-w-7xl mx-auto">
-              {/* Adjust margin for desktop sidebar */}
               <style dangerouslySetInnerHTML={{ __html: `
                 :root { --sidebar-offset: 0px; }
                 @media (min-width: 992px) {
@@ -247,7 +245,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
           })}
         </div>
       </nav>
-      {/* Action Modal */}
+      
+      {/* Action Modal (Catat Transaksi) */}
       <AnimatePresence>
         {showActionModal && (
           <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 2000 }}>
@@ -267,13 +266,13 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
             >
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="fw-800 text-primary-mooduit mb-0">{t('Catat Transaksi', 'Record Transaction')}</h5>
-                <button className="btn btn-light rounded-circle p-1" onClick={() => setShowActionModal(false)}><X size={20}/></button>
+                <button className="btn btn-light rounded-circle p-1 cursor-pointer" onClick={() => setShowActionModal(false)}><X size={20}/></button>
               </div>
 
               <div className="d-flex flex-column">
                 <button 
                   type="button"
-                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-[#112F58] hover:bg-[#1a4a86] active:bg-[#0e2646] active:scale-95 transition-all duration-150 mb-3 focus:outline-none focus:ring-2 focus:ring-[#112F58]"
+                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-3 focus:outline-none shadow-sm cursor-pointer"
                   onClick={() => {
                     setShowActionModal(false);
                     onNavigate('scanner');
@@ -290,7 +289,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
 
                 <button 
                   type="button"
-                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-[#112F58] hover:bg-[#1a4a86] active:bg-[#0e2646] active:scale-95 transition-all duration-150 mb-2 focus:outline-none focus:ring-2 focus:ring-[#112F58]"
+                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-2 focus:outline-none shadow-sm cursor-pointer"
                   onClick={() => {
                     setShowActionModal(false);
                     setIsManualModalOpen(true);
@@ -310,7 +309,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
         )}
       </AnimatePresence>
 
-      {/* Manual Input Modal */}
+      {/* Manual Input Modal (Tambah Transaksi) */}
       <AnimatePresence>
         {isManualModalOpen && (
           <div className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-[#112F58]/40 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300">
@@ -334,7 +333,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 <h2 className="text-[#112F58] text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Tambah Transaksi', 'Add Transaction')}</h2>
                 <button 
                   onClick={() => setIsManualModalOpen(false)} 
-                  className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0"
+                  className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -343,55 +342,82 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               {/* KONTEN (Scrollable) */}
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                 
-                {/* TOGGLE PENGELUARAN / PEMASUKAN */}
-                <div className="flex bg-gray-100 p-1 rounded-xl sm:rounded-2xl">
-                  <button 
-                    onClick={() => {
-                      setManualJenis("pengeluaran");
-                      setManualKategori("Kebutuhan Pokok");
-                    }}
-                    className={`w-1/2 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border-0 ${manualJenis === "pengeluaran" ? "bg-white text-red-500 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
-                    📉 {t('Pengeluaran', 'Expenses')}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setManualJenis("pemasukan");
-                      setManualKategori("Gaji & Upah");
-                    }}
-                    className={`w-1/2 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border-0 ${manualJenis === "pemasukan" ? "bg-white text-green-500 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
-                    📈 {t('Pemasukan', 'Income')}
-                  </button>
+                {/* TOGGLE PENGELUARAN / PEMASUKAN DENGAN DESAIN SEGMENTED LENGKUNG SEMPURNA & TANPA EMOJI */}
+                <div>
+                  <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">
+                    Jenis Transaksi
+                  </label>
+                  {/* Wrapper luar dibikin tanpa padding, border tipis agar tombol inner pas ke sudut */}
+                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setManualJenis("pengeluaran");
+                        setManualKategori("Kebutuhan Pokok");
+                      }}
+                      /* Pengeluaran: Kiri melengkung (rounded-l-xl), Kanan lurus/kotak (rounded-r-none) */
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
+                        manualJenis === "pengeluaran" 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {t('Pengeluaran', 'Expenses')}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setManualJenis("pemasukan");
+                        setManualKategori("Gaji & Upah");
+                      }}
+                      /* Pemasukan: Kiri lurus/kotak (rounded-l-none), Kanan melengkung (rounded-r-xl) */
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
+                        manualJenis === "pemasukan" 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {t('Pemasukan', 'Income')}
+                    </button>
+                  </div>
                 </div>
 
                 {/* INPUT NOMINAL BESAR */}
                 <div>
                   <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Jumlah Nominal', 'Total Nominal')}</label>
                   <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden focus-within:border-[#112F58] focus-within:bg-white transition-all duration-300">
-                    <span className={`pl-4 sm:pl-5 text-xl sm:text-2xl font-bold ${manualJenis === "pengeluaran" ? "text-red-500" : "text-green-500"}`}>Rp</span>
+                    <span className={`pl-4 sm:pl-5 text-xl sm:text-2xl font-bold ${manualJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`}>Rp</span>
                     <input 
                       type="text" 
                       value={manualNominal} 
                       onChange={handleNominalChange} 
                       placeholder="0" 
-                      className={`w-full bg-transparent py-3 sm:py-5 pl-2 sm:pl-3 pr-4 sm:pr-5 text-2xl sm:text-4xl font-extrabold focus:outline-none placeholder-gray-300 ${manualJenis === "pengeluaran" ? "text-red-500" : "text-green-500"}`} 
-                      autoFocus
+                      className={`w-full bg-transparent py-3 sm:py-5 pl-2 sm:pl-3 pr-4 sm:pr-5 text-2xl sm:text-4xl font-extrabold focus:outline-none placeholder-gray-300 ${manualJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`} 
                     />
                   </div>
                 </div>
 
-                {/* GRID KATEGORI */}
+                {/* GRID KATEGORI (DEFAULT PUTIH, HOVER NAVY, AKTIF SOLID NAVY) */}
                 <div>
                   <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
                     {kategoriAktif.map((kat) => (
                       <button 
                         key={kat.id}
                         type="button"
                         onClick={() => setManualKategori(kat.id)}
-                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 ${manualKategori === kat.id ? "bg-[#112F58]/5 border-[#112F58] text-[#112F58] shadow-sm scale-105" : "bg-white border-gray-100 hover:bg-gray-50 text-gray-500"}`}
+                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                          manualKategori === kat.id 
+                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
+                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
+                        }`}
                       >
                         <span className="text-xl sm:text-2xl drop-shadow-sm">{kat.icon}</span>
-                        <span className="text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words">{kat.id.toUpperCase()}</span>
+                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
+                          manualKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
+                        }`}>
+                          {kat.id.toUpperCase()}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -405,7 +431,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                       type="date" 
                       value={manualTanggal} 
                       onChange={(e) => setManualTanggal(e.target.value)} 
-                      className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all" 
+                      className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all cursor-pointer" 
                     />
                   </div>
                   <div>
@@ -424,7 +450,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               {/* TOMBOL SIMPAN */}
               <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white">
                 <button 
-                  className="w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#112F58] text-white font-bold text-base sm:text-lg shadow-lg hover:bg-[#1a4a86] active:scale-95 transition-all flex items-center justify-center gap-2 border-0"
+                  className="w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#112F58] text-white font-bold text-base sm:text-lg shadow-lg hover:bg-[#0c2240] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
                   onClick={async () => {
                     const tempId = Date.now();
                     const newTransaction = {
@@ -463,12 +489,12 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                         });
                       }
                       
-                      // Trigger success modal with exact streak details from API response!
+                      // Trigger success modal
                       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
                         (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
-                          type: inserted.type || newType,
-                          amount: inserted.amount || Number(newAmount),
-                          category: inserted.category || newCategory
+                          type: inserted.type || manualJenis,
+                          amount: inserted.amount || Number(manualNominal.replace(/\D/g, "")),
+                          category: inserted.category || manualKategori
                         });
                       }
                     } catch (err) {
@@ -476,9 +502,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                       // Fallback trigger in case of connection issue
                       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
                         (window as any).triggerTransactionSuccess(undefined, undefined, {
-                          type: newType,
-                          amount: Number(newAmount),
-                          category: newCategory
+                          type: manualJenis,
+                          amount: Number(manualNominal.replace(/\D/g, "")),
+                          category: manualKategori
                         });
                       }
                     }

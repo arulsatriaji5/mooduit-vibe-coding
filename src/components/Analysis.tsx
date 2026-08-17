@@ -7,6 +7,8 @@ import {
 } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { motion } from 'motion/react';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 import { 
   PieChart, 
   TrendingDown, 
@@ -19,8 +21,6 @@ import {
   PlayCircle
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface AnalysisProps {
   transactions?: any[];
@@ -72,7 +72,6 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
     }
   }, [propsTransactions]);
 
-  // Filter only 'pengeluaran' (spending) with safe validation
   const pengeluaran = (transactions || []).filter((t: any) => t && t.jenis === 'pengeluaran');
   
   let totalSemua = 0;
@@ -94,7 +93,6 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
     }
   });
 
-  // Solid, high-contrast style mappings for categories
   const categoryStyles: { [key: string]: { color: string; bg: string; icon: string } } = {
     "Kebutuhan Pokok": { color: '#112F58', bg: '#112F5815', icon: '🛒' },
     "Transportasi": { color: '#886E41', bg: '#886E4115', icon: '🚗' }, 
@@ -142,7 +140,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       {
         data: categoriesList.map(c => c.value),
         backgroundColor: categoriesList.map(c => c.color),
-        borderColor: '#ffffff',
+        borderColor: darkMode ? '#1e293b' : '#ffffff',
         borderWidth: 2,
         hoverOffset: 8,
         cutout: '75%'
@@ -153,16 +151,12 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   const donutOptions = {
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false
-      },
+      legend: { display: false },
       tooltip: {
         callbacks: {
           label: (context: any) => {
             let label = context.label || '';
-            if (label) {
-              label += ': ';
-            }
+            if (label) label += ': ';
             if (context.parsed !== null) {
               label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(context.parsed);
             }
@@ -173,8 +167,6 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
     }
   };
 
-  // --- REAL-TIME DYNAMIC TRANSACTIONS COUPLING ---
-  // Sum up all dynamic income ('pemasukan') transactions in our active database
   const totalPemasukanDinamis = (transactions || [])
     .filter((t: any) => t && t.jenis === 'pemasukan')
     .reduce((sum: number, t: any) => {
@@ -184,28 +176,22 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       return sum + nominal;
     }, 0);
 
-  // Set the dynamic baseline income based strictly on the database
   let income = totalPemasukanDinamis;
-  let usingDefaultIncome = false;
 
   if (income === 0) {
-    // If there is no transaction of type 'pemasukan', fallback to smart budget or default Rp 10.000.000
     const savedBudget = localStorage.getItem('mooduit_50_30_20_budget');
     const budgetData = savedBudget ? JSON.parse(savedBudget) : null;
     if (budgetData && budgetData.pendapatan) {
       income = Number(budgetData.pendapatan.replace(/\D/g, ""));
     } else {
-      income = 10000000; // Default clean 10 million base
-      usingDefaultIncome = true;
+      income = 10000000;
     }
   }
 
-  // 50/30/20 Limits directly calculated from active transaction database income
   const budgetLimitNeeds = income * 0.50;
   const budgetLimitWants = income * 0.30;
   const budgetLimitSavings = income * 0.20;
 
-  // Classify categories into Needs (Kebutuhan), Wants (Keinginan), and Savings (Tabungan & Investasi)
   let actualSpendingNeeds = 0;
   let actualSpendingWants = 0;
   let actualSpendingSavings = 0;
@@ -220,22 +206,11 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       const note = String(t.catatan || t.description || "").toLowerCase();
       const cat = String(t.kategori || "").toUpperCase();
       
-      // 1. Deteksi Tabungan / Kantong Masa Depan
-      if (
-        cat === 'KANTONG' || 
-        cat === 'TABUNGAN' || 
-        cat === 'INVESTASI' || 
-        note.includes('alokasi') ||
-        note.includes('allocation')
-      ) {
+      if (cat === 'KANTONG' || cat === 'TABUNGAN' || cat === 'INVESTASI' || note.includes('alokasi') || note.includes('allocation')) {
         actualSpendingSavings += nominal;
-      } 
-      // 2. Deteksi Kebutuhan Pokok
-      else if (needsCategories.includes(t.kategori)) {
+      } else if (needsCategories.includes(t.kategori)) {
         actualSpendingNeeds += nominal;
-      } 
-      // 3. Sisanya masuk ke Keinginan & Gaya Hidup
-      else {
+      } else {
         actualSpendingWants += nominal;
       }
     }
@@ -245,7 +220,6 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   const percentWantsUsed = budgetLimitWants > 0 ? (actualSpendingWants / budgetLimitWants) * 100 : 0;
   const percentSavingsUsed = budgetLimitSavings > 0 ? (actualSpendingSavings / budgetLimitSavings) * 100 : 0;
 
-  // --- NEW: INCOME ANALYSIS CALCULATIONS ---
   const incomeCategoryStyles: { [key: string]: { color: string; bg: string; icon: string } } = {
     "Gaji & Upah": { color: '#059669', bg: '#05966915', icon: '💰' },
     "Bonus & THR": { color: '#ca8a04', bg: '#ca8a0415', icon: '🎉' }, 
@@ -308,7 +282,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       {
         data: incomeCategoriesList.map(c => c.value),
         backgroundColor: incomeCategoriesList.map(c => c.color),
-        borderColor: '#ffffff',
+        borderColor: darkMode ? '#1e293b' : '#ffffff',
         borderWidth: 2,
         hoverOffset: 8,
         cutout: '75%'
@@ -368,19 +342,6 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
 
   const incomeInsight = generateIncomeInsight();
 
-  const categoryTranslations: { [key: string]: string } = {
-    "Kebutuhan Pokok": t("Kebutuhan Pokok", "Needs"),
-    "Transportasi": t("Transportasi", "Transportation"),
-    "Hiburan": t("Hiburan", "Entertainment"),
-    "Makan & Minum": t("Makan & Minum", "Food & Dining"),
-    "Kesehatan": t("Kesehatan", "Healthcare"),
-    "Pendidikan": t("Pendidikan", "Education"),
-    "Tagihan": t("Tagihan", "Bills & Utilities"),
-    "Belanja": t("Belanja", "Shopping"),
-    "Lainnya": t("Lainnya", "Others")
-  };
-
-  // Real-time calculated Insight AI
   const generateInsight = () => {
     if (totalSemua === 0) {
       return {
@@ -413,7 +374,18 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       };
     }
 
-    // Default healthy financial insight
+    const categoryTranslations: { [key: string]: string } = {
+      "Kebutuhan Pokok": t("Kebutuhan Pokok", "Needs"),
+      "Transportasi": t("Transportasi", "Transportation"),
+      "Hiburan": t("Hiburan", "Entertainment"),
+      "Makan & Minum": t("Makan & Minum", "Food & Dining"),
+      "Kesehatan": t("Kesehatan", "Healthcare"),
+      "Pendidikan": t("Pendidikan", "Education"),
+      "Tagihan": t("Tagihan", "Bills & Utilities"),
+      "Belanja": t("Belanja", "Shopping"),
+      "Lainnya": t("Lainnya", "Others")
+    };
+
     const topCat = categoriesList[0];
     const topCatNameTranslated = topCat ? (categoryTranslations[topCat.name] || topCat.name) : "";
     return {
@@ -431,598 +403,423 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   const isEmpty = activeTab === 'pengeluaran' ? totalSemua === 0 : totalPemasukanSemua === 0;
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 overflow-x-hidden flex flex-col gap-6">
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 pb-24 overflow-x-hidden flex flex-col gap-4 lg:gap-6">
       <style>
         {`
-          /* 1. Reset Global untuk halaman Analisa */
-          .analisa-page-wrapper {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px;
-            box-sizing: border-box;
-            overflow-x: hidden; /* Hapus bocor samping */
-          }
-
-          /* 2. Responsive Engine: Force Stacking (Mobile First) */
-          @media (max-width: 768px) {
-            .analisa-page-wrapper {
-              display: flex !important;
-              flex-direction: column !important;
-              width: 100% !important;
-            }
-            
-            /* Paksa semua kartu/kontainer jadi satu kolom */
-            .card-container {
-              width: 100% !important;
-              display: flex !important;
-              flex-direction: column !important;
-              margin-bottom: 16px !important;
-            }
-            
-            /* Sembunyikan elemen dekoratif yang terlalu lebar */
-            .desktop-only { display: none !important; }
-          }
-
-          /* Grid System - Otomatis pindah ke vertikal di HP */
-          .grid-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-            padding: 16px;
-          }
-
-          /* Desktop Override */
-          @media (min-width: 768px) {
-            .grid-layout { grid-template-columns: 1.4fr 1fr; }
-          }
-
-          /* Fix for overlapping text in Analisa Page */
           .text-fix {
             word-break: break-word;
             overflow-wrap: break-word;
             max-width: 100%;
           }
-
-          /* Additional Helper Styles */
-          .tab-switcher {
-            display: flex;
-            gap: 8px;
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
           }
-
-          @media (max-width: 768px) {
-            .tab-switcher {
-              flex-direction: column !important;
-              width: 100% !important;
-            }
-            .tab-switcher button {
-              width: 100% !important;
-              text-align: center;
-            }
-          }
-
-          /* Force Legible Text in AI Advisor */
-          .ai-advisor-title {
-            color: #112F58 !important;
-          }
-          .dark .ai-advisor-title {
-            color: #ffffff !important;
-          }
-          .ai-advisor-text {
-            margin: 0 !important;
-          }
-          .ai-advisor-anomaly-box {
-            background-color: rgba(17, 47, 88, 0.04) !important;
-            border: 1px solid rgba(17, 47, 88, 0.08) !important;
-          }
-          .dark .ai-advisor-anomaly-box {
-            background-color: rgba(255, 255, 255, 0.04) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          }
-          .ai-advisor-anomaly-title {
-            color: rgba(17, 47, 88, 0.7) !important;
-          }
-          .dark .ai-advisor-anomaly-title {
-            color: rgba(255, 255, 255, 0.6) !important;
-          }
-          .ai-advisor-anomaly-highlight {
-            color: #112F58 !important;
-          }
-          .dark .ai-advisor-anomaly-highlight {
-            color: #ffffff !important;
-          }
-          .ai-advisor-anomaly-desc {
-            color: rgba(17, 47, 88, 0.8) !important;
-          }
-          .dark .ai-advisor-anomaly-desc {
-            color: rgba(255, 255, 255, 0.8) !important;
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
           }
         `}
       </style>
-      {/* Header */}
-      <header className="mb-4">
+      
+      {/* 1. Header (DIPERBAIKI: Menggunakan Inline Style Warna agar 100% muncul) */}
+      <header className="w-full">
         <div className="d-flex align-items-center gap-3 mb-2">
           <div className="bg-[#112F58] text-white p-2.5 rounded-2xl shadow-sm">
             <PieChart size={24} />
           </div>
           <div>
-            <h3 className="fw-800 text-[#112F58] font-bold text-2xl mb-0">{t('Analisa Keuangan Cerdas', 'Smart Financial Analysis')}</h3>
-            <p className="text-gray-600 text-sm mb-0 mt-0.5">{t('Alat alokasi real-time perbandingan pengeluaran & pemasukan dengan Target Alokasi 50/30/20.', 'Real-time tool comparing your spending & earnings against the 50/30/20 Ideal Budget allocation.')}</p>
+            <h3 
+              className="fw-800 font-bold text-xl md:text-2xl mb-0" 
+              style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+            >
+              {t('Analisa Keuangan Cerdas', 'Smart Financial Analysis')}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-0 mt-0.5">
+              {t('Alat alokasi real-time perbandingan pengeluaran & pemasukan dengan Target Alokasi 50/30/20.', 'Real-time tool comparing your spending & earnings against the 50/30/20 Ideal Budget allocation.')}
+            </p>
           </div>
         </div>
       </header>
 
-      {/* MODERN RUNWAY TAB SWITCHER (RESPONSIVE FIX) */}
-      <div className="d-flex justify-content-center mb-5 w-full px-2">
-        <div 
-          className="tab-switcher"
-          style={{ 
-            backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', 
-            padding: '6px', 
-            borderRadius: '16px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-            border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-            width: '100%',
-            maxWidth: 'max-content',
-            justifyContent: 'center'
-          }}
-        >
-          <button
-            onClick={() => setActiveTab('pengeluaran')}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              fontWeight: '700',
-              fontSize: '14px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              flex: '1 1 auto',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              backgroundColor: activeTab === 'pengeluaran' ? '#112F58' : 'transparent',
-              color: activeTab === 'pengeluaran' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
-            }}
-          >
-            <TrendingDown size={16} />
-            {language === 'id' ? 'Analisa Pengeluaran' : 'Expense Analysis'}
-          </button>
-          <button
-            onClick={() => setActiveTab('pemasukan')}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              fontWeight: '700',
-              fontSize: '14px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              flex: '1 1 auto',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              backgroundColor: activeTab === 'pemasukan' ? '#112F58' : 'transparent',
-              color: activeTab === 'pemasukan' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
-            }}
-          >
-            <TrendingUp size={16} />
-            {language === 'id' ? 'Analisa Pemasukan' : 'Income Analysis'}
-          </button>
-        </div>
-      </div>
-
-      {isEmpty ? (
-        <div className="text-center py-10 px-4 max-w-2xl mx-auto">
+      {/* 2. Grid Layout */}
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 lg:gap-6 w-full">
+        
+        {/* KOLOM KIRI */}
+        <div className="lg:col-span-4 flex flex-col gap-4 order-1">
+          
+          {/* KOTAK SARAN AI */}
           <motion.div 
-            className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-8 shadow-md"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            style={{ 
+              backgroundColor: darkMode ? '#1e293b' : '#ffffff', 
+              borderRadius: '20px', 
+              padding: '20px', 
+              border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/30 p-4 rounded-full text-[#112F58] dark:text-amber-400 shadow-inner inline-flex items-center justify-center mb-4">
-              <AlertCircle size={48} className="text-amber-500" />
+            <div className="d-flex justify-content-between align-items-center mb-3 border-b border-gray-100 dark:border-slate-700 pb-3">
+              <div className="d-flex align-items-center gap-2">
+                <span className="text-xl">🤖</span>
+                <h3 className="font-bold m-0" style={{ fontSize: '16px', color: darkMode ? '#ffffff' : '#112F58' }}>
+                  {language === 'id' ? 'Saran AI Advisor' : 'AI Advisor Suggestion'}
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2 py-0.5 rounded-full">
+                {t('LIVE', 'LIVE')}
+              </span>
             </div>
-            <h4 className="text-[#112F58] dark:text-white font-extrabold text-xl mb-2">
-              {activeTab === 'pengeluaran' 
-                ? t('Belum Ada Data Transaksi untuk Dianalisa', 'No Transaction Data to Analyze Yet')
-                : t('Belum Ada Data Pemasukan untuk Dianalisa', 'No Income Data to Analyze Yet')
-              }
-            </h4>
-            <p className="mt-3 text-center max-w-md mx-auto leading-relaxed !text-slate-500 dark:!text-slate-400 font-medium font-sans">
-              {activeTab === 'pengeluaran'
-                ? t('Rincian laporan kas kamu masih kosong. Yuk, tambahkan transaksi pengeluaran pertamamu atau scan struk belanjamu sekarang juga!', 'Your transaction reports are empty. Let\'s add your first manual expense transaction or scan receipts now!')
-                : t('Rincian laporan pendapatan kamu masih kosong. Yuk, tambahkan transaksi pemasukan baru sekarang juga!', 'Your income reports are empty. Let\'s add your first income transaction now!')
-              }
-            </p>
-            <div 
-              style={{ 
-                backgroundColor: '#ffffff', 
-                border: '2px dashed #cbd5e1', 
-                color: '#475569',
-                padding: '20px',
-                borderRadius: '16px',
-                marginTop: '32px'
-              }}
-              className="shadow-sm text-left leading-relaxed text-sm"
+
+            <p 
+              className="text-sm leading-relaxed mb-4 whitespace-pre-wrap"
+              style={{ color: darkMode ? '#f8fafc' : '#334155' }} 
             >
-              <span style={{ color: '#112F58', fontWeight: '800', marginRight: '8px', display: 'inline-block', marginBottom: '8px' }}>
-                💡 {t('Tips Cara Mulai:', 'How to Start:')}
-              </span> 
-              {activeTab === 'pengeluaran' ? (
-                <>
-                  {t('Gunakan menu', 'Use the')}{' '}
-                  <strong style={{ color: '#334155' }}>Manual Input</strong>{' '}
-                  {t('atau navigasi ke fitur', 'or navigate to')}{' '}
-                  <strong style={{ color: '#334155' }}>{t('Scan Transaksi', 'Scan Transactions')}</strong>{' '}
-                  {t('untuk membaca struk secara otomatis. Laporan visual ini akan langsung terisi secara instan!', 'to read the receipts automatically. These visual reports will load instantly!')}
-                </>
+              {!isEmpty ? (
+                activeTab === 'pengeluaran' 
+                  ? insight.tip 
+                  : incomeInsight.tip
               ) : (
-                <>
-                  {t('Gunakan menu', 'Use the')}{' '}
-                  <strong style={{ color: '#334155' }}>Manual Input</strong>{' '}
-                  {t('di Dashboard lalu pilih jenis transaksi', 'on the Dashboard and select transaction type')}{' '}
-                  <strong style={{ color: '#334155' }}>{t('Pemasukan', 'Income')}</strong>{' '}
-                  {t('untuk mencatat gaji atau pendapatan Anda lainnya secara real-time!', 'to record your salary or other earnings in real-time!')}
-                </>
+                language === 'id' ? 'Catat data pertamamu agar AI bisa mulai bekerja!' : 'Record your first data to activate AI!'
               )}
-            </div>
-          </motion.div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
-          {/* Main spending/income breakdown chart & categories */}
-          <div className="lg:col-span-7 w-full overflow-hidden flex flex-col card-container">
-            <motion.div 
-              className="card-mooduit h-100 p-4 bg-white"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="d-flex justify-content-between align-items-center mb-4 border-b border-gray-100 pb-3">
-                 <h5 className="fw-extrabold text-[#112F58] font-bold text-lg mb-0">
-                   {activeTab === 'pengeluaran' 
-                     ? t('Rincian Pengeluaran', 'Spending Details') 
-                     : t('Rincian Pemasukan', 'Income Details')
-                   }
-                 </h5>
-                 {activeTab === 'pengeluaran' ? (
-                   <div className="d-flex align-items-center gap-1.5 text-red-600 font-bold text-sm bg-red-50 px-2.5 py-1 rounded-full">
-                     <TrendingDown size={16} />
-                     <span>{t('Real-time Pengeluaran', 'Real-time Expenses')}</span>
-                   </div>
-                 ) : (
-                   <div className="d-flex align-items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-2.5 py-1 rounded-full">
-                     <TrendingUp size={16} />
-                     <span>{t('Real-time Pemasukan', 'Real-time Income')}</span>
-                   </div>
-                 )}
-              </div>
+            </p>
 
-              <div className="flex flex-col md:flex-row items-center gap-6 w-full">
-                {/* Chart Segment */}
-                <div className="relative flex justify-center w-full md:w-5/12" style={{ height: '240px' }}>
-                  <Doughnut 
-                    data={activeTab === 'pengeluaran' ? donutData : incomeDonutData} 
-                    options={donutOptions} 
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center mt-1">
-                    <div className="fw-800 text-[#112F58] font-black" style={{ fontSize: '1.2rem', lineHeight: 1.2 }}>
-                      Rp {(activeTab === 'pengeluaran' ? totalSemua : totalPemasukanSemua).toLocaleString('id-ID')}
-                    </div>
-                    <div className="text-[10px] fw-bold text-slate-500 font-bold tracking-wider mt-1 uppercase">
-                      {activeTab === 'pengeluaran' ? t('TERPAKAI', 'USED') : t('TERKUMPUL', 'EARNED')}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Legend list Segment */}
-                <div className="w-full md:w-7/12">
-                  <div className="d-flex flex-column gap-3 max-h-[260px] overflow-y-auto pr-1">
-                    {(activeTab === 'pengeluaran' ? categoriesList : incomeCategoriesList).map((item, i) => {
-                      const labelTranslations: { [key: string]: string } = {
-                        "Kebutuhan Pokok": t("Kebutuhan Pokok", "Needs"),
-                        "Transportasi": t("Transportasi", "Transportation"),
-                        "Hiburan": t("Hiburan", "Entertainment"),
-                        "Makan & Minum": t("Makan & Minum", "Food & Dining"),
-                        "Kesehatan": t("Kesehatan", "Healthcare"),
-                        "Pendidikan": t("Pendidikan", "Education"),
-                        "Tagihan": t("Tagihan", "Bills & Utilities"),
-                        "Belanja": t("Belanja", "Shopping"),
-                        "Lainnya": t("Lainnya", "Others"),
-                        "Gaji & Upah": t("Gaji & Upah", "Salary & Wages"),
-                        "Bonus & THR": t("Bonus & THR", "Bonus & Allowance"),
-                        "Hasil Usaha": t("Hasil Usaha", "Business Profits"),
-                        "Investasi": t("Investasi", "Investments"),
-                        "Pemberian": t("Pemberian", "Gifts & Grants")
-                      };
-
-                      return (
-                        <div key={i} className="d-flex flex-column">
-                          <div className="d-flex align-items-center justify-content-between mb-1.5 font-sans">
-                            <div className="d-flex align-items-center gap-2">
-                              <span 
-                                className="px-2 py-0.5 rounded text-xs font-bold" 
-                                style={{ backgroundColor: item.bg, color: item.color }}
-                              >
-                                {item.percent}
-                              </span>
-                              <span className="text-xs font-bold text-[#1E293B]">
-                                {item.icon} {labelTranslations[item.name] || item.name}
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold text-[#112F58]">
-                              Rp {item.value.toLocaleString('id-ID')}
-                            </span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full rounded-full transition-all duration-500" 
-                              style={{ width: item.percent, backgroundColor: item.color }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* AI Insights and Advice */}
-          <div className="lg:col-span-5 w-full overflow-hidden flex flex-col card-container">
-            <motion.div 
-              style={{ 
-                backgroundColor: darkMode ? '#1e293b' : '#ffffff', 
-                borderRadius: '24px', 
-                padding: '24px', 
-                border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
-                minHeight: '300px',
-                transition: 'all 0.3s ease'
-              }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', paddingBottom: '12px' }} className="d-flex justify-content-between align-items-center">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🤖</span>
-                  <h3 className="ai-advisor-title" style={{ 
-                    fontSize: '16px', 
-                    fontWeight: 'bold', 
-                    color: darkMode ? '#ffffff' : '#112F58',
-                    margin: 0 
-                  }}>
-                    {language === 'id' ? 'Saran AI Advisor' : 'AI Advisor Suggestion'}
-                  </h3>
-                </div>
-                <span className="text-[11px] font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-0.5 rounded-full">
-                  {t('LIVE ANALISA', 'LIVE ANALYSIS')}
-                </span>
-              </div>
-
-              {/* AREA TEKS UTAMA */}
-              <div style={{ marginBottom: '20px' }}>
-                <p 
-                  className="ai-advisor-text text-fix"
-                  style={{ 
-                    fontSize: '15px', 
-                    lineHeight: '1.6', 
-                    color: darkMode ? '#ffffff' : '#0f172a',
-                    margin: 0,
-                    whiteSpace: 'pre-wrap' 
-                  }}
+            {!isEmpty && (
+              <div 
+                className="p-3.5 rounded-xl mt-auto"
+                style={{ 
+                  backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(17,47,88,0.03)',
+                  border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(17,47,88,0.1)' 
+                }}
+              >
+                <div 
+                  className="text-[10px] font-bold tracking-wider uppercase mb-1"
+                  style={{ color: darkMode ? '#94a3b8' : '#64748b' }} 
                 >
-                  {activeTab === 'pengeluaran' 
-                    ? (insight.tip || (language === 'id' ? 'Sedang menganalisa datamu...' : 'Analyzing your data...'))
-                    : (incomeInsight.tip || (language === 'id' ? 'Sedang menganalisa datamu...' : 'Analyzing your data...'))
-                  }
-                </p>
-              </div>
-
-              {/* DETEKSI ANOMALI */}
-              <div className="ai-advisor-anomaly-box" style={{ 
-                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(17, 47, 88, 0.03)', 
-                border: darkMode ? '1px solid rgba(255, 255, 255, 0.07)' : '1px solid rgba(17, 47, 88, 0.07)', 
-                padding: '16px', 
-                borderRadius: '16px' 
-              }}>
-                <div className="ai-advisor-anomaly-title" style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.05em', color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(17, 47, 88, 0.6)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  {activeTab === 'pengeluaran' ? t('DETEKSI ANOMALI & POIN UTAMA', 'ANOMALY DETECTION & HIGHLIGHTS') : t('PILAR UTAMA PENDAPATAN', 'PRIMARY INCOME PILLAR')}
+                  {activeTab === 'pengeluaran' ? t('DETEKSI & POIN UTAMA', 'HIGHLIGHTS') : t('PILAR UTAMA', 'MAIN PILLAR')}
                 </div>
-                <div className="ai-advisor-anomaly-highlight" style={{ fontWeight: '800', fontSize: '15px', marginBottom: '4px', color: darkMode ? '#ffffff' : '#112F58' }}>
+                <div 
+                  className="font-extrabold text-sm mb-1"
+                  style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
+                >
                   {activeTab === 'pengeluaran' ? insight.highlightName : incomeInsight.highlightName}
                 </div>
-                <p className="ai-advisor-anomaly-desc" style={{ fontSize: '13px', color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(17, 47, 88, 0.7)', margin: 0 }}>
+                <p 
+                  className="text-xs m-0 leading-snug"
+                  style={{ color: darkMode ? '#cbd5e1' : '#475569' }} 
+                >
                   {activeTab === 'pengeluaran' ? insight.highlightDesc : incomeInsight.highlightDesc}
                 </p>
               </div>
-            </motion.div>
+            )}
+          </motion.div>
+
+          {/* TAB SWITCHER */}
+          <div 
+            className="p-1.5 rounded-2xl flex shadow-sm w-full mt-1"
+            style={{ 
+              backgroundColor: darkMode ? '#1e293b' : '#f1f5f9',
+              border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0' 
+            }}
+          >
+            <button
+              onClick={() => setActiveTab('pengeluaran')}
+              className="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center transition-all border-0 cursor-pointer"
+              style={{
+                backgroundColor: activeTab === 'pengeluaran' ? '#112F58' : 'transparent',
+                color: activeTab === 'pengeluaran' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
+                boxShadow: activeTab === 'pengeluaran' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+              }}
+            >
+              {language === 'id' ? 'Pengeluaran' : 'Expenses'}
+            </button>
+            <button
+              onClick={() => setActiveTab('pemasukan')}
+              className="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center transition-all border-0 cursor-pointer"
+              style={{
+                backgroundColor: activeTab === 'pemasukan' ? '#112F58' : 'transparent',
+                color: activeTab === 'pemasukan' ? '#ffffff' : (darkMode ? '#94a3b8' : '#64748b'),
+                boxShadow: activeTab === 'pemasukan' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+              }}
+            >
+              {language === 'id' ? 'Pemasukan' : 'Income'}
+            </button>
           </div>
 
-          {/* Dynamic Progress or Income Planning Allocation Planner */}
-          <div className="lg:col-span-12 w-full mt-4 card-container overflow-hidden">
-            <motion.div
-              className="card-mooduit p-4 bg-white"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="d-flex justify-content-between align-items-center mb-4 border-b border-gray-100 pb-3">
-                <div>
-                  <h5 className="fw-extrabold text-[#112F58] font-bold text-lg mb-1">
-                    {activeTab === 'pengeluaran' 
-                      ? t('Progress Alokasi Budget 50 / 30 / 20', '50 / 30 / 20 Budget Allocation Progress')
-                      : t('Rencana Target Pembagian Alokasi 50 / 30 / 20', '50 / 30 / 20 Ideal Target Allocation Budgeting Plan')
-                    }
-                  </h5>
-                  <p className="text-xs text-gray-500 mb-0">
-                    {activeTab === 'pengeluaran' ? (
-                      usingDefaultIncome 
-                        ? t("Belum ada transaksi Pemasukan (Gaji). Menggunakan estimasi default Rp 10.000.000.", "No Pemasukan (Income) transactions. Using default estimate of Rp 10,000,000.") 
-                        : t("Tersinkron Dinamis dengan Database Pemasukan: Rp ", "Dynamically Synced with Income Database: Rp ") + income.toLocaleString('id-ID')
-                    ) : (
-                      t("Berdasar Total Pendapatan Bulan ini: Rp ", "Based on Total Income This Month: Rp ") + totalPemasukanSemua.toLocaleString('id-ID')
-                    )}
-                  </p>
-                </div>
-                <div className="text-xs font-bold text-[#112F58] bg-slate-100 px-3 py-1.5 rounded-full">
-                  {t('Target Aturan Ideal', 'Ideal Rules Target')}
-                </div>
-              </div>
+        </div>
 
-              {activeTab === 'pengeluaran' ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full font-sans">
-                  {/* Kebutuhan Pokok Bar */}
+        {/* KOLOM KANAN */}
+        <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6 order-2">
+          
+          {isEmpty ? (
+            <div className="text-center py-10 px-4 w-full h-full flex items-center justify-center">
+              <motion.div 
+                className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-8 shadow-sm w-full"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-full inline-flex items-center justify-center mb-4">
+                  <AlertCircle size={48} className="text-amber-500" />
+                </div>
+                <h4 
+                  className="font-extrabold text-xl mb-2"
+                  style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+                >
+                  {t('Data Masih Kosong', 'Data is Empty')}
+                </h4>
+                <p 
+                  className="text-sm max-w-sm mx-auto leading-relaxed"
+                  style={{ color: darkMode ? '#94a3b8' : '#64748b' }}
+                >
+                  {t('Laporan visual ini akan langsung terisi begitu kamu mencatat transaksi pertamamu.', 'This visual report will load instantly once you record your first transaction.')}
+                </p>
+              </motion.div>
+            </div>
+          ) : (
+            <>
+              {/* KARTU GRAFIK RINCIAN */}
+              <motion.div 
+                className="bg-white dark:bg-slate-800 rounded-[20px] p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-5 border-b border-gray-100 dark:border-slate-700 pb-3">
+                   <h5 
+                     className="fw-extrabold font-bold text-base sm:text-lg mb-0"
+                     style={{ color: darkMode ? '#ffffff' : '#112F58' }} /* DIPERBAIKI */
+                   >
+                     {activeTab === 'pengeluaran' ? t('Rincian Pengeluaran', 'Spending Details') : t('Rincian Pemasukan', 'Income Details')}
+                   </h5>
+                   <div className={`d-flex align-items-center gap-1.5 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-full ${activeTab === 'pengeluaran' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>
+                     {activeTab === 'pengeluaran' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                     <span>{t('Real-time', 'Real-time')}</span>
+                   </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 w-full">
+                  {/* Donut Chart */}
+                  <div className="relative flex justify-center w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] shrink-0">
+                    <Doughnut data={activeTab === 'pengeluaran' ? donutData : incomeDonutData} options={donutOptions} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full">
+                      {/* DIPERBAIKI: Menggunakan Inline Style untuk memastikan warna Navy/Putih muncul */}
+                      <div 
+                        className="font-black text-[15px] sm:text-[17px] leading-tight"
+                        style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
+                      >
+                        Rp<br/>{(activeTab === 'pengeluaran' ? totalSemua : totalPemasukanSemua).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Legend List */}
+                  <div className="w-full flex-1">
+                    <div className="flex flex-col gap-3 overflow-y-auto max-h-[160px] sm:max-h-[220px] pr-2 no-scrollbar">
+                      {(activeTab === 'pengeluaran' ? categoriesList : incomeCategoriesList).map((item, i) => {
+                        const labelTranslations: { [key: string]: string } = {
+                          "Kebutuhan Pokok": t("Kebutuhan Pokok", "Needs"),
+                          "Transportasi": t("Transportasi", "Transportation"),
+                          "Hiburan": t("Hiburan", "Entertainment"),
+                          "Makan & Minum": t("Makan & Minum", "Food & Dining"),
+                          "Kesehatan": t("Kesehatan", "Healthcare"),
+                          "Pendidikan": t("Pendidikan", "Education"),
+                          "Tagihan": t("Tagihan", "Bills & Utilities"),
+                          "Belanja": t("Belanja", "Shopping"),
+                          "Lainnya": t("Lainnya", "Others"),
+                          "Gaji & Upah": t("Gaji & Upah", "Salary & Wages"),
+                          "Bonus & THR": t("Bonus & THR", "Bonus & Allowance"),
+                          "Hasil Usaha": t("Hasil Usaha", "Business Profits"),
+                          "Investasi": t("Investasi", "Investments"),
+                          "Pemberian": t("Pemberian", "Gifts & Grants")
+                        };
+
+                        return (
+                          <div key={i} className="flex flex-col">
+                            <div className="flex items-center justify-between mb-1.5 font-sans">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold shrink-0" style={{ backgroundColor: item.bg, color: item.color }}>
+                                  {item.percent}
+                               </span>
+                               {/* DIPERBAIKI: Teks Legenda dikunci inline stylenya */}
+                               <span 
+                                 className="text-xs font-bold truncate max-w-[120px] sm:max-w-[180px]"
+                                 style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }} 
+                               >
+                                  {item.icon} {labelTranslations[item.name] || item.name}
+                                </span>
+                              </div>
+                              {/* DIPERBAIKI: Warna Nominal Legend dikunci inline stylenya */}
+                              <span 
+                                className="text-xs font-bold shrink-0"
+                                style={{ color: darkMode ? '#38bdf8' : '#112F58' }}
+                              >
+                                Rp {item.value.toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500" style={{ width: item.percent, backgroundColor: item.color }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* CAROUSEL KARTU PROGRESS */}
+              <motion.div
+                className="bg-white dark:bg-slate-800 rounded-[20px] p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-gray-100 dark:border-slate-700 pb-3 gap-2">
                   <div>
-                    <div className="p-3.5 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <span className="text-xs font-extrabold text-[#112F58] block">{t('KEBUTUHAN POKOK (Batas: 50%)', 'ESSENTIAL NEEDS (Limit: 50%)')}</span>
-                          <span className="text-[10px] text-[#1E293B] block font-medium mt-0.5">{t('Wajib: Pokok, Transport, Kesehatan, Pendidikan, Tagihan', 'Needs: Groceries, Transport, Health, Education, Bills')}</span>
-                        </div>
-                        <div className="text-end">
-                          <span className="text-sm font-bold text-[#112F58] block font-sans">
+                    {/* DIPERBAIKI: Header Alokasi Budget */}
+                    <h5 
+                      className="fw-extrabold font-bold text-base sm:text-lg mb-1"
+                      style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+                    >
+                      {activeTab === 'pengeluaran' ? t('Alokasi Budget 50/30/20', '50/30/20 Budgeting') : t('Rencana Target 50/30/20', '50/30/20 Income Target')}
+                    </h5>
+                    <p className="text-[11px] text-gray-500 m-0">
+                      {t("Total Pendapatan Terhitung: Rp ", "Calculated Income Base: Rp ")}
+                      {income.toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  {/* DIPERBAIKI: Target Ideal Badge */}
+                  <div 
+                    className="text-[10px] font-bold bg-slate-100 px-2.5 py-1 rounded-full shrink-0"
+                    style={{ color: '#112F58' }}
+                  >
+                    {t('Target Ideal', 'Ideal Target')}
+                  </div>
+                </div>
+
+                {/* WRAPPER CAROUSEL */}
+                <div className="flex flex-nowrap md:grid md:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                  
+                  {/* Kartu 1: Kebutuhan (Needs) */}
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      {/* DIPERBAIKI */}
+                      <span 
+                        className="text-[11px] font-extrabold block mb-1"
+                        style={{ color: darkMode ? '#93c5fd' : '#112F58' }}
+                      >
+                        🛒 {t('KEBUTUHAN (50%)', 'NEEDS (50%)')}
+                      </span>
+                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                        {t('Pokok, Transport, Kesehatan, Pendidikan, Tagihan', 'Groceries, Transport, Health, Education, Bills')}
+                      </p>
+                    </div>
+                    {activeTab === 'pengeluaran' ? (
+                      <div className="mt-auto">
+                        <div className="text-end mb-1">
+                          {/* DIPERBAIKI */}
+                          <span 
+                            className="text-sm font-bold block leading-none"
+                            style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+                          >
                             Rp {actualSpendingNeeds.toLocaleString('id-ID')}
                           </span>
-                          <span className="text-[10px] text-gray-500 block">
-                            {t('Batas:', 'Limit:')} Rp {budgetLimitNeeds.toLocaleString('id-ID')}
+                          <span className="text-[9px] text-gray-500 block mt-1">Batas: Rp {budgetLimitNeeds.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500" 
+                            style={{ 
+                              width: `${Math.min(percentNeedsUsed, 100)}%`,
+                              backgroundColor: percentNeedsUsed > 100 ? '#dc2626' : '#112F58'
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold">
+                          <span className="text-gray-500">Penyerapan</span>
+                          <span style={{ color: percentNeedsUsed > 100 ? '#dc2626' : (darkMode ? '#93c5fd' : '#112F58') }}>
+                            {percentNeedsUsed.toFixed(0)}%
                           </span>
                         </div>
                       </div>
-                      
-                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-1.5 mt-2">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-300 ${percentNeedsUsed > 100 ? 'bg-red-600' : 'bg-[#112F58]'}`}
-                          style={{ width: `${Math.min(percentNeedsUsed, 100)}%` }}
-                        ></div>
-                      </div>
-
-                      <div className="d-flex justify-content-between text-[11px] font-bold text-gray-600">
-                        <span>{t('Penyerapan', 'Absorption')}</span>
-                        <span className={percentNeedsUsed > 100 ? "text-red-600 font-bold" : "text-[#112F58] font-bold"}>
-                          {percentNeedsUsed.toFixed(1)}% {percentNeedsUsed > 100 ? t('⚠️ Terlampaui!', '⚠️ Exceeded!') : t('Aman', 'Safe')}
+                    ) : (
+                      <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
+                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
+                        <span 
+                          className="text-sm font-extrabold"
+                          style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+                        >
+                          Rp {budgetLimitNeeds.toLocaleString('id-ID')}
                         </span>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Keinginan Pokok Bar */}
-                  <div>
-                    <div className="p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <span className="text-xs font-extrabold text-amber-800 block">{t('KEINGINAN & GAYA HIDUP (Batas: 30%)', 'WANTS & LIFESTYLE (Limit: 30%)')}</span>
-                          <span className="text-[10px] text-[#1E293B] block font-medium mt-0.5">{t('Suka-suka: Makan & Minum, Hiburan, Belanja, Lainnya', 'Wants: Food & Dining, Fun, Shopping, Others')}</span>
-                        </div>
-                        <div className="text-end">
-                          <span className="text-sm font-bold text-amber-800 block font-sans">
-                            Rp {actualSpendingWants.toLocaleString('id-ID')}
-                          </span>
-                          <span className="text-[10px] text-gray-500 block">
-                            {t('Batas:', 'Limit:')} Rp {budgetLimitWants.toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-1.5 mt-2">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-300 ${percentWantsUsed > 100 ? 'bg-red-600' : 'bg-amber-600'}`}
-                          style={{ width: `${Math.min(percentWantsUsed, 100)}%` }}
-                        ></div>
-                      </div>
-
-                      <div className="d-flex justify-content-between text-[11px] font-bold text-gray-600">
-                        <span>{t('Penyerapan', 'Absorption')}</span>
-                        <span className={percentWantsUsed > 100 ? "text-red-600 font-bold" : "text-amber-800 font-bold"}>
-                          {percentWantsUsed.toFixed(1)}% {percentWantsUsed > 100 ? t('⚠️ Terlampaui!', '⚠️ Exceeded!') : t('Aman', 'Safe')}
-                        </span>
-                      </div>
+                  {/* Kartu 2: Keinginan (Wants) */}
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-[11px] font-extrabold text-amber-800 block mb-1">🎬 {t('KEINGINAN (30%)', 'WANTS (30%)')}</span>
+                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                        {t('Makan jajan, Hiburan, Belanja, Gaya hidup', 'Dining out, Entertainment, Shopping, Lifestyle')}
+                      </p>
                     </div>
+                    {activeTab === 'pengeluaran' ? (
+                      <div className="mt-auto">
+                        <div className="text-end mb-1">
+                          <span className="text-sm font-bold text-amber-800 block leading-none">Rp {actualSpendingWants.toLocaleString('id-ID')}</span>
+                          <span className="text-[9px] text-gray-500 block mt-1">Batas: Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
+                          <div className={`h-full rounded-full ${percentWantsUsed > 100 ? 'bg-red-600' : 'bg-amber-600'}`} style={{ width: `${Math.min(percentWantsUsed, 100)}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold">
+                          <span className="text-gray-500">Penyerapan</span>
+                          <span className={percentWantsUsed > 100 ? "text-red-600" : "text-amber-800"}>{percentWantsUsed.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
+                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
+                        <span className="text-sm font-extrabold text-amber-800">Rp {budgetLimitWants.toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Tabungan & Investasi Bar */}
-                  <div>
-                    <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <span className="text-xs font-extrabold text-emerald-800 block">{t('TABUNGAN & INVESTASI (Target: 20%)', 'SAVINGS & INVESTMENTS (Target: 20%)')}</span>
-                          <span className="text-[10px] text-[#1E293B] block font-medium mt-0.5">{t('Alokasi: Dana Darurat, Investasi, Tabungan Impian', 'Pockets: Emergency Fund, Investments, Goal Savings')}</span>
-                        </div>
-                        <div className="text-end">
-                          <span className="text-sm font-bold text-emerald-800 block font-sans">
-                            Rp {actualSpendingSavings.toLocaleString('id-ID')}
-                          </span>
-                          <span className="text-[10px] text-gray-500 block">
-                            {t('Target:', 'Target:')} Rp {budgetLimitSavings.toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-1.5 mt-2">
-                        <div 
-                          className="h-full rounded-full transition-all duration-300 bg-emerald-600"
-                          style={{ width: `${Math.min(percentSavingsUsed, 100)}%` }}
-                        ></div>
-                      </div>
-
-                      <div className="d-flex justify-content-between text-[11px] font-bold text-gray-600">
-                        <span>{t('Pencapaian', 'Achievement')}</span>
-                        <span className="text-emerald-800 font-bold">
-                          {percentSavingsUsed.toFixed(1)}% {percentSavingsUsed >= 100 ? t('✨ Terpenuhi!', '✨ Fulfilled!') : t('Dalam Proses', 'In Progress')}
-                        </span>
-                      </div>
+                  {/* Kartu 3: Tabungan (Savings) */}
+                  <div className="w-[85%] sm:w-auto shrink-0 snap-center p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-[11px] font-extrabold text-emerald-800 block mb-1">💼 {t('TABUNGAN (20%)', 'SAVINGS (20%)')}</span>
+                      <p className="text-[10px] text-gray-500 leading-snug mb-3">
+                        {t('Dana Darurat, Investasi, Tabungan Impian', 'Emergency Funds, Investments, Goals')}
+                      </p>
                     </div>
+                    {activeTab === 'pengeluaran' ? (
+                      <div className="mt-auto">
+                        <div className="text-end mb-1">
+                          <span className="text-sm font-bold text-emerald-800 block leading-none">Rp {actualSpendingSavings.toLocaleString('id-ID')}</span>
+                          <span className="text-[9px] text-gray-500 block mt-1">Target Minimum: Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5 mt-2">
+                          <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(percentSavingsUsed, 100)}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold">
+                          <span className="text-gray-500">Tercapai</span>
+                          <span className="text-emerald-800">{percentSavingsUsed.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-white rounded-xl text-center mt-auto border border-gray-100">
+                        <span className="text-[10px] text-gray-400 block">Target Alokasi</span>
+                        <span className="text-sm font-extrabold text-emerald-800">Rp {budgetLimitSavings.toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
                   </div>
+
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full font-sans">
-                  {/* Needs Planning Info */}
-                  <div>
-                    <div className="p-3.5 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-                      <span className="text-xs font-extrabold text-[#112F58] block mb-1">🛒 {t('KEBUTUHAN POKOK (50%)', 'ESSENTIAL NEEDS (50%)')}</span>
-                      <p className="text-[11px] text-gray-500 mb-3">{t('Alokasi untuk tempat tinggal, transportasi wajib, kesehatan, cicilan & tagihan penting.', 'Allocation for rent/house, mandatory transport, utilities, health & critical installment.')}</p>
-                      <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-                        <span className="text-xs text-gray-400 block">{t('Target Alokasi', 'Target Allocation')}</span>
-                        <span className="text-md font-extrabold text-[#112F58]">Rp {(totalPemasukanSemua * 0.5).toLocaleString('id-ID')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Wants Planning Info */}
-                  <div>
-                    <div className="p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                      <span className="text-xs font-extrabold text-amber-800 block mb-1">🎬 {t('KEINGINAN & GAYA HIDUP (30%)', 'WANTS & LIFESTYLE (30%)')}</span>
-                      <p className="text-[11px] text-gray-500 mb-3">{t('Alokasi untuk makan-makan jajan, langganan hiburan streaming, belanja fashion, hobi & rekreasi.', 'Allocation for dining out, streaming subscriptions, fashion shopping, hobbies & recreation.')}</p>
-                      <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-                        <span className="text-xs text-gray-400 block">{t('Target Alokasi', 'Target Allocation')}</span>
-                        <span className="text-md font-extrabold text-amber-800">Rp {(totalPemasukanSemua * 0.3).toLocaleString('id-ID')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Savings Planning Info */}
-                  <div>
-                    <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                      <span className="text-xs font-extrabold text-emerald-800 block mb-1">💼 {t('TABUNGAN & INVESTASI (20%)', 'SAVINGS & INVESTMENTS (20%)')}</span>
-                      <p className="text-[11px] text-gray-500 mb-3">{t('Alokasi sisa emas untuk dana darurat, reksadana, investasi saham, emas, dana pensiun, dll.', 'Allocation remaining for emergency funds, mutual funds, stock investments, gold, retirement, etc.')}</p>
-                      <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-                        <span className="text-xs text-gray-400 block">{t('Target Alokasi', 'Target Allocation')}</span>
-                        <span className="text-md font-extrabold text-emerald-800">Rp {(totalPemasukanSemua * 0.2).toLocaleString('id-ID')}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
+              </motion.div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

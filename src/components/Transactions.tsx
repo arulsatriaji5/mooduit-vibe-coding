@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { 
-  MoreVertical,
-  Filter,
   Search,
-  Plus,
   Trash2,
   Edit2,
   X,
   AlertCircle,
   Download,
   Calendar,
-  Wallet,
-  Tag
+  Filter
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import { updateTransactionDB, deleteTransactionDB, fetchAllTransactions } from '../utils/api';
@@ -32,17 +28,16 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterJenis, setFilterJenis] = useState('semua');
+  const [filterBulan, setFilterBulan] = useState('semua'); 
   
-  // Modal states for Filter
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [tempFilter, setTempFilter] = useState('semua');
   
-  // Menu and Modal States
-  const [menuTerbuka, setMenuTerbuka] = useState<any>(null); // Stores the transaction ID that was clicked
+  const [menuTerbuka, setMenuTerbuka] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [transaksiDiedit, setTransaksiDiedit] = useState<any>(null);
 
-  // Edit fields states
   const [editNominal, setEditNominal] = useState('');
   const [editCatatan, setEditCatatan] = useState('');
   const [editKategori, setEditKategori] = useState('');
@@ -82,24 +77,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
             const cleaned = parsed.filter(t => {
               if (!t || typeof t !== 'object') return false;
               const isDummyId = [1, 2, 3, 4, 5].includes(Number(t.id));
-              const note = String(t.catatan || '').toLowerCase();
-              const cat = String(t.kategori || '').toLowerCase();
-              const hasDummyText = 
-                note.includes('gaji') ||
-                note.includes('netflix') ||
-                note.includes('kopi') ||
-                note.includes('pertamax') ||
-                note.includes('bensin') ||
-                note.includes('supermarket') ||
-                note.includes('nasi padang') ||
-                note.includes('rendang') ||
-                note.includes('indihome') ||
-                note.includes('wifi') ||
-                note.includes('listrik') ||
-                note.includes('sabun & beras') ||
-                note.includes('kenangan') ||
-                cat.includes('dummy');
-              return !isDummyId && !hasDummyText;
+              return !isDummyId;
             });
             setLocalTransactions(cleaned);
           }
@@ -110,17 +88,27 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     }
   }, [propsTransactions]);
 
-  // Body Scroll Lock for Edit Modal
   useEffect(() => {
-    if (isEditModalOpen) {
+    if (isEditModalOpen || isMonthDropdownOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isEditModalOpen]);
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditModalOpen, isMonthDropdownOpen]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    transactions.forEach(t => {
+      if(t && t.tanggal) {
+        const parts = t.tanggal.split('-');
+        if (parts.length >= 2) {
+          months.add(`${parts[0]}-${parts[1]}`);
+        }
+      }
+    });
+    return Array.from(months).sort().reverse(); 
+  }, [transactions]);
 
   const handleOpenEdit = (t: any) => {
     setTransaksiDiedit(t);
@@ -135,7 +123,6 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
   const handleSimpanEdit = () => {
     if (!transaksiDiedit) return;
-    
     const cleanNominal = Number(editNominal.replace(/\D/g, ""));
     if (isNaN(cleanNominal) || cleanNominal <= 0) {
       toast.error(t("Masukkan nominal yang valid!", "Please enter a valid amount!"));
@@ -153,59 +140,53 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       icon: kategoriAktif.find(k => k.id === editKategori)?.icon || "🧾"
     };
 
-    const updated = transactions.map(t => {
-      if (t.id === transaksiDiedit.id) {
-        return updatedPayload;
-      }
-      return t;
-    });
-
+    const updated = transactions.map(t => t.id === transaksiDiedit.id ? updatedPayload : t);
     setTransactions(updated);
     setIsEditModalOpen(false);
     setTransaksiDiedit(null);
 
-    // Persist to DB
     const user_email = localStorage.getItem("userEmail") || "";
-    updateTransactionDB(transaksiDiedit.id, updatedPayload, user_email).catch(err => {
-      console.error("Failed to update transaction in database:", err);
-    });
+    updateTransactionDB(transaksiDiedit.id, updatedPayload, user_email).catch(err => console.error(err));
   };
 
-  // FUNGSI MENGHAPUS TRANSAKSI DARI DATABASE (OPTIMISTIC UPDATE)
-  const executeDelete = async (e: any, transactionId?: any) => {
-    let targetId = transactionId;
-    let eventObj = e;
-    if (typeof e === 'string' || typeof e === 'number') {
-      targetId = e;
-      eventObj = null;
-    }
-
-    if (eventObj) {
-      if (typeof eventObj.preventDefault === 'function') eventObj.preventDefault();
-      if (typeof eventObj.stopPropagation === 'function') eventObj.stopPropagation();
-    }
-
-    let confirmDelete = false;
+  const executeHardDelete = async (transaction: any) => {
     try {
-      confirmDelete = window.confirm(t('Apakah kamu yakin ingin menghapus transaksi ini? Data yang dihapus tidak bisa dikembalikan.', 'Are you sure you want to delete this transaction? This data cannot be recovered.'));
-    } catch {
-      // Default to true if window.confirm is restricted in dev sandbox
-      confirmDelete = true;
+      const targetId = transaction?.id || transaction?._id || transaction?.uuid;
+      if (!targetId) return;
+      setMenuTerbuka(null);
+
+      try {
+        if (typeof deleteTransactionDB === 'function') {
+          const user_email = localStorage.getItem("userEmail") || "";
+          await deleteTransactionDB(targetId, user_email);
+        }
+      } catch (err) { console.error("Gagal hapus DB:", err); }
+
+      if (typeof setTransactions === 'function') {
+        setTransactions((prev: any[]) => prev.filter(item => item && String(item.id || item._id) !== String(targetId)));
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const platformNativeEditFunction = (transaction: any) => {
+    if (!transaction) return;
+    handleOpenEdit(transaction);
+  };
+
+  const platformNativeDeleteFunction = async (id: any, e?: React.MouseEvent) => {
+    if (!id) return;
+    if (e) {
+      e.stopPropagation(); 
     }
+    let confirmDelete = false;
+    try { confirmDelete = window.confirm(t('Hapus transaksi ini?', 'Delete this transaction?')); } catch { confirmDelete = true; }
     if (!confirmDelete) return;
 
-    const matchedTx = transactions.find(t => t && String(t.id || t._id) === String(targetId));
-    if (matchedTx) {
-      await executeHardDelete(matchedTx);
-    } else {
-      await executeHardDelete({ id: targetId });
-    }
+    const matchedTx = transactions.find(t => t && String(t.id || t._id) === String(id));
+    if (matchedTx) await executeHardDelete(matchedTx);
+    else await executeHardDelete({ id });
   };
 
-  const handleDelete = executeDelete;
-  const handleHapus = executeDelete;
-
-  // Helper date formatter
   const formatTanggalIndo = (tglStr: string) => {
     if (!tglStr) return '-';
     try {
@@ -214,53 +195,46 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         const blnNameIndo = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
         const blnNameEng = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const blnName = language === 'id' ? blnNameIndo : blnNameEng;
-        const day = parseInt(dateParts[2], 10);
         const monthIndex = parseInt(dateParts[1], 10) - 1;
-        const year = dateParts[0];
-        if (monthIndex >= 0 && monthIndex < 12) {
-          return `${day} ${blnName[monthIndex]} ${year}`;
-        }
+        if (monthIndex >= 0 && monthIndex < 12) return `${parseInt(dateParts[2], 10)} ${blnName[monthIndex]} ${dateParts[0]}`;
       }
       return tglStr;
-    } catch {
-      return tglStr;
-    }
+    } catch { return tglStr; }
   };
 
-  // Filter transactions based on Search Term & Filter Jenis / Kategori
+  const getMonthName = (monthString: string) => {
+    if (monthString === 'semua') return t('Semua Waktu', 'All Time');
+    const [y, m] = monthString.split('-');
+    const blnName = language === 'id' 
+      ? ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+      : ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${blnName[parseInt(m)-1]} ${y}`;
+  };
+
   const filteredTransactions = (transactions || []).filter(t => {
     if (!t) return false;
     const searchLower = (searchTerm || '').toLowerCase().trim();
     const notesLower = String(t.catatan || t.description || '').toLowerCase();
     const catLower = String(t.kategori || t.category || '').toLowerCase();
 
-    const matchesSearch = !searchLower || notesLower.includes(searchLower) || catLower.includes(searchLower);
-    if (!matchesSearch) return false;
+    if (searchLower && !notesLower.includes(searchLower) && !catLower.includes(searchLower)) return false;
 
-    if (filterJenis === 'semua' || filterJenis === 'all') {
-      return true;
+    if (filterBulan !== 'semua' && t.tanggal) {
+      const [year, month] = t.tanggal.split('-');
+      if (`${year}-${month}` !== filterBulan) return false;
     }
+
+    if (filterJenis === 'semua' || filterJenis === 'all') return true;
 
     const txJenis = String(t.jenis || t.type || '').toLowerCase();
+    if (filterJenis === 'pengeluaran' || filterJenis === 'expense') return txJenis === 'pengeluaran' || txJenis === 'expense';
+    if (filterJenis === 'pemasukan' || filterJenis === 'income') return txJenis === 'pemasukan' || txJenis === 'income';
 
-    if (filterJenis === 'pengeluaran' || filterJenis === 'expense') {
-      return txJenis === 'pengeluaran' || txJenis === 'expense';
-    }
-
-    if (filterJenis === 'pemasukan' || filterJenis === 'income') {
-      return txJenis === 'pemasukan' || txJenis === 'income';
-    }
-
-    let reqJenis: string | null = null;
+    let reqJenis = null;
     let targetCategory = filterJenis;
 
-    if (filterJenis.startsWith('exp:')) {
-      reqJenis = 'pengeluaran';
-      targetCategory = filterJenis.slice(4);
-    } else if (filterJenis.startsWith('inc:')) {
-      reqJenis = 'pemasukan';
-      targetCategory = filterJenis.slice(4);
-    }
+    if (filterJenis.startsWith('exp:')) { reqJenis = 'pengeluaran'; targetCategory = filterJenis.slice(4); } 
+    else if (filterJenis.startsWith('inc:')) { reqJenis = 'pemasukan'; targetCategory = filterJenis.slice(4); }
 
     if (reqJenis) {
       const matchesJenis = (reqJenis === 'pengeluaran' && (txJenis === 'pengeluaran' || txJenis === 'expense')) ||
@@ -268,444 +242,205 @@ export default function Transactions({ transactions: propsTransactions, setTrans
       if (!matchesJenis) return false;
     }
 
-    const targetCatLower = targetCategory.toLowerCase().trim();
-    return catLower === targetCatLower || catLower.includes(targetCatLower);
+    return catLower === targetCategory.toLowerCase().trim() || catLower.includes(targetCategory.toLowerCase().trim());
   });
 
   const getFilterLabel = (val: string) => {
-    if (val === 'semua' || val === 'all') return t('Semua Jenis & Kategori', 'All Types & Categories');
-    if (val === 'pengeluaran') return `📉 ${t('Pengeluaran', 'Expenses')}`;
-    if (val === 'pemasukan') return `📈 ${t('Pemasukan', 'Income')}`;
-    if (val.startsWith('exp:')) {
-      const id = val.slice(4);
-      const item = kategoriPengeluaran.find(k => k.id === id);
-      return `${item?.icon || '📉'} ${t(id, id)}`;
-    }
-    if (val.startsWith('inc:')) {
-      const id = val.slice(4);
-      const item = kategoriPemasukan.find(k => k.id === id);
-      return `${item?.icon || '📈'} ${t(id, id)}`;
-    }
+    if (val === 'semua' || val === 'all') return t('Semua Kategori', 'All Categories');
+    if (val === 'pengeluaran') return t('Pengeluaran', 'Expenses');
+    if (val === 'pemasukan') return t('Pemasukan', 'Income');
+    if (val.startsWith('exp:')) return t(val.slice(4), val.slice(4));
+    if (val.startsWith('inc:')) return t(val.slice(4), val.slice(4));
     return val;
   };
 
-  // Calculate dynamic Total Spendings this month
-  const totalPengeluaran = (transactions || [])
-    .filter(t => t && t.jenis === 'pengeluaran')
-    .reduce((sum, t) => {
-      let val = 0;
-      if (typeof t.nominal === 'number') val = t.nominal;
-      else if (typeof t.nominal === 'string') val = Number(t.nominal.replace(/\D/g, ""));
-      return sum + val;
-    }, 0);
+  const totalPengeluaran = filteredTransactions.filter(t => t && t.jenis === 'pengeluaran').reduce((sum, t) => sum + (Number(String(t.nominal).replace(/\D/g, "")) || 0), 0);
+  const totalPemasukan = filteredTransactions.filter(t => t && t.jenis === 'pemasukan').reduce((sum, t) => sum + (Number(String(t.nominal).replace(/\D/g, "")) || 0), 0);
+  const totalFormat = (val: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 
-  const totalPemasukan = (transactions || [])
-    .filter(t => t && t.jenis === 'pemasukan')
-    .reduce((sum, t) => {
-      let val = 0;
-      if (typeof t.nominal === 'number') val = t.nominal;
-      else if (typeof t.nominal === 'string') val = Number(t.nominal.replace(/\D/g, ""));
-      return sum + val;
-    }, 0);
-
-  const totalFormat = (val: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(val);
-  };
-
-  // Trigger CSV content download for reporting
   const handleDownloadCSV = () => {
-    if (!transactions || transactions.length === 0) {
-      toast.error(t("Tidak ada data transaksi untuk diunduh.", "No transaction data available to download."));
+    if (filteredTransactions.length === 0) {
+      toast.error(t("Tidak ada data untuk diunduh.", "No data available to download."));
       return;
     }
-
     const isId = language === 'id';
-    const headers = isId 
-      ? ["Tanggal", "Deskripsi", "Kategori", "Tipe", "Nominal (Rp)"]
-      : ["Date", "Description", "Category", "Type", "Nominal (Rp)"];
-    const csvRows = [headers.join(",")];
-
-    transactions.forEach(tx => {
-      const rawDeskripsi = tx.catatan || tx.kategori || (isId ? "Transaksi" : "Transaction");
-      const deskripsi = rawDeskripsi.replace(/,/g, " ");
-      const tipe = tx.jenis === 'pemasukan' 
-        ? (isId ? 'Pemasukan' : 'Income') 
-        : (isId ? 'Pengeluaran' : 'Expense');
-      
-      const row = [
-        formatTanggalIndo(tx.tanggal),
-        deskripsi,
-        tx.kategori || "",
-        tipe,
-        tx.nominal || 0
-      ];
-      
-      csvRows.push(row.join(","));
+    const csvRows = [isId ? "Tanggal,Deskripsi,Kategori,Tipe,Nominal (Rp)" : "Date,Description,Category,Type,Nominal (Rp)"];
+    filteredTransactions.forEach(tx => {
+      const deskripsi = (tx.catatan || tx.kategori || "Transaksi").replace(/,/g, " ");
+      const tipe = tx.jenis === 'pemasukan' ? (isId ? 'Pemasukan' : 'Income') : (isId ? 'Pengeluaran' : 'Expense');
+      csvRows.push(`${formatTanggalIndo(tx.tanggal)},${deskripsi},${tx.kategori || ""},${tipe},${tx.nominal || 0}`);
     });
-
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    
-    const today = new Date().toISOString().split('T')[0];
     link.setAttribute("href", url);
-    link.setAttribute("download", `laporan_mooduit_${today}.csv`);
-    
+    link.setAttribute("download", `Laporan_MOODUIT_${filterBulan}_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
-  };
-
-  // FUNGSI HAPUS AMAN HARD DELETE DENGAN RE-FETCH & FALLBACK RELOAD
-  const executeHardDelete = async (transaction: any) => {
-    try {
-      // 1. Ambil ID yang benar (Deteksi otomatis apakah pakai 'id' or '_id')
-      const targetId = transaction?.id || transaction?._id || transaction?.uuid;
-      
-      if (!targetId) {
-        console.error("Gagal Hapus: ID Transaksi tidak ditemukan pada objek:", transaction);
-        return;
-      }
-
-      // 2. Tutup Menu
-      setMenuTerbuka(null);
-
-      // 3. Tembak Database
-      try {
-        const win = window as any;
-        const gDatabase = typeof (globalThis as any).database !== 'undefined' ? (globalThis as any).database : win.database;
-        const gDb = typeof (globalThis as any).db !== 'undefined' ? (globalThis as any).db : win.db;
-
-        if (gDatabase && gDatabase.table) {
-          await gDatabase.table('transactions').delete().where(transaction.id ? 'id' : '_id', targetId);
-          console.log("Berhasil dihapus dari 'database' objek.");
-        } else if (gDb && gDb.table) {
-          await gDb.table('transactions').delete().where(transaction.id ? 'id' : '_id', targetId);
-          console.log("Berhasil dihapus dari 'db' objek.");
-        } else if (typeof deleteTransactionDB === 'function') {
-          const user_email = localStorage.getItem("userEmail") || "";
-          await deleteTransactionDB(targetId, user_email);
-          console.log("Berhasil dihapus lewat deleteTransactionDB API.");
-        }
-      } catch (err) {
-        console.error("Gagal hapus DB:", err);
-      }
-
-      // 4. UPDATE STATE LOKAL DENGAN COERCION-FREE STRING CHECK
-      try {
-        if (typeof setTransactions === 'function') {
-          setTransactions((prev: any[]) => prev.filter(item => item && String(item.id || item._id) !== String(targetId)));
-        }
-      } catch (stateErr) {
-        console.error("State Mutation Error:", stateErr);
-      }
-
-      // 5. RE-FETCH ATAU RELOAD (HARGA MATI UNTUK UPDATE UI)
-      if (typeof fetchAllTransactions === 'function') {
-        try {
-          const user_email = localStorage.getItem("userEmail") || "";
-          const freshData = await fetchAllTransactions(user_email);
-          if (typeof setTransactions === 'function') {
-            const cleaned = freshData.filter((t: any) => {
-              if (!t || typeof t !== 'object') return false;
-              const isDummyId = [1, 2, 3, 4, 5].includes(Number(t.id));
-              return !isDummyId;
-            });
-            setTransactions(cleaned);
-          }
-        } catch (fetchErr) {
-          console.error("Fetch fresh data failed, falling back to reload:", fetchErr);
-        }
-      }
-
-    } catch (error) {
-      console.error("Proses Hapus Gagal:", error);
-    }
-  };
-
-  const platformNativeEditFunction = (transaction: any) => {
-    if (!transaction) return;
-    handleOpenEdit(transaction);
-  };
-
-  const platformNativeDeleteFunction = async (id: any) => {
-    if (!id) return;
-    const matchedTx = transactions.find(t => t && String(t.id || t._id) === String(id));
-    if (matchedTx) {
-      await executeHardDelete(matchedTx);
-    } else {
-      await executeHardDelete({ id });
-    }
-  };
-
-  const forceDeleteAction = async (id: any) => {
-    const matchedTx = transactions.find(t => t && String(t.id || t._id) === String(id));
-    if (matchedTx) {
-      await executeHardDelete(matchedTx);
-    } else {
-      await executeHardDelete({ id });
-    }
-  };
-
-  const eksekusiHapus = async (e: any, id: any) => {
-    if (e) {
-      if (typeof e.preventDefault === 'function') e.preventDefault();
-      if (typeof e.stopPropagation === 'function') e.stopPropagation();
-    }
-    await forceDeleteAction(id);
   };
 
   return (
     <div className="w-full max-w-full px-4 mx-auto box-border overflow-x-hidden flex flex-col gap-4 md:gap-6 pb-72 relative riwayat-kunci-mati">
       <style>
         {`
-          /* KUNCI GLOBAL HALAMAN RIWAYAT */
-          .riwayat-kunci-mati {
-            width: 100% !important;
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-            box-sizing: border-box !important;
-          }
-
-          /* Hindari pemotongan dropdown menu */
-          .riwayat-card {
-            overflow: visible !important;
-            z-index: 10 !important;
-          }
-
-          .list-group {
-            overflow: visible !important;
-          }
-
-          .sticky-footer-kas {
-            position: sticky !important;
-            bottom: 24px !important;
-            z-index: 40 !important;
-            transition: all 0.3s ease-in-out;
-          }
-
-          @media (max-width: 991px) {
-            .sticky-footer-kas {
-              bottom: 80px !important;
-            }
-          }
-
-          /* ATURAN KHUSUS HP (TIDAK MERUSAK LAPTOP) */
+          .riwayat-kunci-mati { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; box-sizing: border-box !important; }
+          .sticky-footer-kas { position: sticky !important; bottom: 24px !important; z-index: 40 !important; transition: all 0.3s ease-in-out; }
+          @media (max-width: 991px) { .sticky-footer-kas { bottom: 80px !important; } }
           @media (max-width: 768px) {
-            /* Paksa teks deskripsi turun ke bawah */
-            .riwayat-teks-wrap {
-              white-space: normal !important;
-              word-wrap: break-word !important;
-              overflow-wrap: break-word !important;
-              width: 100% !important;
-              display: block !important;
-            }
-            
-            /* Paksa input pencarian dan filter pas di layar */
-            .riwayat-search-container {
-              flex-direction: column !important;
-              width: 100% !important;
-            }
-            .riwayat-search-container input, 
-            .riwayat-search-container button,
-            .riwayat-search-container select {
-              width: 100% !important;
-              max-width: 100% !important;
-              min-width: 0 !important;
-            }
-
-            /* Paksa kartu transaksi pas di layar */
-            .riwayat-card {
-              width: 100% !important;
-              max-width: 100% !important;
-              box-sizing: border-box !important;
-            }
-            
-            /* Jika nominal dan nama terlalu panjang, paksa bertumpuk atau potong rapi */
-            .riwayat-card-content {
-              flex-wrap: wrap !important;
-              gap: 8px !important;
-            }
+            .riwayat-teks-wrap { white-space: normal !important; word-wrap: break-word !important; width: 100% !important; display: block !important; }
+            .riwayat-search-container { flex-direction: column !important; width: 100% !important; }
+            .riwayat-search-container > * { width: 100% !important; }
+            .filter-bulan-select { width: 100% !important; }
           }
         `}
       </style>
-      {/* WRAPPER UTAMA RIWAYAT */}
-      {/* Invisible backdrop to dismiss open dropdown menus */}
-      {menuTerbuka !== null && (
-        <div 
-          className="fixed inset-0 z-40 bg-transparent"
-          onClick={() => setMenuTerbuka(null)}
-        />
-      )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-2">
         <div>
-          <h4 className="fw-800 text-primary-mooduit mb-1 font-bold text-2xl text-[#112F58]">{t('Riwayat Transaksi', 'Transaction History')}</h4>
-          <p className="text-gray-500 text-xs mt-0 riwayat-teks-wrap">{t('Seluruh alur debit & kredit yang tersimpan pada aplikasi MOODUIT Anda.', 'All debit & credit flows stored in your MOODUIT application.')}</p>
+          <h4 className="fw-800 text-[#112F58] dark:text-white font-bold text-2xl mb-1">{t('Riwayat Transaksi', 'Transaction History')}</h4>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-0 riwayat-teks-wrap">{t('Seluruh alur debit & kredit yang tersimpan pada aplikasi MOODUIT Anda.', 'All debit & credit flows stored in your MOODUIT application.')}</p>
         </div>
       </div>
 
-      {/* SEARCH AND FILTER CONTROLS */}
-      <div className="d-flex flex-column flex-sm-row gap-3 mb-3 riwayat-search-container">
+      <div className="d-flex flex-column flex-sm-row gap-3 mb-2 riwayat-search-container">
+        
         <div className="position-relative flex-grow-1">
           <span className="position-absolute translate-middle-y text-muted" style={{ top: '50%', left: '16px' }}>
             <Search size={18} className="text-gray-400" />
           </span>
           <input 
             type="text" 
-            placeholder={t('Cari transaksi berdasarkan catatan atau kategori...', 'Search transactions by notes or category...')}
+            placeholder={t('Cari transaksi...', 'Search transactions...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white text-gray-700 border border-gray-100 rounded-2xl py-3 px-12 focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-400 text-sm font-semibold shadow-sm"
-            id="search_transaction_input"
+            className="w-full bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-xl py-3 px-12 focus:border-[#112F58] dark:focus:border-slate-500 focus:outline-none transition-all placeholder-gray-400 text-sm font-semibold shadow-sm"
           />
         </div>
         
-        <div className="d-flex gap-2">
-          {/* TOMBOL FILTER FIX HOVER: Terkunci abu-abu tanpa transisi warna ke putih/navy */}
+        <div className="d-flex gap-2 w-full sm:w-auto relative">
+          <div className="relative flex-1 sm:flex-none filter-bulan-select">
+            <button
+              type="button"
+              onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
+              className="w-full h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 font-bold shadow-sm cursor-pointer outline-none transition-colors hover:bg-slate-50 text-slate-600 dark:text-slate-300 text-sm flex items-center justify-center gap-2"
+            >
+              <Calendar size={16} className="text-slate-400" />
+              {getMonthName(filterBulan)}
+            </button>
+
+            <AnimatePresence>
+              {isMonthDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsMonthDropdownOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full right-0 mt-2 w-full min-w-[160px] sm:min-w-[180px] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 z-50 overflow-hidden py-2"
+                  >
+                    <div
+                      onClick={() => { setFilterBulan('semua'); setIsMonthDropdownOpen(false); }}
+                      className={`px-4 py-3 text-sm font-bold cursor-pointer transition-colors ${filterBulan === 'semua' ? 'bg-[#112F58] text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-[#112F58] hover:text-white'}`}
+                    >
+                      {t('Semua Waktu', 'All Time')}
+                    </div>
+                    {availableMonths.map(m => (
+                      <div
+                        key={m}
+                        onClick={() => { setFilterBulan(m); setIsMonthDropdownOpen(false); }}
+                        className={`px-4 py-3 text-sm font-bold cursor-pointer transition-colors ${filterBulan === m ? 'bg-[#112F58] text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-[#112F58] hover:text-white'}`}
+                      >
+                        {getMonthName(m)}
+                      </div>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             type="button"
-            onClick={() => {
-              setTempFilter(filterJenis);
-              setIsFilterModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-400 dark:border-slate-500 rounded-xl font-bold text-slate-500 dark:text-slate-400 shadow-sm shrink-0 cursor-pointer"
-            id="filter_modal_trigger_btn"
+            onClick={() => { setTempFilter(filterJenis); setIsFilterModalOpen(true); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
           >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="18" 
-              height="18" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-            Filter
-            {filterJenis !== 'semua' && filterJenis !== 'all' && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            )}
+            <Filter size={16} />
+            {t('Filter', 'Filter')}
+            {filterJenis !== 'semua' && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-1"></span>}
           </button>
         </div>
       </div>
 
-      {/* ACTIVE FILTER BADGE */}
-      {filterJenis !== 'semua' && filterJenis !== 'all' && (
-        <div className="d-flex align-items-center gap-2 mb-4 bg-blue-50/80 border border-blue-100 rounded-2xl px-3.5 py-2 w-fit">
-          <span className="text-xs text-gray-500 font-semibold">{t('Filter Aktif:', 'Active Filter:')}</span>
-          <span className="text-xs font-extrabold text-[#112F58] d-flex align-items-center gap-1.5">
-            {getFilterLabel(filterJenis)}
-          </span>
-          <button
-            type="button"
-            onClick={() => setFilterJenis('semua')}
-            className="p-1 hover:bg-blue-100 rounded-full transition-all text-gray-400 hover:text-gray-700 border-0 cursor-pointer d-flex align-items-center justify-content-center"
-            title={t('Hapus Filter', 'Remove Filter')}
+      {/* FILTER BADGE: Warna NAVY MOODUIT */}
+      {filterJenis !== 'semua' && (
+        <div className="d-flex align-items-center gap-2 mb-3 bg-[#112F58] border border-[#112F58] rounded-xl px-3.5 py-2 w-fit shadow-md">
+          <span className="text-xs text-white/70 font-semibold">{t('Filter:', 'Filter:')}</span>
+          <span className="text-xs font-extrabold text-white">{getFilterLabel(filterJenis)}</span>
+          <button 
+            onClick={() => setFilterJenis('semua')} 
+            className="p-1 hover:bg-white/20 rounded-full text-white/70 hover:text-white border-0 bg-transparent cursor-pointer transition-all flex items-center justify-center"
           >
-            <X size={14} />
+            <X size={14} strokeWidth={2.5} />
           </button>
         </div>
       )}
 
-      {/* TRANSACTIONS LIST CONTAINER */}
-      <div className="flex flex-col w-full rounded-3xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 riwayat-card mb-4 p-4 md:p-5">
-        <div className="list-group list-group-flush border-0 pb-48 md:pb-24" style={{ overflow: 'hidden' }}>
+      <div className="flex flex-col w-full rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 mb-4 p-3 md:p-5">
+        <div className="flex flex-col gap-3 pb-48 md:pb-24">
           {filteredTransactions.length === 0 ? (
-            <div className="text-center py-5 px-4">
-              <div className="text-amber-500 mb-3 inline-flex align-items-center justify-content-center p-3 bg-amber-50 rounded-full">
-                <AlertCircle size={36} />
-              </div>
-              <h5 className="text-[#112F58] font-bold text-base mb-1">{t('Transaksi Tidak Ditemukan', 'Transaction Not Found')}</h5>
-              <p className="text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
-                {t('Belum ada transaksi disimpan yang cocok dengan kata pencarian atau filter yang dipilih.', 'No stored transactions match the search term or selected filter.')}
-              </p>
+            <div className="text-center py-8 px-4">
+              <div className="text-amber-500 mb-3 inline-flex align-items-center justify-center p-4 bg-amber-50 rounded-full"><AlertCircle size={36} /></div>
+              <h5 className="text-[#112F58] dark:text-white font-bold text-base mb-1">{t('Data Kosong', 'No Data')}</h5>
+              <p className="text-gray-500 text-xs max-w-sm mx-auto">{t('Tidak ada transaksi di bulan atau filter yang kamu pilih.', 'No transactions found for the selected month or filter.')}</p>
             </div>
           ) : (
             filteredTransactions.map((tx, i) => {
               const isPemasukan = tx.jenis === 'pemasukan';
-              const formatRupiah = (amount: any) => Number(amount || 0).toLocaleString('id-ID');
-              const transaction = {
-                id: tx.id,
-                type: isPemasukan ? 'income' : 'expense',
-                description: tx.catatan || tx.kategori,
-                created_at: formatTanggalIndo(tx.tanggal),
-                category: tx.kategori,
-                amount: tx.nominal,
-                icon: tx.icon
-              };
-              
               return (
                 <motion.div 
                   key={tx.id} 
-                  className="transaction-item-row list-group-item w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3 box-border hover:bg-slate-50 dark:hover:bg-gray-750 transition-all duration-300 mb-3"
-                  style={{ 
-                    zIndex: (1000 - i),
-                    position: 'relative',
-                  }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                  onClick={() => platformNativeEditFunction(tx)}
+                  className="w-full bg-white dark:bg-slate-800 !rounded-[16px] p-4 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 box-border hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 cursor-pointer group"
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.05, 0.2) }}
                 >
-                  {/* Baris Atas (Informasi & Angka) */}
-                  <div className="flex items-start justify-between w-full gap-3">
-                    {/* Sisi Kiri (Icon + Teks) */}
+                  <div className="flex items-start justify-between w-full gap-3 pointer-events-none">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
-                        {transaction.icon || (transaction.type === 'income' ? '💼' : '🛒')}
+                        {tx.icon || (isPemasukan ? '💼' : '🛒')}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate m-0">
-                          {transaction.description || 'Transaksi'}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 mb-0">
-                          {transaction.created_at} • <span className="uppercase tracking-wider">{transaction.category}</span>
-                        </p>
+                        <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate m-0 group-hover:text-[#112F58] dark:group-hover:text-sky-400 transition-colors">{(tx.catatan || tx.kategori)}</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 mb-0">{formatTanggalIndo(tx.tanggal)} • {tx.kategori}</p>
                       </div>
                     </div>
-
-                    {/* Sisi Kanan (Nominal & Badge) */}
                     <div className="flex flex-col items-end shrink-0 text-right">
-                      <span className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {transaction.type === 'income' ? '+' : '-'}Rp{formatRupiah(transaction.amount)}
+                      <span className={`font-bold text-sm ${isPemasukan ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {isPemasukan ? '+' : '-'}Rp{Number(tx.nominal || 0).toLocaleString('id-ID')}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                        {transaction.type === 'income' ? t('PEMASUKAN', 'INCOME') : t('PENGELUARAN', 'EXPENSE')}
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-1 ${isPemasukan ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        {isPemasukan ? t('PEMASUKAN', 'INCOME') : t('PENGELUARAN', 'EXPENSE')}
                       </span>
                     </div>
                   </div>
-
-                  {/* Baris Bawah (Tombol Aksi Terpisah) */}
-                  <div className="flex justify-end items-center gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
+                  
+                  <div className="flex justify-end items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700/50">
                     <button 
                       onClick={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                         platformNativeEditFunction(tx);
                       }} 
-                      className="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                      className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border-0 bg-transparent flex items-center justify-center cursor-pointer pointer-events-auto"
                       title={t('Edit Transaksi', 'Edit Transaction')}
                     >
-                      ✏️
+                      <Edit2 size={16} />
                     </button>
                     <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        platformNativeDeleteFunction(tx.id);
-                      }} 
-                      className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                      onClick={(e) => platformNativeDeleteFunction(tx.id, e)} 
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all border-0 bg-transparent flex items-center justify-center cursor-pointer pointer-events-auto"
                       title={t('Hapus Transaksi', 'Delete Transaction')}
                     >
-                      🗑️
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </motion.div>
@@ -715,10 +450,11 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         </div>
       </div>
 
-      {/* SUMMARY BAR CARD */}
       <div className="bg-[#112F58] text-white p-4.5 rounded-3xl flex flex-col justify-between gap-3.5 shadow-lg border-0 sticky-footer-kas z-40">
         <div>
-          <h6 className="mb-1 text-white/70 text-xs font-bold tracking-wider uppercase">{t('TOTAL KAS BULAN INI', 'TOTAL CASH THIS MONTH')}</h6>
+          <h6 className="mb-1 text-white/70 text-xs font-bold tracking-wider uppercase">
+            {filterBulan === 'semua' ? t('TOTAL KAS SEMUA WAKTU', 'TOTAL CASH ALL TIME') : `${t('TOTAL KAS', 'TOTAL CASH')} ${getMonthName(filterBulan).toUpperCase()}`}
+          </h6>
           <div className="grid grid-cols-2 gap-4 w-full mt-2">
             <div>
               <span className="text-[10px] md:text-xs text-gray-300/80 truncate uppercase tracking-wider block leading-none">{t('PENGELUARAN', 'EXPENSES')}</span>
@@ -730,56 +466,78 @@ export default function Transactions({ transactions: propsTransactions, setTrans
             </div>
           </div>
         </div>
-        <button 
-          className="w-full mt-4 flex items-center justify-center gap-2 px-5 py-2.5 btn-download-laporan font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 border-none outline-none"
-          onClick={handleDownloadCSV}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          {t('Download Laporan', 'Download Report')}
+        <button onClick={handleDownloadCSV} className="w-full mt-4 flex items-center justify-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all shadow-sm border-0 cursor-pointer">
+          <Download size={16} /> {t('Download Laporan', 'Download Report')}
         </button>
       </div>
 
       {/* EDIT MODAL DIALOG CONTAINER */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
-            {/* Modal Glass Backdrop */}
+          <div className="fixed inset-0 z-[9999] bg-[#112F58]/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
             <motion.div 
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsEditModalOpen(false)}
+              className="absolute inset-0 bg-[#112F58]/20" 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              onClick={() => setIsEditModalOpen(false)} 
             />
-
-            {/* Modal Body Card */}
+            
             <motion.div 
-              className="relative w-full max-w-lg bg-white rounded-t-[2rem] sm:rounded-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl z-[1000]"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-md sm:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative z-10 max-h-[90vh]"
+              initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%", opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
             >
-              {/* Modal header */}
-              <div className="flex-shrink-0 p-6 border-b border-gray-100 bg-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 bg-[#112F58] text-white rounded-lg"><Edit2 size={16} /></span>
-                  <h5 className="font-extrabold text-[#112F58] font-bold text-base mb-0">{t('Revisi Transaksi', 'Edit Transaction')}</h5>
-                </div>
+              <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800">
+                <h2 className="text-[#112F58] dark:text-white text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Edit Transaksi', 'Edit Transaction')}</h2>
                 <button 
-                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 border-0 cursor-pointer bg-transparent"
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={() => setIsEditModalOpen(false)} 
+                  className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Modal content body */}
-              <div className="flex-1 overflow-y-auto p-6 pb-12 space-y-4 custom-scrollbar">
-                {/* NOMINAL FIELD */}
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+                
+                {/* TOGGLE PENGELUARAN / PEMASUKAN PERSIS GAMBAR 1 */}
                 <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1">{t('Nominal Transaksi (Rupiah)', 'Transaction Amount (Rupiah)')}</label>
-                  <div className="relative">
-                    <span className="absolute start-4 top-1/2 translate-y-[-50%] text-gray-400 font-extrabold text-base">Rp</span>
+                  <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">
+                    Jenis Transaksi
+                  </label>
+                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setEditJenis("pengeluaran");
+                        setEditKategori("Kebutuhan Pokok");
+                      }}
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
+                        editJenis === "pengeluaran" 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {t('Pengeluaran', 'Expenses')}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setEditJenis("pemasukan");
+                        setEditKategori("Gaji & Upah");
+                      }}
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
+                        editJenis === "pemasukan" 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {t('Pemasukan', 'Income')}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Jumlah Nominal', 'Total Nominal')}</label>
+                  <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden focus-within:border-[#112F58] focus-within:bg-white transition-all duration-300">
+                    <span className={`pl-4 sm:pl-5 text-xl sm:text-2xl font-bold ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`}>Rp</span>
                     <input 
                       type="text" 
                       value={editNominal}
@@ -788,97 +546,67 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                         setEditNominal(cleanValue ? Number(cleanValue).toLocaleString('id-ID') : "");
                       }}
                       placeholder="0"
-                      className="w-full bg-gray-50 text-gray-800 border border-gray-200 rounded-2xl py-3 px-11 font-extrabold text-lg focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-300"
+                      className={`w-full bg-transparent py-3 sm:py-5 pl-2 sm:pl-3 pr-4 sm:pr-5 text-2xl sm:text-4xl font-extrabold focus:outline-none placeholder-gray-300 ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`} 
                     />
                   </div>
                 </div>
 
-                {/* TOGGLE TYPE PENGELUARAN / PEMASUKAN */}
+                {/* GRID KATEGORI EDIT MODAL PERSIS GAMBAR 1 */}
                 <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">{t('Jenis Transaksi', 'Transaction Type')}</label>
-                  <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setEditJenis("pengeluaran");
-                        setEditKategori("Kebutuhan Pokok");
-                      }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-0 cursor-pointer ${editJenis === "pengeluaran" ? "bg-white text-red-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
-                    >
-                      📉 {t('Pengeluaran', 'Expenses')}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setEditJenis("pemasukan");
-                        setEditKategori("Gaji & Upah");
-                      }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-0 cursor-pointer ${editJenis === "pemasukan" ? "bg-white text-green-500 shadow-sm" : "bg-transparent text-gray-400 hover:text-gray-600"}`}
-                    >
-                      📈 {t('Pemasukan', 'Income')}
-                    </button>
-                  </div>
-                </div>
-
-                {/* CATEGORY GRID */}
-                <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-2 px-1">{t('Pilih Kategori', 'Select Category')}</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
                     {kategoriAktif.map((kat) => (
-                       <button 
+                      <button 
                         key={kat.id}
                         type="button"
                         onClick={() => setEditKategori(kat.id)}
-                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all duration-200 border-0 cursor-pointer ${editKategori === kat.id ? "bg-[#112F58]/10 border-2 border-[#112F58] text-[#112F58] shadow-sm scale-102" : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-500"}`}
+                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                          editKategori === kat.id 
+                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
+                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
+                        }`}
                       >
-                        <span className="text-xl">{kat.icon}</span>
-                        <span className="text-[10px] font-bold tracking-tight text-center truncate w-full">{kat.id}</span>
+                        <span className="text-xl sm:text-2xl drop-shadow-sm">{kat.icon}</span>
+                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
+                          editKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
+                        }`}>
+                          {kat.id.toUpperCase()}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* DATE SELECTOR */}
-                <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1">{t('Tanggal Transaksi', 'Transaction Date')}</label>
-                  <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Tanggal', 'Date')}</label>
                     <input 
                       type="date" 
                       value={editTanggal} 
                       onChange={(e) => setEditTanggal(e.target.value)} 
-                      className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-2xl p-3 focus:border-[#112F58] focus:bg-white focus:outline-none transition-all text-sm font-semibold" 
+                      className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all cursor-pointer" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Catatan', 'Notes')}</label>
+                    <input 
+                      type="text" 
+                      value={editCatatan} 
+                      onChange={(e) => setEditCatatan(e.target.value)} 
+                      placeholder={t('Misal: Makan siang...', 'E.g., Lunch...')} 
+                      className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-400" 
                     />
                   </div>
                 </div>
-
-                {/* CATATAN (DESCRIPTION) OPTIONAL FIELD */}
-                <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1">{t('Catatan', 'Notes')}</label>
-                  <input 
-                    type="text" 
-                    value={editCatatan} 
-                    onChange={(e) => setEditCatatan(e.target.value)} 
-                    placeholder={t('Misal: Sarapan pagi, dll...', 'E.g., Breakfast, etc...')} 
-                    className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-2xl p-3 focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-400 text-sm font-semibold" 
-                  />
-                </div>
               </div>
 
-              {/* Modal action actions footer */}
-              <div className="flex-shrink-0 p-6 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-4 font-sans">
+              <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white">
                 <button 
-                  type="button"
-                  className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 rounded-xl transition-all border-0 cursor-pointer bg-transparent"
-                  onClick={() => setIsEditModalOpen(false)}
-                >
-                  {t('Batal', 'Cancel')}
-                </button>
-                <button 
-                  type="button"
-                  className="flex-1 sm:flex-none px-8 py-3 bg-[#001F3F] text-white font-bold rounded-xl shadow-lg border-0 cursor-pointer transition-all"
+                  className="w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#112F58] text-white font-bold text-base sm:text-lg shadow-lg hover:bg-[#0c2240] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
                   onClick={handleSimpanEdit}
                 >
-                  {t('Simpan Perubahan', 'Save Changes')}
+                  <Edit2 size={18} strokeWidth={2.5} />
+                  <span>{t('Simpan Perubahan', 'Save Changes')}</span>
                 </button>
               </div>
             </motion.div>
@@ -886,155 +614,99 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         )}
       </AnimatePresence>
 
-      {/* CHIP-BASED FILTER MODAL */}
       <AnimatePresence>
         {isFilterModalOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
             <motion.div
-              initial={{ opacity: 0, y: 100, scale: 0.95 }}
-              animate={{ opacity: 0.99, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 100, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden font-sans"
+              initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
+              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
             >
-              {/* Modal Header */}
-              <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-[#112f58] dark:text-slate-200 shrink-0 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                  </div>
-                  <div>
-                    <h5 className="font-extrabold text-[#112F58] dark:text-white text-base mb-0">
-                      {t('Filter Transaksi', 'Filter Transactions')}
-                    </h5>
-                    <p className="text-gray-400 text-xs mb-0 mt-0.5">
-                      {t('Pilih kategori atau tipe transaksi yang ingin ditampilkan', 'Choose transaction type or category to display')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/20 dark:hover:text-red-400 rounded-full transition-all border-0 cursor-pointer bg-transparent outline-none focus:outline-none"
-                >
-                  <X size={20} strokeWidth={2.5} />
-                </button>
+              <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <h2 className="text-[#112F58] dark:text-white text-lg sm:text-xl font-extrabold tracking-wide m-0">{t('Filter', 'Filter')}</h2>
+                <button onClick={() => setIsFilterModalOpen(false)} className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"><X size={18} /></button>
               </div>
-
-              {/* Modal Body - Chips groups LOGIKA DIPERBAIKI (INDUK TETAP MENYALA JIKA ANAK DIPILIH) */}
-              <div className="p-5 overflow-y-auto space-y-6 flex-1">
-                {/* Group A: Tipe Transaksi */}
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh]" style={{ scrollbarWidth: 'none' }}>
+                
+                {/* TOGGLE PENGELUARAN / PEMASUKAN FILTER KONSISTEN GAMBAR 1 */}
                 <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
-                    {t('Tipe Transaksi', 'Transaction Type')}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTempFilter('pengeluaran')}
-                      className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
-                        (tempFilter === 'pengeluaran' || tempFilter.startsWith('exp:'))
-                          ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
-                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                  <label className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1.5 px-1 font-sans">{t('Tipe Transaksi', 'Transaction Type')}</label>
+                  <div className="flex w-full bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                    <button 
+                      onClick={() => setTempFilter('pengeluaran')} 
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-l-xl rounded-r-none border-r border-slate-200 dark:border-slate-700 ${
+                        (tempFilter === 'pengeluaran' || tempFilter.startsWith('exp:')) 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
                       }`}
                     >
-                      <span>📉</span>
-                      <span>{t('Pengeluaran', 'Expenses')}</span>
+                      {t('Pengeluaran', 'Expenses')}
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setTempFilter('pemasukan')}
-                      className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
-                        (tempFilter === 'pemasukan' || tempFilter.startsWith('inc:'))
-                          ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
-                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
+                    <button 
+                      onClick={() => setTempFilter('pemasukan')} 
+                      className={`flex-1 py-3 sm:py-3.5 text-xs sm:text-sm font-bold transition-all duration-200 border-0 cursor-pointer rounded-r-xl rounded-l-none ${
+                        (tempFilter === 'pemasukan' || tempFilter.startsWith('inc:')) 
+                          ? "bg-[#112F58] text-white" 
+                          : "bg-white text-slate-500 hover:bg-[#112F58] hover:text-white dark:bg-slate-800 dark:text-slate-400"
                       }`}
                     >
-                      <span>📈</span>
-                      <span>{t('Pemasukan', 'Income')}</span>
+                      {t('Pemasukan', 'Income')}
                     </button>
                   </div>
                 </div>
 
-                {/* Group B: Kategori Pengeluaran */}
+                {/* GRID KATEGORI FILTER: Persis Gambar 1 */}
                 <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
-                    {t('Kategori Pengeluaran', 'Expense Categories')}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {kategoriPengeluaran.map((cat) => {
-                      const val = `exp:${cat.id}`;
-                      const isSelected = tempFilter === val;
-                      return (
-                        <button
-                          key={`chip-exp-${cat.id}`}
-                          type="button"
-                          onClick={() => setTempFilter(val)}
-                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
-                            isSelected
-                              ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
-                              : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
-                          }`}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{t(cat.id, cat.id)}</span>
-                        </button>
-                      );
-                    })}
+                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pengeluaran', 'Expenses')}</label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
+                    {kategoriPengeluaran.map((cat) => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => setTempFilter(`exp:${cat.id}`)} 
+                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                          tempFilter === `exp:${cat.id}` 
+                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
+                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
+                        }`}
+                      >
+                        <span className="text-xl sm:text-2xl drop-shadow-sm">{cat.icon}</span>
+                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
+                          tempFilter === `exp:${cat.id}` ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
+                        }`}>
+                          {cat.id.toUpperCase()}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-
-                {/* Group C: Kategori Pemasukan */}
+                
                 <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-3">
-                    {t('Kategori Pemasukan', 'Income Categories')}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {kategoriPemasukan.map((cat) => {
-                      const val = `inc:${cat.id}`;
-                      const isSelected = tempFilter === val;
-                      return (
-                        <button
-                          key={`chip-inc-${cat.id}`}
-                          type="button"
-                          onClick={() => setTempFilter(val)}
-                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm ${
-                            isSelected
-                              ? 'bg-[#112f58] border border-[#112f58] text-white shadow-md dark:bg-slate-700 dark:border-slate-500 dark:text-white'
-                              : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#112f58] hover:text-[#112f58] dark:hover:border-slate-500'
-                          }`}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{t(cat.id, cat.id)}</span>
-                        </button>
-                      );
-                    })}
+                  <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-2 sm:mb-3 block px-1">{t('Pemasukan', 'Income')}</label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
+                    {kategoriPemasukan.map((cat) => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => setTempFilter(`inc:${cat.id}`)} 
+                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                          tempFilter === `inc:${cat.id}` 
+                            ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
+                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
+                        }`}
+                      >
+                        <span className="text-xl sm:text-2xl drop-shadow-sm">{cat.icon}</span>
+                        <span className={`text-[9px] sm:text-[10px] text-center font-bold leading-tight break-words transition-colors ${
+                          tempFilter === `inc:${cat.id}` ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
+                        }`}>
+                          {cat.id.toUpperCase()}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-
-              {/* Modal Footer */}
-              <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 flex gap-3 items-center sticky bottom-0">
-                <button
-                  type="button"
-                  onClick={() => setTempFilter('semua')}
-                  className="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 rounded-xl font-bold text-xs transition-all cursor-pointer"
-                >
-                  {t('Atur Ulang', 'Reset')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterJenis(tempFilter);
-                    setIsFilterModalOpen(false);
-                  }}
-                  className="flex-1 py-3 px-4 bg-[#112f58] hover:opacity-90 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer border-0"
-                >
-                  {t('Terapkan', 'Apply')}
-                </button>
+              
+              <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white flex gap-3">
+                <button onClick={() => setTempFilter('semua')} className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl font-bold border-0 cursor-pointer transition-colors">{t('Reset', 'Reset')}</button>
+                <button onClick={() => { setFilterJenis(tempFilter); setIsFilterModalOpen(false); }} className="flex-1 py-3 bg-[#112F58] hover:bg-[#0c2240] text-white rounded-xl font-bold border-0 cursor-pointer transition-colors shadow-md">{t('Terapkan', 'Apply')}</button>
               </div>
             </motion.div>
           </div>
