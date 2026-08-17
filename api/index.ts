@@ -1486,6 +1486,10 @@ function getGeminiApiKey(customKey?: string): string {
   }
   // 2. Read from backend environment variables
   if (typeof process !== "undefined" && process.env) {
+    const scannerKey = process.env.SCANNER_GEMINI_KEY;
+    if (scannerKey && typeof scannerKey === "string" && scannerKey.trim().length > 0) {
+      return scannerKey.trim();
+    }
     const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (envKey && typeof envKey === "string" && envKey.trim().length > 0 && envKey !== "MY_GEMINI_API_KEY") {
       return envKey.trim();
@@ -1530,18 +1534,45 @@ app.post("/api/scan-receipt", async (req, res) => {
       return res.status(400).json({ error: "Missing image or mimeType" });
     }
 
-    const apiKey = getGeminiApiKey(tempGeminiKey);
+    const apiKey = (tempGeminiKey && tempGeminiKey.trim()) || process.env.SCANNER_GEMINI_KEY || process.env.GEMINI_API_KEY || getGeminiApiKey(tempGeminiKey);
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'API Key Scanner tidak ditemukan. Masukkan di pengaturan atau .env' });
+    }
 
     // Sanitize Base64 image data
     const cleanBase64 = image.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
 
-    if (apiKey) {
-      try {
-        const prompt = `Analyze this receipt image. Extract the core transaction data and return ONLY a raw valid JSON object without any markdown formatting or backticks. Schema: { "merchantName": "string", "totalAmount": number (only the final total paid), "date": "YYYY-MM-DD" (if visible, else null), "suggestedCategory": "string (predict the expense category)" }`;
+    const prompt = `Anda adalah asisten AI akuntan global profesional. Tugas Anda adalah mengekstrak data dari gambar struk belanja dari negara mana pun, dalam bahasa dan mata uang apa pun.
+Berikan HANYA output berupa JSON valid tanpa tambahan teks apa pun, tanpa markdown.
 
-        const ai = getAiClient(tempGeminiKey);
-        const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+Format JSON yang diwajibkan:
+{
+  "merchantName": "Nama toko/restoran yang tertera",
+  "totalAmount": Angka total akhir yang harus dibayar (tipe data number. Konversi format koma/titik menjadi angka standar, contoh: 50000 atau 15.5),
+  "date": "Tanggal transaksi dalam format YYYY-MM-DD",
+  "category": "Pilih salah satu yang paling relevan: Kebutuhan Pokok / Makan & Minum / Transportasi / Hiburan / Kesehatan / Pendidikan / Tagihan / Belanja / Lainnya",
+  "cashPaid": Angka uang yang dibayarkan pelanggan (jika tidak ada, samakan dengan totalAmount),
+  "items": [
+    { "namaItem": "Nama barang/pesanan sesuai bahasa aslinya", "harga": Angka harga barang tersebut (tipe data number) }
+  ]
+}
+
+ATURAN KETAT:
+1. Abaikan informasi non-barang seperti "No. order", "Kasir", "Dine in", "Kembali", "Change", "Tax", "VAT", "Tip", atau "Terima Kasih".
+2. Jangan masukkan pajak (Tax/VAT) atau Tip sebagai item barang tersendiri.
+3. Pastikan 'totalAmount' adalah angka final (Total) yang ditagihkan/harus dibayar.
+4. Jika struk berbahasa asing, JANGAN terjemahkan nama barang atau nama toko, tetapi WAJIB pilih 'category' ke dalam salah satu kategori bahasa Indonesia di atas.`;
+
+    const ai = getAiClient(apiKey);
+    const candidateModels = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+    let response: any = null;
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        response = await ai.models.generateContent({
+          model: modelName,
           contents: {
             parts: [
               {
@@ -1556,144 +1587,56 @@ app.post("/api/scan-receipt", async (req, res) => {
             ]
           },
           config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                merchantName: { type: Type.STRING },
-                totalAmount: { type: Type.NUMBER },
-                date: { type: Type.STRING },
-                suggestedCategory: { type: Type.STRING },
-                cashPaid: { type: Type.NUMBER },
-                change: { type: Type.NUMBER },
-                category: { type: Type.STRING },
-                icon: { type: Type.STRING, description: "One representative emoji for the category" }
-              },
-              required: ["merchantName", "totalAmount", "suggestedCategory"]
-            }
+            responseMimeType: "application/json"
           }
         });
-
-        // Sanitasi Respons JSON dari Markdown backticks secara paksa
-        const rawResponse = response.text || "";
-        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const result = JSON.parse(jsonMatch[0]);
-
-          // Fill backwards compatibility fields if missing
-          if (!result.category) result.category = result.suggestedCategory || "Lainnya";
-          if (!result.cashPaid) result.cashPaid = result.totalAmount || 0;
-          if (!result.change) result.change = 0;
-          if (!result.date) result.date = new Date().toISOString().split('T')[0];
-          if (!result.icon) {
-            const categoryIcons: Record<string, string> = {
-              "Kebutuhan Pokok": "🛒", "Transportasi": "🚗", "Hiburan": "🎬", 
-              "Makan & Minum": "🍜", "Kesehatan": "💊", "Pendidikan": "📚", 
-              "Tagihan": "📄", "Belanja": "👕", "Lainnya": "📦"
-            };
-            result.icon = categoryIcons[result.category] || "🧾";
-          }
-
-          return res.json(result);
+        if (response && response.text) {
+          break;
         }
-      } catch (err) {
-        // Fallthrough to smart extraction
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Model ${modelName} returned error (${err?.message || err}), trying next candidate...`);
       }
     }
 
-    // Fallback: provide elegant, realistic receipt parsing when API key is unconfigured or call fails
-    console.log("OCR scanning using smart extraction fallback.");
-    const base64Len = image ? image.length : 12345;
-    
-    const fallbacks = [
-      {
-        merchantName: "TOMORO COFFEE",
-        totalAmount: 48000,
-        cashPaid: 50000,
-        change: 2000,
-        date: new Date().toISOString().split('T')[0],
-        category: "Makan & Minum",
-        icon: "☕",
-        items: [
-          { namaItem: "Caffe Latte Iced Small", harga: 24000 },
-          { namaItem: "Tomoro Coconut Latte", harga: 24000 }
-        ]
-      },
-      {
-        merchantName: "Alfamart Kemang",
-        totalAmount: 32500,
-        cashPaid: 50000,
-        change: 17500,
-        date: new Date().toISOString().split('T')[0],
-        category: "Kebutuhan Pokok",
-        icon: "🛒",
-        items: [
-          { namaItem: "Susu UHT Full Cream 1L", harga: 19500 },
-          { namaItem: "Roti Kasur Cokelat", harga: 13000 }
-        ]
-      },
-      {
-        merchantName: "ETTRA COSMETICS",
-        totalAmount: 116000,
-        cashPaid: 150000,
-        change: 34000,
-        date: new Date().toISOString().split('T')[0],
-        category: "Belanja",
-        icon: "🛍️",
-        items: [
-          { namaItem: "Hanasui Powder Nat 03", harga: 37000 },
-          { namaItem: "Hanasui Lip Cream 06", harga: 23000 },
-          { namaItem: "Pixy Protecting Mist", harga: 28000 },
-          { namaItem: "Focallure Eye Bro 03", harga: 28000 }
-        ]
-      },
-      {
-        merchantName: "Indomaret Tebet",
-        totalAmount: 18000,
-        cashPaid: 20000,
-        change: 2000,
-        date: new Date().toISOString().split('T')[0],
-        category: "Kebutuhan Pokok",
-        icon: "🛒",
-        items: [
-          { namaItem: "Indomie Goreng (x3)", harga: 10500 },
-          { namaItem: "Teh Botol Sosro 450ml", harga: 7500 }
-        ]
-      },
-      {
-        merchantName: "Kopi Kenangan",
-        totalAmount: 22000,
-        cashPaid: 50000,
-        change: 28000,
-        date: new Date().toISOString().split('T')[0],
-        category: "Makan & Minum",
-        icon: "☕",
-        items: [
-          { namaItem: "Kopi Kenangan Mantan R", harga: 22000 }
-        ]
-      },
-      {
-        merchantName: "SPBU Pertamina",
-        totalAmount: 50000,
-        cashPaid: 50000,
-        change: 0,
-        date: new Date().toISOString().split('T')[0],
-        category: "Transportasi",
-        icon: "🚗",
-        items: [
-          { namaItem: "Pertalite 5 Liter", harga: 50000 }
-        ]
-      }
-    ];
+    if (!response || !response.text) {
+      throw lastError || new Error("Gagal mendapatkan respons dari model AI");
+    }
 
-    // Select based on base64 length to be semi-random but deterministic for the same picture
-    const selected = fallbacks[base64Len % fallbacks.length];
-    return res.json({
-      ...selected,
-      isFallback: true
+    const rawResponse = response.text || "";
+    const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("Format respons AI tidak valid");
+    }
+    const result = JSON.parse(jsonMatch[0]);
+
+    if (!result.category) result.category = "Lainnya";
+    if (typeof result.totalAmount !== "number") result.totalAmount = Number(result.totalAmount) || 0;
+    if (!result.cashPaid) result.cashPaid = result.totalAmount;
+    if (!result.date) result.date = new Date().toISOString().split('T')[0];
+    if (!result.icon) {
+      const categoryIcons: Record<string, string> = {
+        "Kebutuhan Pokok": "🛒", "Transportasi": "🚗", "Hiburan": "🎬", 
+        "Makan & Minum": "🍜", "Kesehatan": "💊", "Pendidikan": "📚", 
+        "Tagihan": "📄", "Belanja": "👕", "Lainnya": "📦"
+      };
+      result.icon = categoryIcons[result.category] || "🧾";
+    }
+    if (!Array.isArray(result.items)) {
+      result.items = [];
+    }
+
+    return res.status(200).json({
+      isFallback: false,
+      ...result
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: "Gagal memproses struk." });
+  } catch (error: any) {
+    console.error("Error processing receipt with Gemini:", error);
+    return res.status(500).json({ 
+      error: 'Gagal menganalisis struk', 
+      details: error.message 
+    });
   }
 });
 

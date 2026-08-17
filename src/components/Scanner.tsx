@@ -53,26 +53,27 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     let timer: any = null;
 
     const startCamera = async () => {
-      // Matikan stream sebelumnya jika ada
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
 
       try {
-        // Coba dengan facingMode yang diminta
         try {
+          // Memaksa kamera menangkap resolusi tinggi (FHD) agar teks struk tidak buram
           stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: facingMode } 
+            video: { 
+              facingMode: facingMode,
+              width: { ideal: 1920 },
+              height: { ideal: 1080 } 
+            } 
           });
         } catch (err) {
-          console.warn(`Gagal memuat kamera ${facingMode}, mencoba fallback...`);
-          // Fallback ke kamera apa saja yang tersedia
+          console.warn(`Gagal memuat resolusi tinggi, mencoba fallback kamera standard...`);
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Paksa video untuk memutar stream
           videoRef.current.play().catch(e => console.warn("Auto-play dicegah browser:", e));
         }
         setKameraError(false);
@@ -85,13 +86,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
     };
 
     if (step === 'capture') {
-      // Berikan delay sedikit (150ms) untuk memastikan element video termount sempurna di DOM
       timer = setTimeout(() => {
         startCamera();
       }, 150);
     }
 
-    // Cleanup: matikan kamera saat komponen ditutup, mode berubah, atau step berubah
     return () => {
       clearTimeout(timer);
       setIsCameraActive(false);
@@ -127,7 +126,9 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       const rawImage = await fileToBase64(file);
       const cleanBase64 = rawImage.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
       const mimeType = file.type || "image/jpeg";
-      const tempGeminiKey = localStorage.getItem("TEMP_GEMINI_KEY") || "";
+      
+      // Mencari KEY khusus Scanner dulu, kalau tidak ada baru pakai Key utama
+      const tempGeminiKey = localStorage.getItem("SCANNER_GEMINI_KEY") || localStorage.getItem("TEMP_GEMINI_KEY") || "";
 
       const response = await fetch("/api/scan-receipt", {
         method: "POST",
@@ -143,7 +144,15 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Gagal menganalisa struk");
+        let errMsg = errorData.error || "Gagal menganalisa struk";
+        if (errorData.details) {
+          if (errorData.details.includes("503") || errorData.details.includes("high demand") || errorData.details.includes("UNAVAILABLE")) {
+            errMsg = "Server AI sedang sibuk (high demand). Silakan coba scan beberapa saat lagi.";
+          } else {
+            errMsg = `${errMsg}: ${errorData.details}`;
+          }
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
@@ -163,7 +172,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       setHasilOcr({
         totalHarga: data.totalAmount || 0,
         tanggal: data.date || new Date().toISOString().split('T')[0],
-        kategori: data.category || "Lainnya",
+        kategori: data.category || data.suggestedCategory || "Lainnya",
         nama: data.merchantName && data.merchantName.trim() !== "" ? data.merchantName : "Merchant Tidak Terdeteksi",
         uangBayar: data.cashPaid || data.totalAmount || 0,
         icon: data.icon || "🧾",
@@ -176,7 +185,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       } else {
         toast.success("Struk berhasil dianalisis oleh Gemini!");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gagal membaca struk secara fisik:", error);
       setHasilOcr({
         totalHarga: 0,
@@ -188,7 +197,7 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
         items: []
       });
       setStep('result');
-      toast.error("Gagal menganalisis struk. Silakan coba lagi.");
+      toast.error(error.message || "Gagal menganalisis struk. Silakan coba lagi.");
     }
   };
 
@@ -204,7 +213,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       icon: hasilOcr.icon
     };
 
-    // Optimistic state sync
     const user_email = localStorage.getItem("userEmail") || "";
     if (setTransactions) {
       setTransactions(prev => [newTransaction, ...prev]);
@@ -217,7 +225,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       openManual: false
     });
 
-    // Persistent save in database in background
     insertTransaction(newTransaction, user_email).then((inserted) => {
       if (setTransactions) {
         setTransactions(prev => {
@@ -230,7 +237,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
           return prev;
         });
       }
-      // Trigger success modal with exact streak details from API response!
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
           type: inserted.type,
@@ -240,12 +246,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
       }
     }).catch((err) => {
       console.error("Failed to persist OCR transaction to DB:", err);
-      // Fallback trigger in case of failure
       if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
         (window as any).triggerTransactionSuccess(undefined, undefined, {
-          type: scannedData?.suggestedType || 'expense',
-          amount: scannedData?.totalAmount || 0,
-          category: scannedData?.suggestedCategory || 'Scanning Struk'
+          type: 'expense',
+          amount: hasilOcr.totalHarga || 0,
+          category: hasilOcr.kategori || 'Scanning Struk'
         });
       }
     });
@@ -254,25 +259,11 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
   const captureImage = async () => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
+      canvas.width = videoRef.current.videoWidth || 1920;
+      canvas.height = videoRef.current.videoHeight || 1080;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async (blob) => {
-          if (blob) {
-            const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-            handleProsesStrukAsli(file);
-          }
-        }, 'image/jpeg');
-      }
-    } else if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
         canvas.toBlob(async (blob) => {
           if (blob) {
             const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
@@ -302,8 +293,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
             </div>
 
             <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center mb-5 mx-auto">
-              
-              {/* INI ADALAH ELEMEN VIDEO UTAMA - JANGAN DIHAPUS/DIGANTI */}
               <video 
                 ref={videoRef} 
                 autoPlay={true}
@@ -314,7 +303,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               
               <canvas ref={canvasRef} className="hidden"></canvas>
               
-              {/* OVERLAY PEMBIDIK */}
               <div className="absolute inset-x-8 top-12 bottom-20 border-2 border-white/30 z-10 rounded-xl pointer-events-none">
                  <div className="absolute top-1/2 left-0 w-full h-[2px] bg-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.8)] z-30 animate-pulse"></div>
               </div>
@@ -324,7 +312,6 @@ export default function Scanner({ onNavigate, transactions, setTransactions }: S
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="d-flex align-items-center justify-content-center gap-4">
               <button 
                 className="d-flex flex-column align-items-center gap-1 btn border-0 p-0 text-muted hover:text-primary-mooduit transition-all"
