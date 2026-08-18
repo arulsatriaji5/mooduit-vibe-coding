@@ -325,13 +325,13 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
 
       {/* TABS SELECTOR */}
       {!showResult && (
-        <div className="d-flex p-1 bg-gray-100 dark:bg-slate-800 rounded-2xl mb-4 max-w-sm border border-gray-200 dark:border-slate-700">
+        <div className="d-flex p-1.5 bg-white rounded-2xl mb-4 max-w-sm border border-slate-200 shadow-sm">
           <button
             onClick={() => setActiveTab('formula_50_30_20')}
-            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm sm:text-base transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
+            className={`flex-grow-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
               activeTab === 'formula_50_30_20'
                 ? 'bg-[#112F58] text-white shadow-sm'
-                : 'bg-transparent text-muted hover:text-dark'
+                : 'bg-transparent text-slate-600 hover:text-slate-800'
             }`}
           >
             <Coins size={16} />
@@ -339,10 +339,10 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
           </button>
           <button
             onClick={() => setActiveTab('custom_budget')}
-            className={`flex-grow-1 py-2.5 px-3 rounded-xl font-bold text-sm sm:text-base transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
+            className={`flex-grow-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all d-flex align-items-center justify-content-center gap-2 border-0 cursor-pointer ${
               activeTab === 'custom_budget'
                 ? 'bg-[#112F58] text-white shadow-sm'
-                : 'bg-transparent text-muted hover:text-dark'
+                : 'bg-transparent text-slate-600 hover:text-slate-800'
             }`}
           >
             <Sparkles size={16} />

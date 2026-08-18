@@ -282,12 +282,10 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   };
 
   return (
-    <div className="w-full max-w-full px-4 mx-auto box-border overflow-x-hidden flex flex-col gap-4 md:gap-6 pb-72 relative riwayat-kunci-mati">
+    <div className="w-full max-w-full px-4 mx-auto box-border overflow-x-hidden flex flex-col gap-4 pb-24 relative riwayat-kunci-mati">
       <style>
         {`
           .riwayat-kunci-mati { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; box-sizing: border-box !important; }
-          .sticky-footer-kas { position: sticky !important; bottom: 24px !important; z-index: 40 !important; transition: all 0.3s ease-in-out; }
-          @media (max-width: 991px) { .sticky-footer-kas { bottom: 80px !important; } }
           @media (max-width: 768px) {
             .riwayat-teks-wrap { white-space: normal !important; word-wrap: break-word !important; width: 100% !important; display: block !important; }
             .riwayat-search-container { flex-direction: column !important; width: 100% !important; }
@@ -394,8 +392,8 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         </div>
       )}
 
-      <div className="flex flex-col w-full rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 mb-4 p-3 md:p-5">
-        <div className="flex flex-col gap-3 pb-48 md:pb-24">
+      <div className="flex flex-col w-full rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 mb-6 p-3 md:p-5">
+        <div className="flex flex-col gap-3">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-8 px-4">
               <div className="text-amber-500 mb-3 inline-flex align-items-center justify-center p-4 bg-amber-50 rounded-full"><AlertCircle size={36} /></div>
@@ -418,7 +416,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                         {tx.icon || (isPemasukan ? '💼' : '🛒')}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate m-0 group-hover:text-[#112F58] dark:group-hover:text-sky-400 transition-colors">{(tx.catatan || tx.kategori)}</h4>
+                        <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate m-0 group-hover:text-[#112F58] dark:group-hover:text-white transition-colors">{(tx.catatan || tx.kategori)}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 mb-0">{formatTanggalIndo(tx.tanggal)} • {tx.kategori}</p>
                       </div>
                     </div>
@@ -438,7 +436,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                         e.stopPropagation();
                         platformNativeEditFunction(tx);
                       }} 
-                      className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border-0 bg-transparent flex items-center justify-center cursor-pointer pointer-events-auto"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all border-0 bg-transparent flex items-center justify-center cursor-pointer pointer-events-auto"
                       title={t('Edit Transaksi', 'Edit Transaction')}
                     >
                       <Edit2 size={16} />
@@ -458,7 +456,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         </div>
       </div>
 
-      <div className="bg-[#112F58] text-white p-4.5 rounded-3xl flex flex-col justify-between gap-3.5 shadow-lg border-0 sticky-footer-kas z-40">
+      <div className="bg-[#112F58] text-white p-4.5 sm:p-5 rounded-3xl flex flex-col justify-between gap-3.5 shadow-lg border-0 mb-4">
         <div>
           <h6 className="mb-1 text-white/70 text-xs font-bold tracking-wider uppercase">
             {filterBulan === 'semua' ? t('TOTAL KAS SEMUA WAKTU', 'TOTAL CASH ALL TIME') : `${t('TOTAL KAS', 'TOTAL CASH')} ${getMonthName(filterBulan).toUpperCase()}`}

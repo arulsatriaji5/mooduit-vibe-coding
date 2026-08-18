@@ -10,6 +10,7 @@ import {
   HelpCircle, 
   LogOut,
   ChevronRight,
+  ChevronDown,
   Shield,
   ArrowLeft,
   Camera,
@@ -29,6 +30,7 @@ interface SettingsProps {
 export default function Settings({ onLogout }: SettingsProps) {
   const { theme, toggleTheme, language, setLanguage, t } = useThemeLanguage();
   const [notifEnabled, setNotifEnabled] = useState(true);
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const darkMode = theme === 'dark';
 
   const [currentAvatar, setCurrentAvatar] = useState(() => {
@@ -367,24 +369,62 @@ export default function Settings({ onLogout }: SettingsProps) {
                   </button>
                 </div>
 
-                <div className="w-full card-mooduit overflow-hidden mb-4 p-0 box-border">
+                <div className="w-full card-mooduit mb-4 p-0 box-border relative overflow-visible">
                   <div className="list-group list-group-flush border-0">
-                    <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom w-full overflow-hidden flex-nowrap" style={{ minWidth: 0 }}>
+                    <div className="list-group-item d-flex align-items-center justify-content-between p-3 border-0 border-bottom w-full flex-nowrap relative overflow-visible" style={{ minWidth: 0 }}>
                       <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0 overflow-hidden" style={{ minWidth: 0 }}>
                         <div className="p-2 bg-light rounded-lg flex-shrink-0"><Languages size={20} /></div>
                         <span className="font-semibold text-sm sm:text-base truncate text-slate-800 dark:text-slate-100" style={{ minWidth: 0 }}>{t("Bahasa", "Language")}</span>
                       </div>
-                      <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                        <select
-                          value={language}
-                          onChange={(e) => setLanguage(e.target.value as 'id' | 'en')}
-                          className="bg-transparent border-0 font-bold focus:outline-none cursor-pointer pr-1 text-xs sm:text-sm text-[#112F58] dark:text-sky-400 max-w-[120px] md:max-w-none truncate"
-                          id="language_select"
+                      
+                      {/* CUSTOM DROPDOWN LANGUAGE */}
+                      <div className="relative flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsLangOpen(!isLangOpen)}
+                          className="flex items-center justify-end gap-2 bg-transparent border-0 text-[#112F58] font-extrabold cursor-pointer p-0 m-0 outline-none shadow-none text-xs sm:text-sm"
+                          id="language_dropdown_button"
                         >
-                          <option value="id">{t("Bahasa Indonesia", "Indonesian")}</option>
-                          <option value="en">{t("Bahasa Inggris", "English")}</option>
-                        </select>
-                        <ChevronRight size={18} className="text-muted flex-shrink-0" />
+                          <span>{language === 'id' ? t("Bahasa Indonesia", "Indonesian") : t("Bahasa Inggris", "English")}</span>
+                          <ChevronDown size={16} className={`transition-transform duration-200 ${isLangOpen ? 'rotate-180 text-[#112F58]' : 'text-slate-400'}`} />
+                        </button>
+
+                        {isLangOpen && (
+                          <>
+                            {/* Backdrop to catch clicks outside */}
+                            <div 
+                              className="fixed inset-0 z-40 bg-transparent" 
+                              onClick={() => setIsLangOpen(false)}
+                            />
+                            {/* Curved Pop-up Menu */}
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLanguage('id');
+                                  setIsLangOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 text-sm font-bold text-[#112F58] transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                                  language === 'id' ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                                }`}
+                              >
+                                {t("Bahasa Indonesia", "Indonesian")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLanguage('en');
+                                  setIsLangOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 text-sm font-bold text-[#112F58] transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                                  language === 'en' ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                                }`}
+                              >
+                                {t("Bahasa Inggris", "English")}
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <button 
@@ -643,7 +683,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                       }}
                       className={`relative flex items-center justify-center p-2 rounded-2xl transition-all duration-200 border-2 bg-slate-50 dark:bg-slate-700/50 hover:scale-105 active:scale-95 ${
                         isSelected 
-                          ? 'border-[#112F58] dark:border-white ring-4 ring-blue-100 dark:ring-slate-700' 
+                          ? 'border-[#112F58] dark:border-white ring-4 ring-slate-200 dark:ring-slate-700' 
                           : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                       }`}
                       style={{ outline: 'none' }}
@@ -829,7 +869,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                 ) : (
                   /* TAHAP 2 */
                   <div className="flex flex-col gap-3 text-left">
-                    <h4 className="text-base sm:text-lg font-bold text-[#112F58] dark:text-sky-400 mb-1 flex items-center gap-2">
+                    <h4 className="text-base sm:text-lg font-bold text-[#112F58] dark:text-white mb-1 flex items-center gap-2">
                       🔐 {t("Ubah Kata Sandi Baru", "Set New Password")}
                     </h4>
 

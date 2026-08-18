@@ -1504,13 +1504,13 @@ export default function Dashboard({
       </motion.div>
 
       {/* Summary Cards Grid */}
-      <div className="w-full flex flex-col gap-4 mb-6">
-        {/* KARTU 1: Total Saldo (Full Width) */}
-        <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
+      <div className="w-full flex flex-col gap-3 sm:gap-4 mb-5">
+        {/* KARTU 1: Total Saldo (Full Width Compact) */}
+        <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
               <svg
-                className="w-5 h-5 text-[#112F58] dark:text-white"
+                className="w-4 h-4 sm:w-5 sm:h-5 text-[#112F58] dark:text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1526,7 +1526,7 @@ export default function Dashboard({
           </div>
           
           {/* TEXT HEADER & TOGGLE MATA (INLINE & CLEAN) */}
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold m-0 p-0 leading-none">
               {t("Total Saldo", "Total Balance")}
             </p>
@@ -1542,9 +1542,9 @@ export default function Dashboard({
                 aria-label={showBalance ? t("Sembunyikan Saldo", "Hide Balance") : t("Tampilkan Saldo", "Show Balance")}
               >
                 {showBalance ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                 )}
               </button>
               <span className="mooduit-tooltip">
@@ -1554,54 +1554,54 @@ export default function Dashboard({
           </div>
           
           {isLoading ? (
-            <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse my-1" />
+            <div className="h-8 w-44 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse my-0.5" />
           ) : (
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#112F58] dark:text-white">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#112F58] dark:text-white leading-tight mb-0">
               {showBalance ? `Rp ${totalSaldo.toLocaleString("id-ID")}` : "Rp ••••••••"}
             </h2>
           )}
         </div>
 
         {/* KARTU RINGKASAN PEMASUKAN & PENGELUARAN (BALANCED GRID FIX) */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 w-full">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
           
           {/* Kartu Pemasukan */}
-          <div className="w-full" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', color: '#16a34a', display: 'flex' }}>
-                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+          <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-2.5 sm:p-3 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap truncate">
                 {t("Pemasukan", "Income")}
               </span>
             </div>
             {isLoading ? (
-              <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold m-0" style={{ color: darkMode ? '#ffffff' : '#112F58', wordBreak: 'break-word', lineHeight: '1.2' }}>
+              <h3 className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" title={showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : undefined}>
                 {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
           </div>
 
           {/* Kartu Pengeluaran */}
-          <div className="w-full" style={{ backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', padding: '16px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center', color: '#dc2626', display: 'flex' }}>
-                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+          <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-2.5 sm:p-3 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap truncate">
                 {t("Pengeluaran", "Expenses")}
               </span>
             </div>
             {isLoading ? (
-              <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-2" />
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold m-0" style={{ color: darkMode ? '#ffffff' : '#112F58', wordBreak: 'break-word', lineHeight: '1.2' }}>
+              <h3 className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" title={showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : undefined}>
                 {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
@@ -1610,8 +1610,175 @@ export default function Dashboard({
         </div>
       </div>
 
+      {/* SECTION TARGET IMPIAN (REORDERED: DIRECTLY BELOW PEMASUKAN & PENGELUARAN) */}
+      <div className="mb-6">
+        <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2
+              className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0 d-flex align-items-center gap-2"
+            >
+              🎯 {t("Target Impian", "Dream Target")}
+            </h2>
+            <button
+              onClick={() => setIsTargetModalOpen(true)}
+              className="btn btn-mooduit-outline px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm"
+            >
+              + {t("Tambah Impian Baru", "Add New Dream")}
+            </button>
+          </div>
+
+          <div className="flex-grow-1 d-flex flex-column py-1">
+            <div className="space-y-3">
+              {targetImpian.length === 0 ? (
+                <div className="text-center p-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl d-flex flex-column align-items-center justify-content-center h-100 py-5">
+                  <p className="mb-3 text-sm sm:text-base leading-relaxed">
+                    {t(
+                      "Belum ada target impian. Yuk, tambah target pertamamu!",
+                      "No dream targets yet. Let's add your first target!",
+                    )}
+                  </p>
+                  <button
+                    className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
+                    onClick={() => setIsTargetModalOpen(true)}
+                  >
+                    + {t("Tambah Impian Baru", "Add New Dream")}
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="d-flex flex-column gap-3 overflow-y-auto"
+                  style={{ maxHeight: "300px" }}
+                >
+                  {targetImpian.map((target) => (
+                    <div
+                      key={target.id}
+                      className="border border-gray-100 dark:border-slate-700 rounded-xl p-3.5 sm:p-4 flex justify-between items-center relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                      onClick={() => {
+                        const idx = wishlist.findIndex(
+                          (w: any) => w.id === target.id,
+                        );
+                        if (idx !== -1) handleEditItem(idx);
+                      }}
+                    >
+                      <div className="flex items-center gap-3 d-flex min-w-0 flex-1 pr-2">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-600 flex items-center justify-center text-blue-500 dark:text-blue-300 shrink-0">
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            style={{ width: "20px", height: "20px" }}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            ></path>
+                          </svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3
+                            className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate"
+                          >
+                            {target.nama || target.name}
+                          </h3>
+                          <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400 mb-0">
+                            Rp{" "}
+                            {Number(
+                              (target.harga || target.price || "0")
+                                .toString()
+                                .replace(/\D/g, ""),
+                            ).toLocaleString("id-ID")}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Tombol Aksi di Card */}
+                      <div className="d-flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {/* Tombol Beli / Tercapai */}
+                        <button
+                          onClick={() => {
+                            setSelectedTargetForCelebration(target);
+                            setIsCelebrationOpen(true);
+                          }}
+                          className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border-0 flex items-center justify-center cursor-pointer"
+                          title={t("Beli / Tercapai", "Buy / Achieved")}
+                          style={{
+                            backgroundColor: "#ECFDF5",
+                            color: "#059669",
+                          }}
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            style={{ width: "20px", height: "20px" }}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2.5"
+                              d="M5 13l4 4L19 7"
+                            ></path>
+                          </svg>
+                        </button>
+
+                        {/* Tombol Hapus Langsung di Card */}
+                        <button
+                          onClick={() => {
+                            setTargetImpian((prev) => {
+                              const updated = prev.filter(
+                                (t) => t.id !== target.id,
+                              );
+                              setWishlist(updated);
+                              localStorage.setItem(
+                                "savedWishlist",
+                                JSON.stringify(updated),
+                              );
+                              return updated;
+                            });
+                          }}
+                          className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg group-hover:opacity-100 transition-opacity border-0 flex items-center justify-center cursor-pointer"
+                          title={t("Hapus Target", "Delete Target")}
+                          style={{
+                            backgroundColor: "#FEF2F2",
+                            color: "#DC2626",
+                          }}
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            style={{ width: "20px", height: "20px" }}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            ></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    className="btn btn-link text-primary-mooduit dark:text-sky-400 font-bold text-decoration-none text-xs sm:text-sm p-0 mt-2 text-start border-0 bg-transparent shadow-none"
+                    onClick={() => setIsTargetModalOpen(true)}
+                  >
+                    + {t("Tambah Impian Baru", "Add New Dream")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* SECTION KANTONG MASA DEPAN */}
-      <div className="mb-4">
+      <div className="mb-6">
         <div className="d-flex flex-column mb-3">
           <h2 className="fw-800 text-primary-mooduit text-xl sm:text-2xl mb-1 d-flex align-items-center gap-2">
             💼 {t("Kantong Masa Depan", "Future Pockets")}
@@ -1669,254 +1836,89 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Content Grid */}
-      <div className="row g-4">
-        {/* Left Col: Transaksi Terakhir */}
-        <div className="col-12 col-lg-7">
-          <div className="card-mooduit p-4 shadow-sm h-100">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h2
-                className="fw-800 text-primary-mooduit text-lg sm:text-xl mb-0"
-              >
-                {t("Transaksi Terakhir", "Recent Transactions")}
-              </h2>
+      {/* SECTION TRANSAKSI TERAKHIR (RIWAYAT) */}
+      <div className="mb-6">
+        <div className="card-mooduit p-4 shadow-sm bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2
+              className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0"
+            >
+              {t("Transaksi Terakhir", "Recent Transactions")}
+            </h2>
+            <button
+              className="btn btn-link text-primary-mooduit dark:text-sky-400 fw-bold text-decoration-none text-xs sm:text-sm p-0 border-0 bg-transparent"
+              onClick={() => onNavigate("history")}
+            >
+              {t("Lihat Semua", "See All")}
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="d-flex flex-column gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100 animate-pulse">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
+                      <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : transactions.length > 0 ? (
+            <div
+              className="d-flex flex-column gap-3 overflow-y-auto"
+              style={{ maxHeight: "400px" }}
+            >
+              {transactions.slice(0, 3).map((t, idx) => (
+                <div
+                  key={t.id || idx}
+                  className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white border border-gray-100 shadow-sm dark:bg-slate-800 dark:border-slate-700"
+                >
+                  <div className="d-flex align-items-center gap-3 flex-1 min-w-0 pr-2">
+                    <div className="bg-slate-50 dark:bg-slate-700 p-2.5 rounded-xl shadow-xs text-lg shrink-0">
+                      {t.icon || "🧾"}
+                    </div>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="fw-800 text-slate-800 dark:text-white text-sm sm:text-base leading-tight mb-0.5 truncate line-clamp-1">
+                        {t.catatan || t.kategori}
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium truncate">
+                        {t.tanggal}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`fw-800 text-sm sm:text-base shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718] dark:text-rose-400"}`}
+                  >
+                    {t.jenis === "pemasukan" ? "+" : "-"} Rp{" "}
+                    {Number(t.nominal).toLocaleString("id-ID")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="d-flex flex-column align-items-center justify-content-center py-5">
+              <div className="bg-light dark:bg-slate-800 p-3 rounded-circle mb-3">
+                <ArrowUpRight size={24} className="text-muted opacity-50" />
+              </div>
+              <p className="text-muted text-sm sm:text-base text-center mb-3 leading-relaxed">
+                {t(
+                  "Belum ada transaksi. Yuk mulai catat pengeluaran pertamamu!",
+                  "No transactions yet. Let's start tracking your first expense!",
+                )}
+              </p>
               <button
-                className="btn btn-link text-primary-mooduit fw-bold text-decoration-none text-xs sm:text-sm p-0 border-0 bg-transparent"
-                onClick={() => onNavigate("history")}
+                className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
+                onClick={() => onNavigate("scanner")}
               >
-                {t("Lihat Semua", "See All")}
+                + {t("Scan Struk AI", "Scan Receipt AI")}
               </button>
             </div>
-
-            {isLoading ? (
-              <div className="d-flex flex-column gap-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100 animate-pulse">
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                      <div className="space-y-1">
-                        <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
-                        <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
-                      </div>
-                    </div>
-                    <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : transactions.length > 0 ? (
-              <div
-                className="d-flex flex-column gap-3 overflow-y-auto"
-                style={{ maxHeight: "400px" }}
-              >
-                {transactions.slice(0, 5).map((t, idx) => (
-                  <div
-                    key={t.id || idx}
-                    className="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-gray-50 border border-gray-100 dark:bg-slate-800/80 dark:border-slate-700"
-                  >
-                    <div className="d-flex align-items-center gap-3 flex-1 min-w-0 pr-2">
-                      <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm text-lg shrink-0">
-                        {t.icon || "🧾"}
-                      </div>
-                      <div className="flex-1 min-w-0 pr-2">
-                        <div className="fw-800 text-primary-mooduit dark:text-white text-sm sm:text-base leading-tight mb-0.5 truncate line-clamp-1">
-                          {t.catatan || t.kategori}
-                        </div>
-                        <div className="text-muted text-xs sm:text-sm font-medium truncate">
-                          {t.tanggal}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      className={`fw-800 text-sm sm:text-base shrink-0 whitespace-nowrap ${t.jenis === "pemasukan" ? "text-success" : "text-[#382718] dark:text-rose-400"}`}
-                    >
-                      {t.jenis === "pemasukan" ? "+" : "-"} Rp{" "}
-                      {Number(t.nominal).toLocaleString("id-ID")}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="d-flex flex-column align-items-center justify-content-center py-5">
-                <div className="bg-light dark:bg-slate-800 p-3 rounded-circle mb-3">
-                  <ArrowUpRight size={24} className="text-muted opacity-50" />
-                </div>
-                <p className="text-muted text-sm sm:text-base text-center mb-3 leading-relaxed">
-                  {t(
-                    "Belum ada transaksi. Yuk mulai catat pengeluaran pertamamu!",
-                    "No transactions yet. Let's start tracking your first expense!",
-                  )}
-                </p>
-                <button
-                  className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
-                  onClick={() => onNavigate("scanner")}
-                >
-                  + {t("Scan Struk AI", "Scan Receipt AI")}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Col: Target Impian */}
-        <div className="col-12 col-lg-5">
-          <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h2
-                className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0"
-              >
-                {t("Target Impian", "Dream Target")}
-              </h2>
-              <Target size={20} className="text-primary-mooduit dark:text-white opacity-50" />
-            </div>
-
-            <div className="flex-grow-1 d-flex flex-column py-2">
-              <div className="space-y-3">
-                {targetImpian.length === 0 ? (
-                  <div className="text-center p-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl d-flex flex-column align-items-center justify-content-center h-100 py-5">
-                    <p className="mb-3 text-sm sm:text-base leading-relaxed">
-                      {t(
-                        "Belum ada target impian. Yuk, tambah target pertamamu!",
-                        "No dream targets yet. Let's add your first target!",
-                      )}
-                    </p>
-                    <button
-                      className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
-                      onClick={() => setIsTargetModalOpen(true)}
-                    >
-                      + {t("Tambah Impian Baru", "Add New Dream")}
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="d-flex flex-column gap-3 overflow-y-auto"
-                    style={{ maxHeight: "250px" }}
-                  >
-                    {targetImpian.map((target) => (
-                      <div
-                        key={target.id}
-                        className="border border-gray-100 dark:border-slate-700 rounded-xl p-4 flex justify-between items-center relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
-                        onClick={() => {
-                          const idx = wishlist.findIndex(
-                            (w: any) => w.id === target.id,
-                          );
-                          if (idx !== -1) handleEditItem(idx);
-                        }}
-                      >
-                        <div className="flex items-center gap-3 d-flex">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-600 flex items-center justify-center text-blue-500 dark:text-blue-300 shrink-0">
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "20px", height: "20px" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                              ></path>
-                            </svg>
-                          </div>
-                          <div>
-                            <h3
-                              className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-1"
-                            >
-                              {target.nama || target.name}
-                            </h3>
-                            <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400 mb-0">
-                              Rp{" "}
-                              {Number(
-                                (target.harga || target.price || "0")
-                                  .toString()
-                                  .replace(/\D/g, ""),
-                              ).toLocaleString("id-ID")}
-                            </p>
-                          </div>
-                        </div>
-                        {/* Tombol Aksi di Card */}
-                        <div className="d-flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          {/* Tombol Beli / Tercapai */}
-                          <button
-                            onClick={() => {
-                              setSelectedTargetForCelebration(target);
-                              setIsCelebrationOpen(true);
-                            }}
-                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border-0 flex items-center justify-center"
-                            title={t("Beli / Tercapai", "Buy / Achieved")}
-                            style={{
-                              backgroundColor: "#ECFDF5",
-                              color: "#059669",
-                            }}
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "20px", height: "20px" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                          </button>
-
-                          {/* Tombol Hapus Langsung di Card */}
-                          <button
-                            onClick={() => {
-                              setTargetImpian((prev) => {
-                                const updated = prev.filter(
-                                  (t) => t.id !== target.id,
-                                );
-                                setWishlist(updated);
-                                localStorage.setItem(
-                                  "savedWishlist",
-                                  JSON.stringify(updated),
-                                );
-                                return updated;
-                              });
-                            }}
-                            className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg group-hover:opacity-100 transition-opacity border-0 flex items-center justify-center"
-                            title={t("Hapus Target", "Delete Target")}
-                            style={{
-                              backgroundColor: "#FEF2F2",
-                              color: "#DC2626",
-                            }}
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "20px", height: "20px" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              ></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      className="btn btn-link text-primary-mooduit dark:text-sky-400 font-bold text-decoration-none text-xs sm:text-sm p-0 mt-2 text-start border-0 bg-transparent shadow-none"
-                      onClick={() => setIsTargetModalOpen(true)}
-                    >
-                      + {t("Tambah Impian Baru", "Add New Dream")}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

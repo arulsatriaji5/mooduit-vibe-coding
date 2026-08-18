@@ -18,7 +18,9 @@ import {
   Sparkles,
   Award,
   Wallet,
-  PlayCircle
+  PlayCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 
@@ -31,6 +33,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   const darkMode = theme === 'dark';
   const [localTransactions, setLocalTransactions] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState<'pengeluaran' | 'pemasukan'>('pengeluaran');
+  const [isAiAdviceExpanded, setIsAiAdviceExpanded] = React.useState(false);
 
   const transactions = propsTransactions !== undefined ? propsTransactions : localTransactions;
 
@@ -459,57 +462,71 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="d-flex justify-content-between align-items-center mb-3 border-b border-gray-100 dark:border-slate-700 pb-3">
+            <div 
+              className="d-flex justify-content-between align-items-center cursor-pointer select-none"
+              onClick={() => setIsAiAdviceExpanded(!isAiAdviceExpanded)}
+              role="button"
+              tabIndex={0}
+            >
               <div className="d-flex align-items-center gap-2">
                 <span className="text-xl">🤖</span>
                 <h2 className="font-bold text-lg md:text-xl m-0" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
                   {language === 'id' ? 'Saran AI Advisor' : 'AI Advisor Suggestion'}
                 </h2>
               </div>
-              <span className="text-xs font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-0.5 rounded-full">
-                {t('LIVE', 'LIVE')}
-              </span>
+              <div className="d-flex align-items-center gap-2">
+                <span className="text-xs font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-0.5 rounded-full">
+                  {t('LIVE', 'LIVE')}
+                </span>
+                <div className="text-slate-500 dark:text-slate-400">
+                  {isAiAdviceExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
             </div>
 
-            <p 
-              className="text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap"
-              style={{ color: darkMode ? '#f8fafc' : '#334155' }} 
-            >
-              {!isEmpty ? (
-                activeTab === 'pengeluaran' 
-                  ? insight.tip 
-                  : incomeInsight.tip
-              ) : (
-                language === 'id' ? 'Catat data pertamamu agar AI bisa mulai bekerja!' : 'Record your first data to activate AI!'
-              )}
-            </p>
-
-            {!isEmpty && (
-              <div 
-                className="p-3.5 rounded-xl mt-auto"
-                style={{ 
-                  backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(17,47,88,0.03)',
-                  border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(17,47,88,0.1)' 
-                }}
-              >
-                <div 
-                  className="text-xs font-bold tracking-wider uppercase mb-1"
-                  style={{ color: darkMode ? '#94a3b8' : '#64748b' }} 
-                >
-                  {activeTab === 'pengeluaran' ? t('DETEKSI & POIN UTAMA', 'HIGHLIGHTS') : t('PILAR UTAMA', 'MAIN PILLAR')}
-                </div>
-                <div 
-                  className="font-extrabold text-sm sm:text-base mb-1"
-                  style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
-                >
-                  {activeTab === 'pengeluaran' ? insight.highlightName : incomeInsight.highlightName}
-                </div>
+            {isAiAdviceExpanded && (
+              <div className="mt-4 border-t border-slate-100 dark:border-slate-700 pt-4">
                 <p 
-                  className="text-xs sm:text-sm m-0 leading-relaxed"
-                  style={{ color: darkMode ? '#cbd5e1' : '#475569' }} 
+                  className="text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap"
+                  style={{ color: darkMode ? '#f8fafc' : '#334155' }} 
                 >
-                  {activeTab === 'pengeluaran' ? insight.highlightDesc : incomeInsight.highlightDesc}
+                  {!isEmpty ? (
+                    activeTab === 'pengeluaran' 
+                      ? insight.tip 
+                      : incomeInsight.tip
+                  ) : (
+                    language === 'id' ? 'Catat data pertamamu agar AI bisa mulai bekerja!' : 'Record your first data to activate AI!'
+                  )}
                 </p>
+
+                {!isEmpty && (
+                  <div 
+                    className="p-3.5 rounded-xl mt-auto"
+                    style={{ 
+                      backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(17,47,88,0.03)',
+                      border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(17,47,88,0.1)' 
+                    }}
+                  >
+                    <div 
+                      className="text-xs font-bold tracking-wider uppercase mb-1"
+                      style={{ color: darkMode ? '#94a3b8' : '#64748b' }} 
+                    >
+                      {activeTab === 'pengeluaran' ? t('DETEKSI & POIN UTAMA', 'HIGHLIGHTS') : t('PILAR UTAMA', 'MAIN PILLAR')}
+                    </div>
+                    <div 
+                      className="font-extrabold text-sm sm:text-base mb-1"
+                      style={{ color: darkMode ? '#ffffff' : '#112F58' }} 
+                    >
+                      {activeTab === 'pengeluaran' ? insight.highlightName : incomeInsight.highlightName}
+                    </div>
+                    <p 
+                      className="text-xs sm:text-sm m-0 leading-relaxed"
+                      style={{ color: darkMode ? '#cbd5e1' : '#475569' }} 
+                    >
+                      {activeTab === 'pengeluaran' ? insight.highlightDesc : incomeInsight.highlightDesc}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
