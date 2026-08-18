@@ -1613,17 +1613,17 @@ export default function Dashboard({
       {/* SECTION TARGET IMPIAN (REORDERED: DIRECTLY BELOW PEMASUKAN & PENGELUARAN) */}
       <div className="mb-6">
         <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl">
-          <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-4 gap-2">
             <h2
-              className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0 d-flex align-items-center gap-2"
+              className="fw-800 text-primary-mooduit dark:text-white text-sm sm:text-base whitespace-nowrap truncate m-0 d-flex align-items-center gap-1.5"
             >
               🎯 {t("Target Impian", "Dream Target")}
             </h2>
             <button
               onClick={() => setIsTargetModalOpen(true)}
-              className="btn btn-mooduit-outline px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm"
+              className="btn btn-mooduit-outline px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap shrink-0"
             >
-              + {t("Tambah Impian Baru", "Add New Dream")}
+              + {t("Tambah", "Add")}
             </button>
           </div>
 
@@ -1638,10 +1638,10 @@ export default function Dashboard({
                     )}
                   </p>
                   <button
-                    className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs sm:text-sm"
+                    className="btn btn-mooduit-outline px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shrink-0"
                     onClick={() => setIsTargetModalOpen(true)}
                   >
-                    + {t("Tambah Impian Baru", "Add New Dream")}
+                    + {t("Tambah", "Add")}
                   </button>
                 </div>
               ) : (
@@ -1764,12 +1764,6 @@ export default function Dashboard({
                       </div>
                     </div>
                   ))}
-                  <button
-                    className="btn btn-link text-primary-mooduit dark:text-sky-400 font-bold text-decoration-none text-xs sm:text-sm p-0 mt-2 text-start border-0 bg-transparent shadow-none"
-                    onClick={() => setIsTargetModalOpen(true)}
-                  >
-                    + {t("Tambah Impian Baru", "Add New Dream")}
-                  </button>
                 </div>
               )}
             </div>
@@ -1791,9 +1785,9 @@ export default function Dashboard({
           </p>
         </div>
 
-        <div className="row g-3">
+        <div className="flex overflow-x-auto gap-3 pb-4 snap-x hide-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
           {/* Kantong 1: Dana Darurat */}
-          <div className="col-12 col-md-4">
+          <div className="min-w-[85%] sm:min-w-[45%] md:min-w-0 md:flex-1 snap-center">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <span className="font-bold text-muted text-xs sm:text-sm">{t("Dana Darurat", "Emergency Fund")}</span>
@@ -1807,7 +1801,7 @@ export default function Dashboard({
           </div>
 
           {/* Kantong 2: Investasi */}
-          <div className="col-12 col-md-4">
+          <div className="min-w-[85%] sm:min-w-[45%] md:min-w-0 md:flex-1 snap-center">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <span className="font-bold text-muted text-xs sm:text-sm">{t("Investasi", "Investments")}</span>
@@ -1821,7 +1815,7 @@ export default function Dashboard({
           </div>
 
           {/* Kantong 3: Tabungan */}
-          <div className="col-12 col-md-4">
+          <div className="min-w-[85%] sm:min-w-[45%] md:min-w-0 md:flex-1 snap-center">
             <div className="card-mooduit h-100 p-4 border shadow-sm transition-all" style={{ minHeight: '180px' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <span className="font-bold text-muted text-xs sm:text-sm">{t("Tabungan", "Goal Savings")}</span>
@@ -2179,14 +2173,14 @@ export default function Dashboard({
                 {editIndex !== null && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1"
+                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-xs sm:text-sm font-bold flex items-center justify-center cursor-pointer"
+                    title={t("Hapus", "Delete")}
                     onClick={(e) => {
                       handleDeleteItem(editIndex, e);
                       setIsEditModalOpen(false);
                     }}
                   >
                     <Trash2 size={16} />
-                    <span>{t("Hapus", "Delete")}</span>
                   </button>
                 )}
                 <div className="d-flex gap-2 ms-auto">
