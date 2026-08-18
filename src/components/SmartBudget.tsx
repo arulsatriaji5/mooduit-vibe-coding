@@ -803,7 +803,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       </>
                     ) : (
                       <button 
-                        className="w-full py-3.5 border-2 border-[#001F3F] text-[#001F3F] font-semibold rounded-xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent text-center text-sm md:text-base"
+                        className="w-full py-3.5 border-2 border-[#112F58] dark:border-white text-[#112F58] dark:text-white font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer bg-transparent text-center text-sm md:text-base"
                         onClick={() => {
                           setIsPlanSaved(false);
                           setShowResult(false);
