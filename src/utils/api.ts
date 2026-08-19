@@ -12,7 +12,9 @@ export async function fetchUserStreak(user_email?: string): Promise<{
     if (!user_email) return { current_streak: 0, streakCount: 0, last_active_date: '', lost_streak: 0, restore_count: 0, last_restore_month: '', streakActive: false, streakIncreasedToday: false };
     const todayLocal = new Date().toLocaleDateString('en-CA');
     const response = await fetch(`/api/users/streak?email=${encodeURIComponent(user_email)}&clientLocalDate=${todayLocal}`, { credentials: 'include' });
-    if (!response.ok) throw new Error("Failed to fetch streak from DB");
+    if (!response.ok) {
+      return { current_streak: 0, streakCount: 0, last_active_date: '', lost_streak: 0, restore_count: 0, last_restore_month: '', streakActive: false, streakIncreasedToday: false };
+    }
     const data = await response.json();
     return {
       current_streak: Number(data.current_streak ?? data.streakCount) || 0,
@@ -25,7 +27,6 @@ export async function fetchUserStreak(user_email?: string): Promise<{
       streakIncreasedToday: Boolean(data.streakIncreasedToday)
     };
   } catch (err) {
-    console.error("Error fetching streak from DB:", err);
     return { current_streak: 0, streakCount: 0, last_active_date: '', lost_streak: 0, restore_count: 0, last_restore_month: '', streakActive: false, streakIncreasedToday: false };
   }
 }

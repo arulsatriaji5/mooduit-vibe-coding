@@ -297,6 +297,7 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     return { current_streak: 0, streakCount: 0, last_active_date: "", lost_streak: 0, restore_count: 0, last_restore_month: "", streakActive: false, streakIncreasedToday: false };
   }
 
+  await ensureDB();
   const cleanEmail = String(userEmail).trim().toLowerCase();
   
   // Use client's local YYYY-MM-DD or default to Asia/Jakarta timezone

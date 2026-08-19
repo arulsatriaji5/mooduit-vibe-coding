@@ -155,16 +155,24 @@ export default function Dashboard({
             finalStreak = apiStreak;
           } else if (prev > 0) {
             finalStreak = prev;
-          } else {
-            finalStreak = 1;
           }
           return finalStreak;
         });
-        setStreakActive(true);
-        setStreakIncreasedToday(true);
-        setShowCelebration(true);
 
-        generateStreakMotivation(txContext);
+        // KUNCI ANTI-SPAM POPUP
+        const todayDate = new Date().toISOString().split('T')[0];
+        const lastPopupDate = sessionStorage.getItem("lastStreakPopupDate");
+
+        if (apiIncreased === true || lastPopupDate !== todayDate) {
+          setStreakActive(true);
+          setStreakIncreasedToday(true);
+          setShowCelebration(true);
+          generateStreakMotivation(txContext);
+          sessionStorage.setItem("lastStreakPopupDate", todayDate);
+        } else {
+          // Jika sudah muncul hari ini, cukup nyalakan apinya di background diam-diam
+          setStreakActive(true);
+        }
 
         const email = localStorage.getItem("userEmail") || "";
         if (email) {
@@ -174,8 +182,6 @@ export default function Dashboard({
             setStreakActive(true);
             setLostStreak(s.lost_streak || 0);
             setRestoreCount(s.restore_count || 0);
-            setStreakIncreasedToday(true);
-            setShowCelebration(true);
           });
         }
       };
@@ -193,7 +199,7 @@ export default function Dashboard({
         delete (window as any).showStreakCelebration;
       }
     };
-  }, [generateStreakMotivation]);
+  }, [generateStreakMotivation, streakActive]);
 
   const handleRestoreStreak = async () => {
     if (isRestoring) return;
@@ -429,6 +435,10 @@ export default function Dashboard({
   const [isCelebrationOpen, setIsCelebrationOpen] = React.useState(false);
   const [selectedTargetForCelebration, setSelectedTargetForCelebration] = React.useState<any>(null);
 
+  const [isNyicilModalOpen, setIsNyicilModalOpen] = React.useState(false);
+  const [selectedTargetForNyicil, setSelectedTargetForNyicil] = React.useState<any>(null);
+  const [nyicilNominal, setNyicilNominal] = React.useState("");
+
   const [localTransactions, setLocalTransactions] = React.useState<any[]>([]);
   const transactions =
     propsTransactions !== undefined ? propsTransactions : localTransactions;
@@ -500,6 +510,71 @@ export default function Dashboard({
 
     setIsCelebrationOpen(false);
     setSelectedTargetForCelebration(null);
+  };
+
+  const handleSetorNyicil = async () => {
+    if (!selectedTargetForNyicil) return;
+    const cleanAmount = Number(nyicilNominal.replace(/\D/g, ""));
+    const isId = language === "id";
+
+    if (!cleanAmount || cleanAmount <= 0) {
+      toast.error(isId ? "Masukkan nominal cicilan yang valid!" : "Enter a valid installment amount!");
+      return;
+    }
+
+    if (totalSaldo < cleanAmount) {
+      toast.error(isId ? "Saldo kas tidak cukup untuk alokasi cicilan ini!" : "Insufficient cash balance for this installment!");
+      return;
+    }
+
+    const targetName = selectedTargetForNyicil.nama || selectedTargetForNyicil.name;
+    const newTx = {
+      id: "nyicil_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      nominal: cleanAmount,
+      jenis: "pengeluaran" as const,
+      kategori: "Target Impian",
+      catatan: `Cicilan Impian: ${targetName}`,
+      tanggal: new Date().toISOString().split('T')[0],
+      icon: "🎯"
+    };
+
+    try {
+      if (propsSetTransactions && typeof propsSetTransactions === "function") {
+        const { insertTransaction } = await import("../utils/api");
+        const user_email = localStorage.getItem("userEmail") || "";
+        const insertedTx = await insertTransaction(newTx, user_email);
+        propsSetTransactions(prev => [insertedTx, ...prev]);
+        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+          (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
+            type: 'expense',
+            amount: cleanAmount,
+            category: 'Target Impian'
+          });
+        }
+      } else {
+        setLocalTransactions(prev => [newTx, ...prev]);
+        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+          (window as any).triggerTransactionSuccess(undefined, undefined, {
+            type: 'expense',
+            amount: cleanAmount,
+            category: 'Target Impian'
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to insert nyicil transaction:", err);
+      setLocalTransactions(prev => [newTx, ...prev]);
+    }
+
+    toast.success(
+      isId
+        ? `Berhasil menyisihkan Rp ${cleanAmount.toLocaleString('id-ID')} untuk ${targetName}! 🚀`
+        : `Successfully saved Rp ${cleanAmount.toLocaleString('id-ID')} for ${targetName}! 🚀`
+    );
+
+    setIsNyicilModalOpen(false);
+    setSelectedTargetForNyicil(null);
+    setNyicilNominal("");
   };
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -1420,21 +1495,6 @@ export default function Dashboard({
                 {streakCount}
               </span>
             </div>
-
-            {lostStreak > 0 && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleRestoreStreak}
-                disabled={isRestoring}
-                type="button"
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-                title={t(`Pulihkan streak yang hangus (${lostStreak} hari). Sisa pemulihan bulan ini: ${Math.max(0, 2 - restoreCount)}/2`, `Restore lost streak (${lostStreak} days). Remaining restores this month: ${Math.max(0, 2 - restoreCount)}/2`)}
-              >
-                <span>⚡</span>
-                <span>{isRestoring ? t("Memulihkan...", "Restoring...") : t(`Pulihkan (${lostStreak} hr)`, `Restore (${lostStreak} d)`)}</span>
-              </motion.button>
-            )}
           </div>
 
           {/* IKON KADO ULANG TAHUN DI DASHBOARD (SEBELAH STREAK) */}
@@ -1649,121 +1709,74 @@ export default function Dashboard({
                   className="d-flex flex-column gap-3 overflow-y-auto"
                   style={{ maxHeight: "300px" }}
                 >
-                  {targetImpian.map((target) => (
-                    <div
-                      key={target.id}
-                      className="border border-gray-100 dark:border-slate-700 rounded-xl p-3.5 sm:p-4 flex justify-between items-center relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
-                      onClick={() => {
-                        const idx = wishlist.findIndex(
-                          (w: any) => w.id === target.id,
-                        );
-                        if (idx !== -1) handleEditItem(idx);
-                      }}
-                    >
-                      <div className="flex items-center gap-3 d-flex min-w-0 flex-1 pr-2">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-600 flex items-center justify-center text-blue-500 dark:text-blue-300 shrink-0">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            style={{ width: "20px", height: "20px" }}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                            ></path>
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3
-                            className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate"
-                          >
-                            {target.nama || target.name}
-                          </h3>
-                          <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400 mb-0">
-                            Rp{" "}
-                            {Number(
-                              (target.harga || target.price || "0")
-                                .toString()
-                                .replace(/\D/g, ""),
-                            ).toLocaleString("id-ID")}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Tombol Aksi di Card */}
-                      <div className="d-flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        {/* Tombol Beli / Tercapai */}
-                        <button
-                          onClick={() => {
-                            setSelectedTargetForCelebration(target);
-                            setIsCelebrationOpen(true);
-                          }}
-                          className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border-0 flex items-center justify-center cursor-pointer"
-                          title={t("Beli / Tercapai", "Buy / Achieved")}
-                          style={{
-                            backgroundColor: "#ECFDF5",
-                            color: "#059669",
-                          }}
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            style={{ width: "20px", height: "20px" }}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2.5"
-                              d="M5 13l4 4L19 7"
-                            ></path>
-                          </svg>
-                        </button>
+                  {targetImpian.map((target) => {
+                    const targetName = target.nama || target.name;
+                    const hargaTarget = Number((target.harga || target.price || "0").toString().replace(/\D/g, ""));
+                    const terkumpul = transactions
+                      .filter(t => (t.kategori === "Target Impian" || t.kategori === "Tabungan") && String(t.catatan || t.description || "").toLowerCase().includes(targetName.toLowerCase()))
+                      .reduce((sum, t) => sum + (Number(t.nominal || t.amount) || 0), 0);
+                    const persentase = hargaTarget > 0 ? Math.min(100, Math.floor((terkumpul / hargaTarget) * 100)) : 0;
 
-                        {/* Tombol Hapus Langsung di Card */}
-                        <button
-                          onClick={() => {
-                            setTargetImpian((prev) => {
-                              const updated = prev.filter(
-                                (t) => t.id !== target.id,
-                              );
-                              setWishlist(updated);
-                              localStorage.setItem(
-                                "savedWishlist",
-                                JSON.stringify(updated),
-                              );
-                              return updated;
-                            });
-                          }}
-                          className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg group-hover:opacity-100 transition-opacity border-0 flex items-center justify-center cursor-pointer"
-                          title={t("Hapus Target", "Delete Target")}
-                          style={{
-                            backgroundColor: "#FEF2F2",
-                            color: "#DC2626",
-                          }}
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            style={{ width: "20px", height: "20px" }}
+                    return (
+                      <div
+                        key={target.id}
+                        className="border border-gray-100 dark:border-slate-700 rounded-2xl p-4 flex flex-col relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                        onClick={() => {
+                          const idx = wishlist.findIndex((w: any) => w.id === target.id);
+                          if (idx !== -1) handleEditItem(idx);
+                        }}
+                      >
+                        {/* Bagian Atas: Ikon, Nama, Harga, dan Tombol Nyicil */}
+                        <div className="flex justify-between items-center w-full mb-3">
+                          <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                            <div className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-600 flex items-center justify-center text-[#112F58] dark:text-white shrink-0">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate">{targetName}</h3>
+                              <p className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-400 mb-0">Rp {hargaTarget.toLocaleString("id-ID")}</p>
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTargetForNyicil(target);
+                              setNyicilNominal("");
+                              setIsNyicilModalOpen(true);
+                            }}
+                            className="px-4 py-1.5 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] hover:scale-105 active:scale-95 transition-all border-0 cursor-pointer shadow-sm shrink-0"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            ></path>
-                          </svg>
-                        </button>
+                            Nyicil
+                          </button>
+                        </div>
+
+                        {/* Bagian Bawah: Progress Bar & Keterangan Terkumpul */}
+                        <div className="w-full mt-3">
+                          <div className="flex justify-between items-end mb-1.5">
+                            <span className="text-xs font-extrabold" style={{ color: '#112F58' }}>
+                              Terkumpul: Rp {terkumpul.toLocaleString("id-ID")}
+                            </span>
+                            <span className="text-xs font-extrabold" style={{ color: '#112F58' }}>
+                              {persentase}%
+                            </span>
+                          </div>
+                          
+                          {/* Track Putih (Belum Terkumpul) */}
+                          <div 
+                            className="w-full rounded-full h-2.5 overflow-hidden shadow-inner" 
+                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #cbd5e1' }}
+                          >
+                            {/* Fill Navy (Sudah Terkumpul) */}
+                            <div 
+                              className="h-full rounded-full transition-all duration-1000 ease-out" 
+                              style={{ width: `${persentase}%`, backgroundColor: '#112F58' }}
+                            ></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2334,6 +2347,107 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
+      {/* Modal Nyicil Target Impian */}
+      <AnimatePresence>
+        {isNyicilModalOpen && selectedTargetForNyicil && (
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            style={{
+              zIndex: 2000,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "440px" }}
+            >
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-2xl">🎯</span>
+                  <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
+                    {t("Nyicil Target Impian", "Installment for Dream")}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close dark:filter dark:invert cursor-pointer"
+                  onClick={() => setIsNyicilModalOpen(false)}
+                />
+              </div>
+
+              <div className="p-3 bg-blue-50 dark:bg-slate-700/60 rounded-2xl mb-3 border border-blue-100 dark:border-slate-600">
+                <p className="text-xs text-muted dark:text-slate-400 font-bold mb-0.5">
+                  {t("Target yang Dituju", "Target Goal")}
+                </p>
+                <h4 className="font-extrabold text-[#112F58] dark:text-white text-sm sm:text-base mb-1 truncate">
+                  {selectedTargetForNyicil.nama || selectedTargetForNyicil.name}
+                </h4>
+                <p className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-0">
+                  {t("Total Harga:", "Total Price:")} Rp {Number((selectedTargetForNyicil.harga || selectedTargetForNyicil.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}
+                </p>
+              </div>
+
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="text-xs sm:text-sm text-muted font-bold mb-1.5 block">
+                    {t("Nominal Cicilan / Tabungan (Rp)", "Installment Amount (IDR)")}
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold text-xs sm:text-sm">
+                      Rp
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control rounded-r-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      value={nyicilNominal}
+                      onChange={(e) => setNyicilNominal(formatInput(e.target.value))}
+                      placeholder="Contoh: 50.000"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="d-flex flex-wrap gap-1.5 pt-1">
+                  {[25000, 50000, 100000, 250000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className="btn btn-sm py-1 px-2.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-primary-mooduit dark:text-sky-300 rounded-full border-0 font-bold text-xs cursor-pointer transition-all"
+                      onClick={() => setNyicilNominal(formatInput(preset.toString()))}
+                    >
+                      +{(preset / 1000).toLocaleString()}k
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold cursor-pointer"
+                  onClick={() => setIsNyicilModalOpen(false)}
+                >
+                  {t("Batal", "Cancel")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!nyicilNominal || Number(nyicilNominal.replace(/\D/g, "")) <= 0}
+                  className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold disabled:opacity-50 cursor-pointer bg-[#112F58] text-white hover:bg-[#1a447d]"
+                  onClick={handleSetorNyicil}
+                >
+                  🚀 {t("Setor Cicilan", "Deposit Installment")}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Pop-up Celebration Streak / Transaction Success */}
       <AnimatePresence>
         {showCelebration && (
@@ -2354,9 +2468,6 @@ export default function Dashboard({
             >
               <div className="relative mb-4">
                 <div className="text-6xl select-none animate-pulse">🔥</div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-                  <Sparkles size={80} className="text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-                </div>
               </div>
 
               <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 font-extrabold text-xs sm:text-sm mb-3">
@@ -2376,7 +2487,7 @@ export default function Dashboard({
                   </div>
                 ) : (
                   <p className="text-slate-700 dark:text-slate-200 text-sm sm:text-base font-medium mb-0 leading-relaxed italic">
-                    "{aiMotivationText || motivationQuotes[quoteIndex]?.[language === "en" ? "en" : "id"] || currentDailyQuote[language === "en" ? "en" : "id"]}"
+                    {aiMotivationText || motivationQuotes[quoteIndex]?.[language === "en" ? "en" : "id"] || currentDailyQuote[language === "en" ? "en" : "id"]}
                   </p>
                 )}
               </div>
