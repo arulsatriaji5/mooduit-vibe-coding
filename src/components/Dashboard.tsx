@@ -161,16 +161,15 @@ export default function Dashboard({
 
         // KUNCI ANTI-SPAM POPUP
         const todayDate = new Date().toISOString().split('T')[0];
-        const lastPopupDate = sessionStorage.getItem("lastStreakPopupDate");
+        const lastPopupDate = localStorage.getItem("lastStreakPopupDate");
 
         if (apiIncreased === true || lastPopupDate !== todayDate) {
           setStreakActive(true);
           setStreakIncreasedToday(true);
           setShowCelebration(true);
           generateStreakMotivation(txContext);
-          sessionStorage.setItem("lastStreakPopupDate", todayDate);
+          localStorage.setItem("lastStreakPopupDate", todayDate);
         } else {
-          // Jika sudah muncul hari ini, cukup nyalakan apinya di background diam-diam
           setStreakActive(true);
         }
 
@@ -1726,16 +1725,11 @@ export default function Dashboard({
                           if (idx !== -1) handleEditItem(idx);
                         }}
                       >
-                        {/* Bagian Atas: Ikon, Nama, Harga, dan Tombol Nyicil */}
+                        {/* Bagian Atas: Nama, Harga, dan Tombol Nyicil */}
                         <div className="flex justify-between items-center w-full mb-3">
-                          <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-                            <div className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-600 flex items-center justify-center text-[#112F58] dark:text-white shrink-0">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate">{targetName}</h3>
-                              <p className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-400 mb-0">Rp {hargaTarget.toLocaleString("id-ID")}</p>
-                            </div>
+                          <div className="min-w-0 flex-1 pr-2">
+                            <h3 className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate">{targetName}</h3>
+                            <p className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-400 mb-0">Rp {hargaTarget.toLocaleString("id-ID")}</p>
                           </div>
                           
                           <button
@@ -1754,20 +1748,17 @@ export default function Dashboard({
                         {/* Bagian Bawah: Progress Bar & Keterangan Terkumpul */}
                         <div className="w-full mt-3">
                           <div className="flex justify-between items-end mb-1.5">
-                            <span className="text-xs font-extrabold" style={{ color: '#112F58' }}>
+                            <span className="text-xs font-extrabold transition-colors" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
                               Terkumpul: Rp {terkumpul.toLocaleString("id-ID")}
                             </span>
-                            <span className="text-xs font-extrabold" style={{ color: '#112F58' }}>
+                            <span className="text-sm font-black transition-colors" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
                               {persentase}%
                             </span>
                           </div>
                           
                           {/* Track Putih (Belum Terkumpul) */}
-                          <div 
-                            className="w-full rounded-full h-2.5 overflow-hidden shadow-inner" 
-                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #cbd5e1' }}
-                          >
-                            {/* Fill Navy (Sudah Terkumpul) */}
+                          <div className="w-full rounded-full h-2.5 overflow-hidden shadow-sm" style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1' }}>
+                            {/* Fill Mutlak Navy */}
                             <div 
                               className="h-full rounded-full transition-all duration-1000 ease-out" 
                               style={{ width: `${persentase}%`, backgroundColor: '#112F58' }}
@@ -2186,7 +2177,8 @@ export default function Dashboard({
                 {editIndex !== null && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger rounded-xl px-3 py-2 text-xs sm:text-sm font-bold flex items-center justify-center cursor-pointer"
+                    className="btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
+                    style={{ width: "42px", height: "42px" }}
                     title={t("Hapus", "Delete")}
                     onClick={(e) => {
                       handleDeleteItem(editIndex, e);
@@ -2206,7 +2198,7 @@ export default function Dashboard({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
+                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
                     onClick={handleUpdateItem}
                   >
                     {t("Simpan", "Save")}
@@ -2355,92 +2347,106 @@ export default function Dashboard({
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
-              backdropFilter: "blur(4px)",
+              backdropFilter: "blur(5px)",
             }}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
-              style={{ maxWidth: "440px" }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "420px" }}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <div className="d-flex align-items-center gap-2">
-                  <span className="text-2xl">🎯</span>
-                  <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
-                    {t("Nyicil Target Impian", "Installment for Dream")}
-                  </h3>
-                </div>
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
+                  💰 {t("Nyicil Target Impian", "Installment for Target")}
+                </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert cursor-pointer"
+                  className="btn-close dark:filter dark:invert"
                   onClick={() => setIsNyicilModalOpen(false)}
                 />
               </div>
 
-              <div className="p-3 bg-blue-50 dark:bg-slate-700/60 rounded-2xl mb-3 border border-blue-100 dark:border-slate-600">
-                <p className="text-xs text-muted dark:text-slate-400 font-bold mb-0.5">
-                  {t("Target yang Dituju", "Target Goal")}
-                </p>
-                <h4 className="font-extrabold text-[#112F58] dark:text-white text-sm sm:text-base mb-1 truncate">
-                  {selectedTargetForNyicil.nama || selectedTargetForNyicil.name}
-                </h4>
-                <p className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-0">
-                  {t("Total Harga:", "Total Price:")} Rp {Number((selectedTargetForNyicil.harga || selectedTargetForNyicil.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}
-                </p>
+              <div className="mb-4">
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                  {t("Nominal Cicilan (Rp)", "Installment Amount (IDR)")}
+                </label>
+                <input
+                  type="text"
+                  className="form-control rounded-xl text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold"
+                  placeholder="Contoh: 100.000"
+                  value={nyicilNominal}
+                  onChange={(e) => setNyicilNominal(formatInput(e.target.value))}
+                />
               </div>
 
-              <div className="space-y-3 mb-4">
-                <div>
-                  <label className="text-xs sm:text-sm text-muted font-bold mb-1.5 block">
-                    {t("Nominal Cicilan / Tabungan (Rp)", "Installment Amount (IDR)")}
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold text-xs sm:text-sm">
-                      Rp
-                    </span>
-                    <input
-                      type="text"
-                      className="form-control rounded-r-xl text-sm sm:text-base dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                      value={nyicilNominal}
-                      onChange={(e) => setNyicilNominal(formatInput(e.target.value))}
-                      placeholder="Contoh: 50.000"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Presets */}
-                <div className="d-flex flex-wrap gap-1.5 pt-1">
-                  {[25000, 50000, 100000, 250000].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className="btn btn-sm py-1 px-2.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-primary-mooduit dark:text-sky-300 rounded-full border-0 font-bold text-xs cursor-pointer transition-all"
-                      onClick={() => setNyicilNominal(formatInput(preset.toString()))}
-                    >
-                      +{(preset / 1000).toLocaleString()}k
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="d-flex justify-content-end gap-2">
+              <div className="d-flex gap-2 justify-content-end">
                 <button
                   type="button"
-                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold cursor-pointer"
+                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
                   onClick={() => setIsNyicilModalOpen(false)}
                 >
                   {t("Batal", "Cancel")}
                 </button>
                 <button
                   type="button"
-                  disabled={!nyicilNominal || Number(nyicilNominal.replace(/\D/g, "")) <= 0}
-                  className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold disabled:opacity-50 cursor-pointer bg-[#112F58] text-white hover:bg-[#1a447d]"
-                  onClick={handleSetorNyicil}
+                  disabled={!nyicilNominal}
+                  className="px-4 py-2 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer disabled:opacity-50"
+                  onClick={() => {
+                    const rawNominal = Number(nyicilNominal.replace(/\D/g, ""));
+                    if (!rawNominal || rawNominal <= 0) {
+                      toast.error(t("Masukkan nominal cicilan yang valid!", "Enter a valid installment amount!"));
+                      return;
+                    }
+
+                    const targetName = selectedTargetForNyicil.nama || selectedTargetForNyicil.name;
+                    const newTx = {
+                      id: "tx_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                      nominal: rawNominal,
+                      jenis: "pengeluaran",
+                      kategori: "Target Impian",
+                      catatan: `Cicilan: ${targetName}`,
+                      tanggal: new Date().toISOString().split('T')[0],
+                      icon: "🎯"
+                    };
+
+                    const handleSaveNyicil = async () => {
+                      try {
+                        if (propsSetTransactions && typeof propsSetTransactions === "function") {
+                          const { insertTransaction } = await import("../utils/api");
+                          const user_email = localStorage.getItem("userEmail") || "";
+                          const insertedTx = await insertTransaction(newTx, user_email);
+                          propsSetTransactions(prev => [insertedTx, ...prev]);
+                          if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                            (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
+                              type: "pengeluaran",
+                              amount: rawNominal,
+                              category: "Target Impian"
+                            });
+                          }
+                        } else {
+                          setLocalTransactions(prev => [newTx, ...prev]);
+                          if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+                            (window as any).triggerTransactionSuccess(undefined, undefined, {
+                              type: "pengeluaran",
+                              amount: rawNominal,
+                              category: "Target Impian"
+                            });
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Failed to insert nyicil transaction:", err);
+                        setLocalTransactions(prev => [newTx, ...prev]);
+                      }
+                    };
+
+                    handleSaveNyicil();
+                    toast.success(t(`Berhasil mencicil Rp ${rawNominal.toLocaleString("id-ID")} untuk ${targetName}!`, `Successfully added Rp ${rawNominal.toLocaleString("id-ID")} towards ${targetName}!`));
+                    setIsNyicilModalOpen(false);
+                  }}
                 >
-                  🚀 {t("Setor Cicilan", "Deposit Installment")}
+                  {t("Simpan Cicilan", "Save Installment")}
                 </button>
               </div>
             </motion.div>
@@ -2448,13 +2454,13 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
-      {/* Pop-up Celebration Streak / Transaction Success */}
+      {/* Daily Streak Celebration Modal */}
       <AnimatePresence>
         {showCelebration && (
           <div
             className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
-              zIndex: 3000,
+              zIndex: 99999,
               backgroundColor: "rgba(0,0,0,0.6)",
               backdropFilter: "blur(6px)",
             }}
@@ -2463,53 +2469,43 @@ export default function Dashboard({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700 relative overflow-hidden"
-              style={{ maxWidth: "460px" }}
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
+              style={{ maxWidth: "420px" }}
             >
-              <div className="relative mb-4">
-                <div className="text-6xl select-none animate-pulse">🔥</div>
-              </div>
-
-              <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 font-extrabold text-xs sm:text-sm mb-3">
-                {streakCount} {t("HARI STREAK!", "DAYS STREAK!")}
-              </div>
-
-              <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-2">
-                {streakIncreasedToday
-                  ? t("Streak Kamu Menyala! 🔥", "Your Streak is on Fire! 🔥")
-                  : t("Transaksi Berhasil Dicatat! ✨", "Transaction Logged! ✨")}
+              <div className="text-6xl mb-3 animate-bounce">🔥</div>
+              <h3 className="fw-800 text-[#112F58] dark:text-white text-2xl mb-1">
+                {streakIncreasedToday ? t("Streak Bertambah! 🔥", "Streak Increased! 🔥") : t("Streak Menyala! 🔥", "Streak is Glowing! 🔥")}
               </h3>
-
-              <div className="p-3 bg-slate-50 dark:bg-slate-700/60 rounded-2xl mb-4 border border-slate-100 dark:border-slate-600">
-                {isMotivationLoading ? (
-                  <div className="h-10 flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-[#112F58] border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : (
-                  <p className="text-slate-700 dark:text-slate-200 text-sm sm:text-base font-medium mb-0 leading-relaxed italic">
-                    {aiMotivationText || motivationQuotes[quoteIndex]?.[language === "en" ? "en" : "id"] || currentDailyQuote[language === "en" ? "en" : "id"]}
-                  </p>
-                )}
+              <div className="inline-block px-4 py-1.5 bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-extrabold rounded-full text-sm mb-3">
+                {streakCount} {t("Hari Beruntun", "Days Streak")}
               </div>
+              <p className="text-[#112F58] dark:text-white text-sm sm:text-base font-bold mb-0 leading-relaxed italic">
+                {isMotivationLoading ? (
+                  <span className="italic animate-pulse text-muted">{t("Menyiapkan motivasi khusus dari AI...", "Preparing AI motivation...")}</span>
+                ) : aiMotivationText ? (
+                  aiMotivationText
+                ) : (
+                  language === "en" ? motivationQuotes[quoteIndex].en : motivationQuotes[quoteIndex].id
+                )}
+              </p>
 
               <button
                 type="button"
+                className="w-full py-2.5 bg-[#112F58] text-white font-bold rounded-xl text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer shadow-md mt-4"
                 onClick={handleCloseCelebration}
-                className="btn btn-mooduit w-full py-2.5 rounded-xl text-sm sm:text-base font-bold bg-[#112F58] text-white hover:bg-[#1a447d] shadow-md cursor-pointer"
               >
-                {t("Mantap! Lanjutkan 🔥", "Awesome! Continue 🔥")}
+                {t("Lanjutkan Catat Keuangan", "Continue")}
               </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Birthday Modal Component */}
+      {/* Birthday Surprise Modal */}
       <BirthdayModal
         isOpen={showBirthdayModal}
         onClose={() => setShowBirthdayModal(false)}
         userName={userName}
-        userDob={userDob}
       />
     </div>
   );
