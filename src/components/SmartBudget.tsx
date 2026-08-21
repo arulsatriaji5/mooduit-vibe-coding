@@ -408,18 +408,18 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">{activeLang.hasilKalkulasi}</h2>
-                    <div className="badge border border-[#112F58]/25 bg-[#112F58]/5 text-[#112F58] px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold">
+                  <div className="smart-budget-result-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+                    <h2 className="smart-budget-result-title fw-800 text-primary-mooduit mb-0">{activeLang.hasilKalkulasi}</h2>
+                    <div className="badge border border-[#112F58]/25 bg-[#112F58]/5 text-[#112F58] px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
                       {activeLang.targetIdeal}
                     </div>
                   </div>
 
                   <div className="space-y-4 mb-4">
                     {/* KEBUTUHAN POKOK - 50% */}
-                    <div className="p-4 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div className="d-flex align-items-center gap-2.5">
+                    <div className="p-3 sm:p-4 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                        <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-[#112F58]/10 text-[#112F58] p-1.5 rounded-lg">
                             <Plus size={16} />
                           </div>
@@ -428,7 +428,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <span className="text-xs sm:text-sm text-gray-500 leading-relaxed block">{activeLang.kebutuhanDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-base sm:text-lg text-[#112F58]">
+                        <span className="smart-budget-allocation-amount fw-800 text-[#112F58] align-self-end align-self-sm-start">
                           {formatIDR(hasilBudget.kebutuhan)}
                         </span>
                       </div>
@@ -441,9 +441,9 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
 
                     {/* KEINGINAN & LIFESTYLE - 30% */}
-                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div className="d-flex align-items-center gap-2.5">
+                    <div className="p-3 sm:p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                        <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-amber-100 text-amber-800 p-1.5 rounded-lg">
                             <Smile size={16} />
                           </div>
@@ -452,7 +452,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <span className="text-xs sm:text-sm text-amber-600 leading-relaxed block">{activeLang.keinginanDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-base sm:text-lg text-amber-800 font-sans">
+                        <span className="smart-budget-allocation-amount fw-800 text-amber-800 font-sans align-self-end align-self-sm-start">
                           {formatIDR(hasilBudget.keinginan)}
                         </span>
                       </div>
@@ -465,9 +465,9 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
 
                     {/* TABUNGAN & INVESTASI - 20% */}
-                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div className="d-flex align-items-center gap-2.5">
+                    <div className="p-3 sm:p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                        <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-emerald-100 text-emerald-800 p-1.5 rounded-lg">
                             <PiggyBank size={16} />
                           </div>
@@ -476,7 +476,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                             <span className="text-xs sm:text-sm text-[#059669] leading-relaxed block">{activeLang.tabunganDesc}</span>
                           </div>
                         </div>
-                        <span className="fw-800 text-base sm:text-lg text-emerald-800">
+                        <span className="smart-budget-allocation-amount fw-800 text-emerald-800 align-self-end align-self-sm-start">
                           {formatIDR(hasilBudget.tabungan)}
                         </span>
                       </div>
@@ -489,7 +489,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
                   </div>
 
-                  <div className="d-flex gap-3">
+                  <div className="d-flex flex-column flex-sm-row gap-3">
                     <button
                       className="btn flex-grow-1 py-3 text-sm sm:text-base fw-bold border-2 border-dashed border-[#112F58] hover:bg-[#112F58]/5 text-[#112F58] rounded-xl transition-all cursor-pointer"
                       onClick={() => {
@@ -803,7 +803,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       </>
                     ) : (
                       <button 
-                        className="w-full py-3.5 border-2 border-[#112F58] dark:border-white text-[#112F58] dark:text-white font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer bg-transparent text-center text-sm md:text-base"
+                        className="w-full min-h-12 py-3.5 border-0 bg-[#112F58] text-white font-bold rounded-xl hover:bg-[#1a427a] shadow-sm hover:shadow-md transition-all cursor-pointer text-center text-sm md:text-base"
                         onClick={() => {
                           setIsPlanSaved(false);
                           setShowResult(false);

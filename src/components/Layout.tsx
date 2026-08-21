@@ -100,10 +100,10 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   }, []);
 
   return (
-    <div className="min-h-screen bg-bg-light overflow-x-hidden w-full max-w-full box-border">
+    <div className="app-shell min-h-screen bg-bg-light overflow-x-hidden w-full max-w-full box-border">
       <div className="d-flex h-100 overflow-hidden w-full max-w-full box-border">
         {/* Desktop Sidebar */}
-        <aside className="sidebar-mooduit d-none d-lg-flex flex-column position-fixed h-100" style={{ width: '260px', zIndex: 1100, backgroundColor: '#112F58' }}>
+        <aside className="app-sidebar sidebar-mooduit d-none d-lg-flex flex-column position-fixed h-100" style={{ zIndex: 1100, backgroundColor: '#112F58' }}>
           <div className="p-4">
             <Logo size={40} showText={true} variant="light" />
           </div>
@@ -162,9 +162,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-grow-1 w-full lg:w-auto overflow-x-hidden max-w-full box-border" style={{ marginLeft: 'var(--sidebar-offset, 0)' }}>
+        <div className="app-content flex-grow-1 w-full overflow-x-hidden max-w-full box-border">
           {/* Mobile Header */}
-          <div className="d-lg-none py-3 px-4 bg-primary-mooduit position-sticky top-0 w-100 d-flex justify-content-between align-items-center shadow-sm" style={{ zIndex: 1000 }}>
+          <div className="app-mobile-header d-lg-none bg-primary-mooduit position-sticky top-0 w-100 d-flex justify-content-between align-items-center shadow-sm" style={{ zIndex: 1000 }}>
             <Logo size={32} showText={true} variant="light" />
             <div 
               onClick={() => onNavigate('settings')}
@@ -186,14 +186,8 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
             </div>
           </div>
           
-          <main className="w-full max-w-full px-4 md:px-8 py-4 py-lg-5 overflow-x-hidden box-border">
-            <div className="w-full max-w-7xl mx-auto">
-              <style dangerouslySetInnerHTML={{ __html: `
-                :root { --sidebar-offset: 0px; }
-                @media (min-width: 992px) {
-                  :root { --sidebar-offset: 260px; }
-                }
-              ` }} />
+          <main className="app-main w-full max-w-full overflow-x-hidden box-border">
+            <div className="app-content-container mx-auto">
               {children}
             </div>
           </main>
@@ -201,7 +195,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
       </div>
 
       {/* Bottom Navigation (Mobile Only) */}
-      <nav className="fixed-bottom bg-white dark:bg-slate-800 d-lg-none px-2 py-1 shadow-2xl transition-colors" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', height: '68px', zIndex: 1050 }}>
+      <nav className="app-bottom-nav fixed-bottom bg-white dark:bg-slate-800 d-lg-none px-2 py-1 shadow-2xl transition-colors" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', zIndex: 1050 }}>
         <div className="container-fluid d-flex justify-content-around align-items-center h-100 p-0">
           {navItems.filter(item => item.id !== 'settings').map((item) => {
             const isScanner = item.id === 'scanner';
@@ -239,10 +233,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 <div className="mb-0.5 flex items-center justify-center">
                   {item.icon}
                 </div>
-                <span 
-                  className="text-center truncate max-w-[64px]"
-                  style={{ fontSize: '10px', fontWeight: '600', marginTop: '4px', lineHeight: '1' }}
-                >
+                <span className="app-bottom-nav-label">
                   {item.label}
                 </span>
                 {isActive && (

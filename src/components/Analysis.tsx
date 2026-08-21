@@ -406,7 +406,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   const isEmpty = activeTab === 'pengeluaran' ? totalSemua === 0 : totalPemasukanSemua === 0;
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 pb-24 overflow-x-hidden flex flex-col gap-4 lg:gap-6">
+    <div className="analysis-page w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pt-4 md:pt-6 pb-24 overflow-x-hidden flex flex-col gap-4 lg:gap-6">
       <style>
         {`
           .text-fix {
@@ -426,21 +426,21 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       
       {/* 1. Header */}
       <header className="w-full">
-        <div className="d-flex align-items-center gap-3 mb-2">
-          <div className="bg-[#112F58] text-white p-2.5 rounded-2xl shadow-sm">
-            <PieChart size={24} />
-          </div>
-          <div>
+        <div className="analysis-header mb-2">
+          <div className="analysis-heading-row">
+            <div className="analysis-heading-icon bg-[#112F58] text-white rounded-xl shadow-sm">
+              <PieChart size={21} />
+            </div>
             <h1 
-              className="fw-800 font-bold text-2xl md:text-3xl mb-1" 
+              className="analysis-page-title fw-800 font-bold mb-0" 
               style={{ color: darkMode ? '#ffffff' : '#112F58' }}
             >
               {t('Analisa Keuangan Cerdas', 'Smart Financial Analysis')}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-0 mt-0.5">
-              {t('Alat alokasi real-time perbandingan pengeluaran & pemasukan dengan Target Alokasi 50/30/20.', 'Real-time tool comparing your spending & earnings against the 50/30/20 Ideal Budget allocation.')}
-            </p>
           </div>
+          <p className="analysis-page-subtitle text-gray-600 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-0">
+            {t('Alat alokasi real-time perbandingan pengeluaran & pemasukan dengan Target Alokasi 50/30/20.', 'Real-time tool comparing your spending & earnings against the 50/30/20 Ideal Budget allocation.')}
+          </p>
         </div>
       </header>
 
@@ -455,7 +455,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
             style={{ 
               backgroundColor: darkMode ? '#1e293b' : '#ffffff', 
               borderRadius: '20px', 
-              padding: '20px', 
+              padding: 'clamp(14px, 4vw, 20px)', 
               border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             }}
@@ -468,14 +468,14 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
               role="button"
               tabIndex={0}
             >
-              <div className="d-flex align-items-center gap-2">
-                <span className="text-xl">🤖</span>
-                <h2 className="font-bold text-lg md:text-xl m-0" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
+              <div className="analysis-advisor-title d-flex align-items-center gap-2 min-w-0">
+                <span className="text-lg shrink-0">🤖</span>
+                <h2 className="font-bold text-base sm:text-lg md:text-xl m-0 leading-tight" style={{ color: darkMode ? '#ffffff' : '#112F58' }}>
                   {language === 'id' ? 'Saran AI Advisor' : 'AI Advisor Suggestion'}
                 </h2>
               </div>
-              <div className="d-flex align-items-center gap-2">
-                <span className="text-xs font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-0.5 rounded-full">
+              <div className="d-flex align-items-center gap-1.5 shrink-0 ms-2">
+                <span className="whitespace-nowrap text-[10px] sm:text-xs font-bold tracking-wide uppercase bg-amber-500/90 text-[#112F58] px-2.5 py-1 rounded-full">
                   {t('LIVE', 'LIVE')}
                 </span>
                 <div className="text-slate-500 dark:text-slate-400">
@@ -600,14 +600,14 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="d-flex justify-content-between align-items-center mb-5 border-b border-gray-100 dark:border-slate-700 pb-3">
+                <div className="analysis-card-heading d-flex justify-content-between align-items-start gap-3 mb-4 sm:mb-5 border-b border-gray-100 dark:border-slate-700 pb-3">
                    <h2 
-                     className="fw-extrabold font-bold text-xl sm:text-2xl mb-0"
+                     className="fw-extrabold font-bold text-lg sm:text-2xl mb-0 leading-tight min-w-0"
                      style={{ color: darkMode ? '#ffffff' : '#112F58' }}
                    >
                      {activeTab === 'pengeluaran' ? t('Rincian Pengeluaran', 'Spending Details') : t('Rincian Pemasukan', 'Income Details')}
                    </h2>
-                   <div className={`d-flex align-items-center gap-1.5 font-bold text-xs sm:text-sm px-3 py-1 rounded-full ${activeTab === 'pengeluaran' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>
+                   <div className={`d-flex align-items-center gap-1 font-bold whitespace-nowrap shrink-0 text-[10px] sm:text-sm px-2.5 sm:px-3 py-1 rounded-full ${activeTab === 'pengeluaran' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>
                      {activeTab === 'pengeluaran' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
                      <span>{t('Real-time', 'Real-time')}</span>
                    </div>
@@ -615,7 +615,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
 
                 <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 w-full">
                   {/* Donut Chart */}
-                  <div className="relative flex justify-center w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] shrink-0">
+                  <div className="relative flex justify-center w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] shrink-0">
                     <Doughnut data={activeTab === 'pengeluaran' ? donutData : incomeDonutData} options={donutOptions} />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full">
                       <div 

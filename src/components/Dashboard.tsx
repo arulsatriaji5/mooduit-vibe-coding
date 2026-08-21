@@ -1626,7 +1626,7 @@ export default function Dashboard({
         <div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
           
           {/* Kartu Pemasukan */}
-          <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-2.5 sm:p-3 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
+          <div className="w-full min-h-[92px] bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
               <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1640,14 +1640,14 @@ export default function Dashboard({
             {isLoading ? (
               <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" style={{ fontSize: '14px' }}>
+              <h3 className="summary-amount-secondary font-extrabold tracking-tight m-0 text-[#112F58] dark:text-white leading-tight">
                 {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
           </div>
 
           {/* Kartu Pengeluaran */}
-          <div className="w-full bg-white dark:bg-slate-800 rounded-2xl p-2.5 sm:p-3 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
+          <div className="w-full min-h-[92px] bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
               <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1661,7 +1661,7 @@ export default function Dashboard({
             {isLoading ? (
               <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" style={{ fontSize: '14px' }}>
+              <h3 className="summary-amount-secondary font-extrabold tracking-tight m-0 text-[#112F58] dark:text-white leading-tight">
                 {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}

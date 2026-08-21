@@ -282,7 +282,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   };
 
   return (
-    <div className="w-full max-w-full px-4 mx-auto box-border overflow-x-hidden flex flex-col gap-4 pb-24 relative riwayat-kunci-mati">
+    <div className="w-full max-w-full px-4 pt-5 sm:pt-6 md:pt-8 mx-auto box-border overflow-x-hidden flex flex-col gap-4 pb-24 relative riwayat-kunci-mati">
       <style>
         {`
           .riwayat-kunci-mati { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; box-sizing: border-box !important; }
@@ -290,7 +290,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
             .riwayat-teks-wrap { white-space: normal !important; word-wrap: break-word !important; width: 100% !important; display: block !important; }
             .riwayat-search-container { flex-direction: column !important; width: 100% !important; }
             .riwayat-search-container > * { width: 100% !important; }
-            .filter-bulan-select { width: 100% !important; }
+            .filter-bulan-select { width: 0 !important; min-width: 0 !important; flex: 1 1 0% !important; }
           }
         `}
       </style>
@@ -317,7 +317,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
           />
         </div>
         
-        <div className="d-flex gap-2 w-full sm:w-auto relative">
+        <div className="history-filter-actions d-flex gap-2 w-full sm:w-auto relative">
           <div className="relative flex-1 sm:flex-none filter-bulan-select">
             <button
               type="button"
@@ -410,21 +410,19 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                   className="w-full bg-white dark:bg-slate-800 !rounded-[16px] p-4 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 box-border hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 cursor-pointer group"
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.05, 0.2) }}
                 >
-                  <div className="flex items-start justify-between w-full gap-3 pointer-events-none">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
-                        {tx.icon || (isPemasukan ? '💼' : '🛒')}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate m-0 group-hover:text-[#112F58] dark:group-hover:text-white transition-colors">{(tx.catatan || tx.kategori)}</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 mb-0">{formatTanggalIndo(tx.tanggal)} • {tx.kategori}</p>
-                      </div>
+                  <div className="transaction-card-main w-full pointer-events-none">
+                    <div className="transaction-card-icon w-12 h-12 flex-shrink-0 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl border border-slate-100 dark:border-slate-600">
+                      {tx.icon || (isPemasukan ? '💼' : '🛒')}
                     </div>
-                    <div className="flex flex-col items-end shrink-0 text-right">
-                      <span className={`font-bold text-sm ${isPemasukan ? 'text-emerald-500' : 'text-red-500'}`}>
+                    <div className="transaction-card-copy min-w-0">
+                      <h4 className="transaction-card-title font-semibold text-slate-800 dark:text-slate-100 m-0 group-hover:text-[#112F58] dark:group-hover:text-white transition-colors">{(tx.catatan || tx.kategori)}</h4>
+                      <p className="transaction-card-meta text-slate-500 dark:text-slate-400 mt-0.5 mb-0">{formatTanggalIndo(tx.tanggal)} • {tx.kategori}</p>
+                    </div>
+                    <div className="transaction-card-value flex shrink-0">
+                      <span className={`transaction-card-amount font-bold ${isPemasukan ? 'text-emerald-500' : 'text-red-500'}`}>
                         {isPemasukan ? '+' : '-'}Rp{Number(tx.nominal || 0).toLocaleString('id-ID')}
                       </span>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-1 ${isPemasukan ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                      <span className={`transaction-card-badge text-[9px] font-bold px-2 py-0.5 rounded-full ${isPemasukan ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                         {isPemasukan ? t('PEMASUKAN', 'INCOME') : t('PENGELUARAN', 'EXPENSE')}
                       </span>
                     </div>
