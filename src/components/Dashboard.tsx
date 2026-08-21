@@ -161,15 +161,16 @@ export default function Dashboard({
 
         // KUNCI ANTI-SPAM POPUP
         const todayDate = new Date().toISOString().split('T')[0];
-        const lastPopupDate = localStorage.getItem("lastStreakPopupDate");
+        const lastPopupDate = localStorage.getItem("mooduit_last_streak_popup");
 
-        if (apiIncreased === true || lastPopupDate !== todayDate) {
+        if (lastPopupDate !== todayDate) {
           setStreakActive(true);
           setStreakIncreasedToday(true);
           setShowCelebration(true);
           generateStreakMotivation(txContext);
-          localStorage.setItem("lastStreakPopupDate", todayDate);
+          localStorage.setItem("mooduit_last_streak_popup", todayDate);
         } else {
+          // Jika hari ini sudah pernah muncul pop-up, HANYA nyalakan apinya di background (JANGAN TAMPILKAN POP-UP)
           setStreakActive(true);
         }
 
@@ -1639,7 +1640,7 @@ export default function Dashboard({
             {isLoading ? (
               <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" title={showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : undefined}>
+              <h3 className="font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" style={{ fontSize: '14px' }}>
                 {showBalance ? `Rp ${totalPemasukan.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
@@ -1660,7 +1661,7 @@ export default function Dashboard({
             {isLoading ? (
               <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mt-1" />
             ) : (
-              <h3 className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" title={showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : undefined}>
+              <h3 className="font-extrabold tracking-tighter whitespace-nowrap m-0 text-[#112F58] dark:text-white" style={{ fontSize: '14px' }}>
                 {showBalance ? `Rp ${totalPengeluaran.toLocaleString("id-ID")}` : "Rp ••••••••"}
               </h3>
             )}
@@ -1673,9 +1674,7 @@ export default function Dashboard({
       <div className="mb-6">
         <div className="card-mooduit h-100 shadow-sm p-4 d-flex flex-column bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl">
           <div className="d-flex justify-content-between align-items-center mb-4 gap-2">
-            <h2
-              className="fw-800 text-primary-mooduit dark:text-white text-sm sm:text-base whitespace-nowrap truncate m-0 d-flex align-items-center gap-1.5"
-            >
+            <h2 className="fw-800 text-[#112F58] dark:text-white whitespace-nowrap truncate m-0 d-flex align-items-center gap-1.5" style={{ fontSize: '16px' }}>
               🎯 {t("Target Impian", "Dream Target")}
             </h2>
             <button
@@ -1728,7 +1727,7 @@ export default function Dashboard({
                         {/* Bagian Atas: Nama, Harga, dan Tombol Nyicil */}
                         <div className="flex justify-between items-center w-full mb-3">
                           <div className="min-w-0 flex-1 pr-2">
-                            <h3 className="font-bold text-[#112F58] dark:text-white capitalize text-sm sm:text-base mb-0.5 truncate">{targetName}</h3>
+                            <h3 className="font-bold text-[#112F58] dark:text-white capitalize mb-0.5 truncate" style={{ fontSize: '14px' }}>{targetName}</h3>
                             <p className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-400 mb-0">Rp {hargaTarget.toLocaleString("id-ID")}</p>
                           </div>
                           
@@ -2479,9 +2478,14 @@ export default function Dashboard({
               <div className="inline-block px-4 py-1.5 bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-extrabold rounded-full text-sm mb-3">
                 {streakCount} {t("Hari Beruntun", "Days Streak")}
               </div>
-              <p className="text-[#112F58] dark:text-white text-sm sm:text-base font-bold mb-0 leading-relaxed italic">
+              <p 
+                className="text-sm sm:text-base font-bold mb-0 leading-relaxed italic transition-colors"
+                style={{ color: darkMode ? '#ffffff' : '#112F58' }}
+              >
                 {isMotivationLoading ? (
-                  <span className="italic animate-pulse text-muted">{t("Menyiapkan motivasi khusus dari AI...", "Preparing AI motivation...")}</span>
+                  <span className="italic animate-pulse" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                    {t("Menyiapkan motivasi khusus dari AI...", "Preparing AI motivation...")}
+                  </span>
                 ) : aiMotivationText ? (
                   aiMotivationText
                 ) : (

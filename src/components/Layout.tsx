@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, List, Shield, Calculator, PieChart, Settings as SettingsIcon, LogOut, Plus, Camera, Keyboard, X } from 'lucide-react';
+import { Home, List, Shield, Calculator, PieChart, Settings as SettingsIcon, LogOut, Plus, Camera, Keyboard, X, Scan } from 'lucide-react';
 import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import { insertTransaction } from '../utils/api';
@@ -65,12 +65,12 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   };
 
   const navItems = [
-    { id: 'dashboard', icon: <Home size={18} />, label: t('Beranda', 'Home') },
-    { id: 'smart-budget', icon: <Calculator size={18} />, label: t('Smart Budget', 'Smart Budget') },
-    { id: 'scanner', icon: <Camera size={20} />, label: t('Scan', 'Scan'), isAction: true },
-    { id: 'analisa', icon: <PieChart size={18} />, label: t('Analisa', 'Analysis') },
-    { id: 'history', icon: <List size={18} />, label: t('Riwayat', 'History') },
-    { id: 'settings', icon: <SettingsIcon size={18} />, label: t('Pengaturan', 'Settings') },
+    { id: 'dashboard', icon: <Home size={22} className="shrink-0" />, label: t('Beranda', 'Home') },
+    { id: 'smart-budget', icon: <Calculator size={22} className="shrink-0" />, label: t('Smart Budget', 'Smart Budget') },
+    { id: 'scanner', icon: <Camera size={24} strokeWidth={2} className="shrink-0 text-[#112F58]" />, label: t('Scan', 'Scan'), isAction: true },
+    { id: 'analisa', icon: <PieChart size={22} className="shrink-0" />, label: t('Analisa', 'Analysis') },
+    { id: 'history', icon: <List size={22} className="shrink-0" />, label: t('Riwayat', 'History') },
+    { id: 'settings', icon: <SettingsIcon size={22} className="shrink-0" />, label: t('Pengaturan', 'Settings') },
   ];
 
   const [userName, setUserName] = useState(() => {
@@ -201,42 +201,54 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
       </div>
 
       {/* Bottom Navigation (Mobile Only) */}
-      <nav className="fixed-bottom bg-white d-lg-none px-1 py-2 shadow-2xl" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', height: '75px', zIndex: 1050 }}>
-        <div className="container-fluid d-flex justify-content-around align-items-center h-100">
+      <nav className="fixed-bottom bg-white dark:bg-slate-800 d-lg-none px-2 py-1 shadow-2xl transition-colors" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', height: '68px', zIndex: 1050 }}>
+        <div className="container-fluid d-flex justify-content-around align-items-center h-100 p-0">
           {navItems.filter(item => item.id !== 'settings').map((item) => {
             const isScanner = item.id === 'scanner';
+            if (isScanner) {
+              return (
+                <div 
+                  key={item.id}
+                  onClick={() => setShowActionModal(true)}
+                  className="flex flex-col items-center justify-center rounded-full text-[#112F58] shadow-lg border-4 border-white dark:border-slate-900 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                  style={{ width: '60px', height: '60px', backgroundColor: '#B9AB8C', marginTop: '-24px', flexShrink: 0 }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Scan"
+                >
+                  <Camera size={24} strokeWidth={2} className="text-[#112F58]" />
+                  <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '2px', lineHeight: '1', color: '#112F58' }}>
+                    Scan
+                  </span>
+                </div>
+              );
+            }
+
+            const isActive = activePage === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => {
-                  if (isScanner) {
-                    setShowActionModal(true);
-                  } else {
-                    onNavigate(item.id);
-                  }
-                }}
-                className={`btn border-0 d-flex flex-column align-items-center justify-center p-2 transition-all ${
-                  isScanner 
-                    ? 'text-primary-mooduit rounded-circle shadow-xl mb-5' 
-                    : activePage === item.id 
-                    ? 'text-primary-mooduit' 
-                    : 'text-muted opacity-50'
+                type="button"
+                onClick={() => onNavigate(item.id)}
+                className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 border-0 bg-transparent cursor-pointer transition-all outline-none ${
+                  isActive 
+                    ? 'text-primary-mooduit dark:text-sky-400' 
+                    : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 opacity-70 hover:opacity-100'
                 }`}
-                style={isScanner ? { 
-                  width: '64px', 
-                  height: '64px', 
-                  backgroundColor: '#B9AB8C', 
-                  color: '#FFFFFF',
-                  border: '5px solid white'
-                } : {}}
               >
-                <div className={isScanner ? 'mb-0' : 'mb-0.5'}>{item.icon}</div>
-                {!isScanner && <span className="fw-bold text-xs leading-none">{item.label}</span>}
-                {isScanner && <span className="fw-800 text-xs mt-0.5 leading-none">Scan</span>}
-                {(activePage === item.id && !isScanner) && (
+                <div className="mb-0.5 flex items-center justify-center">
+                  {item.icon}
+                </div>
+                <span 
+                  className="text-center truncate max-w-[64px]"
+                  style={{ fontSize: '10px', fontWeight: '600', marginTop: '4px', lineHeight: '1' }}
+                >
+                  {item.label}
+                </span>
+                {isActive && (
                   <motion.div 
                     layoutId="activeTab"
-                    className="bg-primary-mooduit rounded-full mt-1" 
+                    className="bg-primary-mooduit dark:bg-sky-400 rounded-full mt-1" 
                     style={{ width: '4px', height: '4px' }} 
                   />
                 )}
