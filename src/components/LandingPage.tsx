@@ -378,8 +378,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <p style={{ color: darkMode ? '#cbd5e1' : '#475569', fontSize: '18px', marginBottom: '48px', maxWidth: '700px' }}>
           {language === 'id' ? 'Fitur-fitur andalan yang didesain intuitif dan friendly untuk mengubah kebiasaan buruk finansialmu.' : 'Core features designed intuitively and friendly to transform your financial habits.'}
         </p>
+        <div className="landing-swipe-hint md:hidden w-full max-w-[1200px] mb-3" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+          <span>{language === 'id' ? 'Geser untuk melihat fitur lainnya' : 'Swipe to see more features'}</span>
+          <span aria-hidden="true">→</span>
+        </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '1200px', width: '100%', marginBottom: '48px' }}>
+        <div className="landing-horizontal-track landing-features-track" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '1200px', width: '100%', marginBottom: '48px' }}>
           {[
             { 
               icon: '🧠', 
@@ -399,7 +403,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           ].map((f, i) => (
             <div 
               key={i} 
-              className="transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(17,47,88,0.15)] dark:hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] cursor-pointer"
+              className="landing-horizontal-card transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(17,47,88,0.15)] dark:hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] cursor-pointer"
               style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', padding: '40px 32px', borderRadius: '24px', border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0', textAlign: 'center' }}
             >
               <div style={{ fontSize: '40px', marginBottom: '20px' }}>{f.icon}</div>
@@ -422,9 +426,14 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="landing-swipe-hint md:hidden w-full mb-3 text-slate-500 dark:text-slate-400">
+            <span>Geser untuk melihat manfaat lainnya</span>
+            <span aria-hidden="true">→</span>
+          </div>
+
+          <div className="landing-horizontal-track landing-benefits-track grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Manfaat 1 */}
-            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+            <div className="landing-horizontal-card bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🧘‍♂️
               </div>
@@ -435,7 +444,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
 
             {/* Manfaat 2 */}
-            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+            <div className="landing-horizontal-card bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🚀
               </div>
@@ -446,7 +455,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
 
             {/* Manfaat 3 */}
-            <div className="bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+            <div className="landing-horizontal-card bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 ⚖️
               </div>

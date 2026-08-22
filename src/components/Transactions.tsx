@@ -98,6 +98,18 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     return () => { document.body.style.overflow = 'unset'; };
   }, [isEditModalOpen, isMonthDropdownOpen, isFilterModalOpen]);
 
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (isEditModalOpen) setIsEditModalOpen(false);
+      else if (isFilterModalOpen) setIsFilterModalOpen(false);
+      else if (isMonthDropdownOpen) setIsMonthDropdownOpen(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isEditModalOpen, isFilterModalOpen, isMonthDropdownOpen]);
+
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
     transactions.forEach(t => {
@@ -620,7 +632,12 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
       <AnimatePresence>
         {isFilterModalOpen && (
-          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300">
+          <div
+            className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsFilterModalOpen(false);
+            }}
+          >
             <motion.div
               initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
               className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden relative z-10 max-h-[90vh]"

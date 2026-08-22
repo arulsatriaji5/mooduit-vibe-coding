@@ -44,6 +44,20 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
 
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      if (isAvatarModalOpen) setIsAvatarModalOpen(false);
+      else if (isGuideModalOpen) setIsGuideModalOpen(false);
+      else if (isPrivacyModalOpen) setIsPrivacyModalOpen(false);
+      else if (isSecurityModalOpen && !isEditingPassword) setIsSecurityModalOpen(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isAvatarModalOpen, isGuideModalOpen, isPrivacyModalOpen, isSecurityModalOpen, isEditingPassword]);
+
   // VIEW NAVIGATION STATE
   const [activeView, setActiveView] = useState<'main' | 'profile'>('main');
 

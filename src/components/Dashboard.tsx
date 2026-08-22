@@ -583,6 +583,29 @@ export default function Dashboard({
   const [editHarga, setEditHarga] = React.useState("");
   const chatScrollRef = React.useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (showBirthdayModal) setShowBirthdayModal(false);
+      else if (showCelebration) handleCloseCelebration();
+      else if (isNyicilModalOpen) setIsNyicilModalOpen(false);
+      else if (isCelebrationOpen) setIsCelebrationOpen(false);
+      else if (isEditModalOpen) setIsEditModalOpen(false);
+      else if (isTargetModalOpen) setIsTargetModalOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [
+    showBirthdayModal,
+    showCelebration,
+    isNyicilModalOpen,
+    isCelebrationOpen,
+    isEditModalOpen,
+    isTargetModalOpen,
+  ]);
+
   const savingsPockets = React.useMemo(() => {
     let darurat = 0;
     let investasi = 0;
@@ -2119,7 +2142,10 @@ export default function Dashboard({
       <AnimatePresence>
         {isEditModalOpen && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            className="mooduit-modal-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsEditModalOpen(false);
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.4)",
@@ -2130,16 +2156,19 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
+                <h3 id="edit-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
                   {t("Edit Target Impian", "Edit Dream Target")}
                 </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert"
+                  className="mooduit-modal-close btn-close dark:filter dark:invert"
                   onClick={() => setIsEditModalOpen(false)}
                 />
               </div>
@@ -2172,11 +2201,11 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center gap-2">
+              <div className="mooduit-modal-actions justify-content-between">
                 {editIndex !== null && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
+                    className="mooduit-modal-icon-action btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
                     style={{ width: "42px", height: "42px" }}
                     title={t("Hapus", "Delete")}
                     onClick={(e) => {
@@ -2187,7 +2216,7 @@ export default function Dashboard({
                     <Trash2 size={16} />
                   </button>
                 )}
-                <div className="d-flex gap-2 ms-auto">
+                <div className="mooduit-modal-action-group">
                   <button
                     type="button"
                     className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
@@ -2213,7 +2242,10 @@ export default function Dashboard({
       <AnimatePresence>
         {isTargetModalOpen && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            className="mooduit-modal-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsTargetModalOpen(false);
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.4)",
@@ -2224,16 +2256,19 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
+              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
+                <h3 id="add-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
                   {t("Tambah Target Impian Baru", "Add New Dream Target")}
                 </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert"
+                  className="mooduit-modal-close btn-close dark:filter dark:invert"
                   onClick={() => setIsTargetModalOpen(false)}
                 />
               </div>
@@ -2266,7 +2301,7 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="d-flex justify-content-end gap-2">
+              <div className="mooduit-modal-actions justify-content-end">
                 <button
                   type="button"
                   className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
@@ -2292,7 +2327,10 @@ export default function Dashboard({
       <AnimatePresence>
         {isCelebrationOpen && selectedTargetForCelebration && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            className="mooduit-modal-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsCelebrationOpen(false);
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -2303,11 +2341,14 @@ export default function Dashboard({
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
+              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-2xl text-center border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="celebrate-target-title"
             >
               <div className="text-5xl mb-3 animate-bounce">🎉</div>
-              <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-2">
+              <h3 id="celebrate-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-2">
                 {t("Wujudkan Impian Ini?", "Achieve this Dream?")}
               </h3>
               <p className="text-muted text-sm sm:text-base leading-relaxed mb-4">
@@ -2317,7 +2358,7 @@ export default function Dashboard({
                 )}
               </p>
 
-              <div className="d-flex gap-2 justify-content-center">
+              <div className="mooduit-modal-actions justify-content-center">
                 <button
                   type="button"
                   className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold"
@@ -2342,7 +2383,10 @@ export default function Dashboard({
       <AnimatePresence>
         {isNyicilModalOpen && selectedTargetForNyicil && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            className="mooduit-modal-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsNyicilModalOpen(false);
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -2353,16 +2397,19 @@ export default function Dashboard({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 border border-slate-200 dark:border-slate-700"
+              className="mooduit-modal-panel mooduit-modal-panel--compact bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="installment-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
+                <h3 id="installment-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
                   💰 {t("Nyicil Target Impian", "Installment for Target")}
                 </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert"
+                  className="mooduit-modal-close btn-close dark:filter dark:invert"
                   onClick={() => setIsNyicilModalOpen(false)}
                 />
               </div>
@@ -2380,7 +2427,7 @@ export default function Dashboard({
                 />
               </div>
 
-              <div className="d-flex gap-2 justify-content-end">
+              <div className="mooduit-modal-actions justify-content-end">
                 <button
                   type="button"
                   className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
@@ -2457,7 +2504,10 @@ export default function Dashboard({
       <AnimatePresence>
         {showCelebration && (
           <div
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            className="mooduit-modal-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) handleCloseCelebration();
+            }}
             style={{
               zIndex: 99999,
               backgroundColor: "rgba(0,0,0,0.6)",
@@ -2468,11 +2518,14 @@ export default function Dashboard({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
+              className="mooduit-modal-panel mooduit-modal-panel--compact bg-white dark:bg-slate-800 rounded-3xl shadow-2xl text-center border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="streak-celebration-title"
             >
               <div className="text-6xl mb-3 animate-bounce">🔥</div>
-              <h3 className="fw-800 text-[#112F58] dark:text-white text-2xl mb-1">
+              <h3 id="streak-celebration-title" className="mooduit-modal-title fw-800 text-[#112F58] dark:text-white mb-1">
                 {streakIncreasedToday ? t("Streak Bertambah! 🔥", "Streak Increased! 🔥") : t("Streak Menyala! 🔥", "Streak is Glowing! 🔥")}
               </h3>
               <div className="inline-block px-4 py-1.5 bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-extrabold rounded-full text-sm mb-3">

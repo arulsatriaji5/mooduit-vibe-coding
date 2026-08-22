@@ -59,6 +59,17 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
     }
   }, [pendingData, onClearPendingData]);
 
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (isManualModalOpen) setIsManualModalOpen(false);
+      else if (showActionModal) setShowActionModal(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isManualModalOpen, showActionModal]);
+
   const handleNominalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, "");
     setManualNominal(rawValue ? Number(rawValue).toLocaleString('id-ID') : "");

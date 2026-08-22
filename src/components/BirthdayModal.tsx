@@ -31,6 +31,17 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({ isOpen, onClose, u
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   const getDynamicGradient = (name: string) => {
     const gradients = [
       "linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)", 
@@ -51,7 +62,13 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({ isOpen, onClose, u
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) onClose();
+          }}
+        >
           
           {/* Efek Konfeti di Latar Belakang Layar */}
           {showConfetti && (
@@ -77,6 +94,9 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({ isOpen, onClose, u
             transition={{ type: "spring", damping: 20, stiffness: 200 }}
             className="relative w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl flex flex-col border border-white/10"
             style={{ background: bgGradient, minHeight: '500px' }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={language === 'id' ? 'Ucapan ulang tahun' : 'Birthday greeting'}
           >
             <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
                <motion.div animate={{ y: [0, -20, 0], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute top-10 left-10 text-white text-2xl">✨</motion.div>

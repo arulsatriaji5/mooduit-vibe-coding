@@ -93,6 +93,14 @@ textarea {
   letter-spacing: inherit;
 }
 
+/* Interactive labels must stay intact even inside cards that allow long copy to wrap. */
+button,
+.btn {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
 img,
 svg,
 video,
@@ -109,6 +117,92 @@ canvas {
 
 :where(p, li, label, input, textarea, select, button) {
   line-height: 1.55;
+}
+
+/* Shared modal geometry keeps dialogs usable down to a 320px viewport. */
+.mooduit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mooduit-modal-panel {
+  width: min(100%, 440px) !important;
+  max-height: calc(100dvh - 2rem);
+  padding: clamp(1.25rem, 4vw, 2rem) !important;
+  overflow-y: auto;
+  overflow-wrap: normal !important;
+}
+
+.mooduit-modal-panel--compact {
+  max-width: 420px !important;
+}
+
+.mooduit-modal-title {
+  min-width: 0;
+  padding-right: 0.75rem;
+  font-size: clamp(1.125rem, 4.8vw, 1.5rem) !important;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.mooduit-modal-close {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.mooduit-modal-actions,
+.mooduit-modal-action-group {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.mooduit-modal-action-group {
+  margin-left: auto;
+}
+
+.mooduit-modal-actions button,
+.mooduit-modal-action-group button {
+  flex: 0 0 auto;
+  min-width: 78px;
+  min-height: 42px;
+  padding-inline: 1rem !important;
+}
+
+.mooduit-modal-actions .mooduit-modal-icon-action {
+  min-width: 42px;
+  width: 42px;
+  padding-inline: 0 !important;
+}
+
+@media (max-width: 359.98px) {
+  .mooduit-modal-overlay {
+    padding-inline: 0.75rem;
+  }
+
+  .mooduit-modal-panel {
+    max-height: calc(100dvh - 1.5rem);
+    padding: 1rem !important;
+  }
+
+  .mooduit-modal-actions,
+  .mooduit-modal-action-group {
+    gap: 0.5rem;
+  }
+
+  .mooduit-modal-actions button,
+  .mooduit-modal-action-group button {
+    min-width: 72px;
+    padding-inline: 0.75rem !important;
+  }
 }
 
 /* Custom CSS Dark Mode definitions */
@@ -712,9 +806,69 @@ canvas {
     flex: 1 1 0% !important;
   }
 
-  .history-filter-actions button {
+.history-filter-actions button {
     min-height: 52px;
     padding-inline: 0.75rem !important;
+  }
+}
+
+.mooduit-landing-page :where(#fitur, #manfaat) {
+  scroll-margin-top: 88px;
+}
+
+.landing-swipe-hint {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+@media (max-width: 767.98px) {
+  .landing-swipe-hint {
+    display: flex;
+  }
+
+  .landing-horizontal-track {
+    display: flex !important;
+    width: 100%;
+    max-width: 100% !important;
+    grid-template-columns: none !important;
+    gap: 1rem !important;
+    margin-bottom: 2rem !important;
+    padding: 0.25rem 0.125rem 1.25rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    scroll-padding-inline: 0.125rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    touch-action: pan-x pan-y;
+  }
+
+  .landing-horizontal-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .landing-horizontal-card {
+    width: min(calc(100vw - 80px), 320px);
+    min-width: min(calc(100vw - 80px), 320px);
+    flex: 0 0 min(calc(100vw - 80px), 320px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .landing-features-track .landing-horizontal-card {
+    min-height: 300px;
+    padding: 2rem 1.5rem !important;
+  }
+
+  .landing-benefits-track .landing-horizontal-card {
+    min-height: 330px;
+    padding: 2rem 1.5rem !important;
   }
 }
 

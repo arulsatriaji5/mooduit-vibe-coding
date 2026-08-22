@@ -34,6 +34,20 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
   const darkMode = theme === 'dark';
 
   useEffect(() => {
+    if (!isForgotModalOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsForgotModalOpen(false);
+      setForgotStatus('idle');
+      setForgotEmail('');
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isForgotModalOpen]);
+
+  useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const origin = event.origin;
       if (!origin.endsWith('.run.app') && !origin.includes('localhost') && !origin.includes('127.0.0.1')) {
@@ -556,14 +570,25 @@ export default function Auth({ onAuth, onClose, initialMode = 'login' }: AuthPro
 
       {/* MODAL LUPA PASSWORD (FINANCIAL CRISIS PROTECTION RESET FLOW) */}
       {isForgotModalOpen && (
-        <div className="auth-modal-overlay">
+        <div
+          className="auth-modal-overlay"
+          onClick={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setIsForgotModalOpen(false);
+            setForgotStatus('idle');
+            setForgotEmail('');
+          }}
+        >
           <motion.div 
             className="auth-modal-card card shadow-lg bg-white dark:bg-slate-900"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="forgot-password-title"
           >
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="auth-modal-title text-primary-mooduit dark:text-blue-400">
+              <h4 id="forgot-password-title" className="auth-modal-title text-primary-mooduit dark:text-blue-400">
                 {language === 'id' ? 'Atur Ulang Kata Sandi' : 'Reset Password'}
               </h4>
               <button 
