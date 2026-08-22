@@ -89,6 +89,15 @@ async function initDB() {
     `);
 
     await db.execute(`
+      CREATE TABLE IF NOT EXISTS birthday_email_log (
+        user_email TEXT NOT NULL,
+        birthday_year INTEGER NOT NULL,
+        sent_at TEXT NOT NULL,
+        PRIMARY KEY (user_email, birthday_year)
+      )
+    `);
+
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS budget_plans (
         user_email TEXT PRIMARY KEY,
         income TEXT,
@@ -727,6 +736,58 @@ app.get("/api/goals", async (req, res) => {
       args: [String(user_email)]
     });
     res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/goals/:id", async (req, res) => {
+  try {
+    const db = getDb();
+    const email = req.body.user_email || req.headers["user-email"];
+    const goalId = String(req.params.id || "").trim();
+    const goalName = String(req.body.name || "").trim();
+    const goalPrice = Number(req.body.price);
+
+    if (!email || !goalId || !goalName || !Number.isFinite(goalPrice) || goalPrice <= 0) {
+      return res.status(400).json({ error: "Data target impian tidak lengkap" });
+    }
+
+    const existing = await db.execute({
+      sql: "SELECT id FROM goals WHERE id = ? AND user_email = ?",
+      args: [goalId, String(email)],
+    });
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Target impian tidak ditemukan" });
+    }
+
+    await db.execute({
+      sql: "UPDATE goals SET name = ?, nama = ?, price = ?, harga = ? WHERE id = ? AND user_email = ?",
+      args: [goalName, goalName, goalPrice, goalPrice, goalId, String(email)],
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/goals/:id", async (req, res) => {
+  try {
+    const db = getDb();
+    const email = req.body.user_email || req.headers["user-email"];
+    const goalId = String(req.params.id || "").trim();
+
+    if (!email || !goalId) {
+      return res.status(400).json({ error: "Email dan ID target wajib disertakan" });
+    }
+
+    await db.execute({
+      sql: "DELETE FROM goals WHERE id = ? AND user_email = ?",
+      args: [goalId, String(email)],
+    });
+
+    res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -2441,10 +2502,86 @@ app.post("/api/cron/monthly-report", monthlyReportHandler);
 app.get("/api/send-report", monthlyReportHandler);
 app.post("/api/send-report", monthlyReportHandler);
 
-// Birthday Email Handler with Deep Link
+// Birthday Email with a direct link to the in-app birthday popup.
+const escapeEmailHtml = (value: unknown) => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
+
+const getBirthdayAppUrl = (req?: any) => {
+  const configuredUrl = process.env.APP_URL || process.env.VITE_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  const forwardedHost = req?.headers?.["x-forwarded-host"] || req?.get?.("host");
+  const forwardedProtocol = req?.headers?.["x-forwarded-proto"] || req?.protocol || "https";
+  const baseUrl = configuredUrl
+    || (vercelHost ? `https://${vercelHost}` : "")
+    || (forwardedHost ? `${forwardedProtocol}://${forwardedHost}` : "")
+    || "https://mooduit.arulsatriaji.dev";
+
+  return `${String(baseUrl).replace(/\/$/, "")}/?birthday=true`;
+};
+
+const sendBirthdayEmail = async (user: any, req?: any) => {
+  const cleanEmail = String(user.email || "").trim().toLowerCase();
+  const rawName = String(user.name || cleanEmail.split("@")[0] || "Sobat Cuan").trim();
+  const headerSafeName = rawName.replace(/[\r\n]+/g, " ");
+  const safeName = escapeEmailHtml(rawName);
+  const deepLinkUrl = getBirthdayAppUrl(req);
+  const safeDeepLinkUrl = escapeEmailHtml(deepLinkUrl);
+  const smtpEmail = process.env.VITE_SMTP_EMAIL || process.env.SMTP_EMAIL || process.env.GMAIL_USER;
+  const smtpPassword = process.env.VITE_SMTP_PASSWORD || process.env.SMTP_PASSWORD || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+
+  if (!smtpEmail || !smtpPassword) {
+    return { sent: false, demo: true, deepLinkUrl };
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: smtpEmail, pass: smtpPassword }
+  });
+
+  await transporter.sendMail({
+    from: `"MOODUIT" <${smtpEmail}>`,
+    to: cleanEmail,
+    subject: `🎂 Selamat Ulang Tahun, ${headerSafeName}! Ada Kejutan dari MOODUIT 🎁`,
+    text: [
+      `Selamat ulang tahun, ${headerSafeName}!`,
+      "Semoga selalu diberi kesehatan, kebahagiaan, umur yang penuh manfaat, rezeki yang halal dan berkah, serta kemudahan dalam setiap langkah.",
+      "Semoga semua doa baik, target keuangan, dan impianmu satu per satu dapat terwujud.",
+      `Buka kejutan ulang tahun MOODUIT di: ${deepLinkUrl}`,
+    ].join("\n\n"),
+    html: `
+      <div style="background:#f4f7fb;padding:28px 14px;font-family:'Segoe UI',Arial,sans-serif;color:#112F58;">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 14px 40px rgba(17,47,88,.14);">
+          <div style="background:#112F58;padding:32px 24px;text-align:center;color:#ffffff;">
+            <div style="font-size:44px;line-height:1;margin-bottom:12px;">🎂🎉</div>
+            <div style="font-size:14px;font-weight:800;letter-spacing:1.5px;color:#D8C9A7;">MOODUIT</div>
+            <h1 style="margin:10px 0 0;font-size:28px;line-height:1.3;color:#ffffff;">Selamat Ulang Tahun, ${safeName}!</h1>
+          </div>
+          <div style="padding:30px 26px;">
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#334155;">Hari ini adalah hari yang spesial. Terima kasih sudah menjadi bagian dari perjalanan MOODUIT.</p>
+            <div style="background:#f8fafc;border-left:4px solid #112F58;border-radius:12px;padding:18px;margin:0 0 22px;">
+              <p style="margin:0;font-size:15px;line-height:1.75;color:#334155;">Semoga kamu selalu diberi <strong>kesehatan, kebahagiaan, umur yang penuh manfaat, rezeki yang halal dan berkah</strong>, serta kemudahan dalam setiap langkah. Semoga semua doa baik, target keuangan, dan impianmu satu per satu dapat terwujud. Aamiin. 🤲✨</p>
+            </div>
+            <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#475569;">Kami sudah menyiapkan kejutan kecil untukmu. Tekan tombol berikut untuk membuka MOODUIT langsung ke popup ulang tahun.</p>
+            <div style="text-align:center;margin:26px 0;">
+              <a href="${safeDeepLinkUrl}" style="display:inline-block;background:#112F58;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:12px;font-size:15px;font-weight:800;">🎁 Buka Kejutan Ulang Tahun</a>
+            </div>
+            <p style="margin:0;font-size:12px;line-height:1.6;text-align:center;color:#94a3b8;word-break:break-all;">Jika tombol tidak terbuka, salin link ini:<br><a href="${safeDeepLinkUrl}" style="color:#112F58;">${safeDeepLinkUrl}</a></p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+
+  return { sent: true, demo: false, deepLinkUrl };
+};
+
 const birthdayEmailHandler = async (req: any, res: any) => {
   try {
-    const userEmail = req.body.email || req.query.email || req.headers["user-email"];
+    const userEmail = req.body?.email || req.query?.email || req.headers["user-email"];
     if (!userEmail) {
       return res.status(400).json({ error: "Email is required" });
     }
@@ -2452,7 +2589,7 @@ const birthdayEmailHandler = async (req: any, res: any) => {
     const db = getDb();
     const cleanEmail = String(userEmail).trim().toLowerCase();
     const userRes = await db.execute({
-      sql: "SELECT * FROM users WHERE LOWER(email) = ?",
+      sql: "SELECT id, name, email, dob FROM users WHERE LOWER(email) = ?",
       args: [cleanEmail]
     });
 
@@ -2460,65 +2597,101 @@ const birthdayEmailHandler = async (req: any, res: any) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = userRes.rows[0];
-    const userName = user.name || "Sobat Cuan";
-    const appUrl = process.env.APP_URL || "https://mooduit.arulsatriaji.dev";
-    const deepLinkUrl = `${appUrl}/?surprise=true`;
-
-    const smtpEmail = process.env.SMTP_EMAIL || process.env.GMAIL_USER;
-    const smtpPassword = process.env.SMTP_PASSWORD || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
-
-    if (!smtpEmail || !smtpPassword) {
-      return res.json({
-        success: true,
-        message: "Demo Mode: Email kado ulang tahun diproses.",
-        deepLinkUrl
-      });
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: smtpEmail, pass: smtpPassword }
+    const result = await sendBirthdayEmail(userRes.rows[0], req);
+    return res.json({
+      success: true,
+      emailSent: result.sent,
+      message: result.demo
+        ? "Mode uji: SMTP belum dikonfigurasi, jadi email belum dikirim."
+        : "Email ulang tahun berhasil dikirim!",
+      deepLinkUrl: result.deepLinkUrl,
     });
-
-    const mailOptions = {
-      from: `"MOODUIT Financial Advisor" <${smtpEmail}>`,
-      to: cleanEmail,
-      subject: `🎂 Selamat Ulang Tahun, ${userName}! Kado Spesial dari MOODUIT Menunggumu 🎁`,
-      html: `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border-radius: 16px; background-color: #0f172a; color: #ffffff;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="font-size: 40px; margin-bottom: 8px;">🎂✨</div>
-            <h1 style="color: #f472b6; margin: 0; font-size: 24px;">Selamat Ulang Tahun, ${userName}!</h1>
-            <p style="color: #94a3b8; font-size: 14px; margin-top: 6px;">Hari ini adalah hari spesialmu!</p>
-          </div>
-          <div style="background-color: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 24px;">
-            <p style="margin: 0 0 12px 0; color: #e2e8f0; line-height: 1.6;">
-              Tim MOODUIT mendoakan yang terbaik untukmu! Buka aplikasi MOODUIT sekarang untuk mengambil kado ulang tahun spesialmu dan melihat pesan eksklusif dari MOODUIT AI.
-            </p>
-            <div style="text-align: center; margin-top: 20px;">
-              <a href="${deepLinkUrl}" style="background: linear-gradient(to right, #ec4899, #8b5cf6); color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 15px;">
-                🎁 Buka Kado Ulang Tahun Sekarang
-              </a>
-            </div>
-          </div>
-          <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
-            Atau buka link ini: <a href="${deepLinkUrl}" style="color: #38bdf8;">${deepLinkUrl}</a>
-          </p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.json({ success: true, message: "Email kado ulang tahun berhasil dikirim!", deepLinkUrl });
   } catch (err: any) {
     console.error("Birthday email error:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+const getDatePartsInTimeZone = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value || "";
+  return { year: getPart("year"), month: getPart("month"), day: getPart("day") };
+};
+
+const birthdayCronHandler = async (req: any, res: any) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const authorization = String(req.headers.authorization || "");
+  if (!cronSecret || authorization !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const db = getDb();
+    const timeZone = process.env.BIRTHDAY_TIMEZONE || "Asia/Makassar";
+    const { year, month, day } = getDatePartsInTimeZone(new Date(), timeZone);
+    const monthDay = `${month}-${day}`;
+    const usersResult = await db.execute({
+      sql: "SELECT id, name, email, dob FROM users WHERE email IS NOT NULL AND TRIM(email) != '' AND dob IS NOT NULL AND SUBSTR(dob, 6, 5) = ?",
+      args: [monthDay],
+    });
+
+    let emailsSent = 0;
+    let alreadySent = 0;
+    let failed = 0;
+    let smtpNotConfigured = false;
+
+    for (const user of usersResult.rows || []) {
+      const cleanEmail = String(user.email || "").trim().toLowerCase();
+      const existingLog = await db.execute({
+        sql: "SELECT user_email FROM birthday_email_log WHERE LOWER(user_email) = ? AND birthday_year = ?",
+        args: [cleanEmail, Number(year)],
+      });
+      if (existingLog.rows.length > 0) {
+        alreadySent += 1;
+        continue;
+      }
+
+      try {
+        const result = await sendBirthdayEmail(user, req);
+        if (result.demo) {
+          smtpNotConfigured = true;
+          continue;
+        }
+        await db.execute({
+          sql: "INSERT OR IGNORE INTO birthday_email_log (user_email, birthday_year, sent_at) VALUES (?, ?, ?)",
+          args: [cleanEmail, Number(year), new Date().toISOString()],
+        });
+        emailsSent += 1;
+      } catch (err) {
+        failed += 1;
+        console.error(`Birthday email failed for ${cleanEmail}:`, err);
+      }
+    }
+
+    return res.json({
+      success: true,
+      date: `${year}-${month}-${day}`,
+      timeZone,
+      birthdayUsers: usersResult.rows.length,
+      emailsSent,
+      alreadySent,
+      failed,
+      smtpNotConfigured,
+    });
+  } catch (err: any) {
+    console.error("Birthday cron error:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
 app.get("/api/send-birthday-email", birthdayEmailHandler);
 app.post("/api/send-birthday-email", birthdayEmailHandler);
+app.get("/api/cron/birthday-email", birthdayCronHandler);
 
 // Asynchronous background database initialization so it never blocks startup or serverless container boot
 initDB().catch(err => {

@@ -85,6 +85,27 @@ export function mapDBToFrontend(dt: any): any {
   };
 }
 
+export function resolveUserEmail(explicitEmail?: string): string {
+  if (explicitEmail && explicitEmail.trim()) return explicitEmail.trim();
+  if (typeof window !== 'undefined') {
+    try {
+      const email = localStorage.getItem('userEmail');
+      if (email && email.trim()) return email.trim();
+      const moodUser = localStorage.getItem('mooduit_user');
+      if (moodUser) {
+        const parsed = JSON.parse(moodUser);
+        if (parsed.email && parsed.email.trim()) return parsed.email.trim();
+      }
+      const moodSession = localStorage.getItem('mooduit_session');
+      if (moodSession) {
+        const parsed = JSON.parse(moodSession);
+        if (parsed.email && parsed.email.trim()) return parsed.email.trim();
+      }
+    } catch (e) {}
+  }
+  return "";
+}
+
 export function mapFrontendToDB(ft: any): any {
   return {
     id: ft.id ? String(ft.id) : undefined,
@@ -98,11 +119,15 @@ export function mapFrontendToDB(ft: any): any {
 
 export async function fetchAllTransactions(user_email?: string): Promise<any[]> {
   try {
-    if (!user_email) return [];
-    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
+    const email = resolveUserEmail(user_email);
+    if (!email) return [];
+    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(email)}`, {
+      credentials: 'include',
+      headers: { 'user-email': email }
+    });
     if (!response.ok) throw new Error('Failed to fetch transactions');
     const dbData = await response.json();
-    return dbData.map(mapDBToFrontend);
+    return Array.isArray(dbData) ? dbData.map(mapDBToFrontend) : [];
   } catch (err) {
     console.error("Error fetching transactions from DB:", err);
     return [];
@@ -111,15 +136,25 @@ export async function fetchAllTransactions(user_email?: string): Promise<any[]> 
 
 export async function insertTransaction(tx: any, user_email?: string): Promise<any> {
   try {
-    if (!user_email) throw new Error('user_email is required');
-    const dbPayload = { ...mapFrontendToDB(tx), user_email };
+    const email = resolveUserEmail(user_email);
+    if (!email) {
+      console.warn("insertTransaction: user email not found in session/localStorage, returning local transaction");
+      return tx;
+    }
+    const dbPayload = { ...mapFrontendToDB(tx), user_email: email };
     const response = await fetch('/api/transactions', {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'user-email': email
+      },
       body: JSON.stringify(dbPayload)
     });
-    if (!response.ok) throw new Error('Failed to insert transaction');
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Failed to insert transaction');
+    }
     const result = await response.json();
     return mapDBToFrontend(result);
   } catch (err) {
@@ -130,15 +165,22 @@ export async function insertTransaction(tx: any, user_email?: string): Promise<a
 
 export async function updateTransactionDB(id: string | number, tx: any, user_email?: string): Promise<any> {
   try {
-    if (!user_email) throw new Error('user_email is required');
-    const dbPayload = { ...mapFrontendToDB(tx), user_email };
+    const email = resolveUserEmail(user_email);
+    if (!email) return tx;
+    const dbPayload = { ...mapFrontendToDB(tx), user_email: email };
     const response = await fetch(`/api/transactions/${id}`, {
       method: 'PUT',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'user-email': email
+      },
       body: JSON.stringify(dbPayload)
     });
-    if (!response.ok) throw new Error('Failed to update transaction');
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Failed to update transaction');
+    }
     const result = await response.json();
     return mapDBToFrontend(result);
   } catch (err) {
@@ -149,10 +191,12 @@ export async function updateTransactionDB(id: string | number, tx: any, user_ema
 
 export async function deleteTransactionDB(id: string | number, user_email?: string): Promise<boolean> {
   try {
-    if (!user_email) throw new Error('user_email is required');
-    const response = await fetch(`/api/transactions/${id}?user_email=${encodeURIComponent(user_email)}`, {
+    const email = resolveUserEmail(user_email);
+    if (!email) return false;
+    const response = await fetch(`/api/transactions/${id}?user_email=${encodeURIComponent(email)}`, {
       method: 'DELETE',
-      credentials: 'include'
+      credentials: 'include',
+      headers: { 'user-email': email }
     });
     if (!response.ok) throw new Error('Failed to delete transaction');
     const result = await response.json();
@@ -165,8 +209,12 @@ export async function deleteTransactionDB(id: string | number, user_email?: stri
 
 export async function fetchBudgetPlan(user_email?: string): Promise<any | null> {
   try {
-    if (!user_email) return null;
-    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
+    const email = resolveUserEmail(user_email);
+    if (!email) return null;
+    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(email)}`, {
+      credentials: 'include',
+      headers: { 'user-email': email }
+    });
     if (!response.ok) throw new Error('Failed to fetch budget');
     const budget = await response.json();
     if (!budget) return null;
@@ -186,9 +234,10 @@ export async function fetchBudgetPlan(user_email?: string): Promise<any | null> 
 
 export async function saveBudgetPlanDB(pendapatan: number, user_email?: string): Promise<any> {
   try {
-    if (!user_email) throw new Error('user_email is required');
+    const email = resolveUserEmail(user_email);
+    if (!email) throw new Error('user_email is required');
     const payload = {
-      user_email,
+      user_email: email,
       total_income: pendapatan,
       limit_50: pendapatan * 0.5,
       limit_30: pendapatan * 0.3,
@@ -197,7 +246,10 @@ export async function saveBudgetPlanDB(pendapatan: number, user_email?: string):
     const response = await fetch('/api/budgets', {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'user-email': email
+      },
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error('Failed to save budget plan');
@@ -251,6 +303,46 @@ export async function syncGoals(user_email: string, wishlist: any[]): Promise<bo
     return !!result.success;
   } catch (err) {
     console.error("Error syncing goals to DB:", err);
+    return false;
+  }
+}
+
+// Update one goal without replacing the user's complete goal list.
+export async function updateGoal(user_email: string, goal: any): Promise<boolean> {
+  try {
+    if (!user_email || !goal?.id) return false;
+    const name = String(goal.name || goal.nama || "").trim();
+    const price = Number(String(goal.price ?? goal.harga ?? "0").replace(/\D/g, ""));
+    const response = await fetch(`/api/goals/${encodeURIComponent(String(goal.id))}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_email, name, price }),
+    });
+    if (!response.ok) throw new Error("Failed to update goal");
+    const result = await response.json();
+    return !!result.success;
+  } catch (err) {
+    console.error("Error updating goal:", err);
+    return false;
+  }
+}
+
+// Delete one goal by its stable ID so stale list data cannot recreate it.
+export async function deleteGoal(user_email: string, goalId: string): Promise<boolean> {
+  try {
+    if (!user_email || !goalId) return false;
+    const response = await fetch(`/api/goals/${encodeURIComponent(goalId)}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_email }),
+    });
+    if (!response.ok) throw new Error("Failed to delete goal");
+    const result = await response.json();
+    return !!result.success;
+  } catch (err) {
+    console.error("Error deleting goal:", err);
     return false;
   }
 }

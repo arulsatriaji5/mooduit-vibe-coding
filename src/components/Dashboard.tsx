@@ -24,7 +24,7 @@ import {
   Gift,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
-import { fetchUserStreak, restoreStreak, fetchAiStreakMotivation, fetchAmbientAiAdvice } from "../utils/api";
+import { fetchUserStreak, restoreStreak, fetchAiStreakMotivation } from "../utils/api";
 import { BirthdayModal, isUserBirthdayToday } from "./BirthdayModal";
 import "./Dashboard.css";
 
@@ -35,6 +35,93 @@ interface DashboardProps {
   setTransactions?: React.Dispatch<React.SetStateAction<any[]>>;
   isLoading?: boolean;
 }
+
+const getDreamTargetName = (target: any) => String(target?.nama || target?.name || "").trim();
+
+const getDreamTargetPrice = (target: any) =>
+  Number(String(target?.harga || target?.price || "0").replace(/\D/g, ""));
+
+const getDreamTargetCollected = (target: any, transactionList: any[]) => {
+  const targetName = getDreamTargetName(target).toLowerCase();
+  if (!targetName) return 0;
+
+  return transactionList
+    .filter((transaction) => {
+      const category = String(transaction.kategori || transaction.category || "").toLowerCase();
+      const note = String(transaction.catatan || transaction.description || "").toLowerCase();
+      return (category === "target impian" || category === "tabungan") && note.includes(targetName);
+    })
+    .reduce((sum, transaction) => sum + (Number(transaction.nominal || transaction.amount) || 0), 0);
+};
+
+const DAILY_WELCOME_MESSAGES = [
+  {
+    id: "Semangat, {name}! Hari ini adalah kesempatan baru untuk membuat keputusan keuangan yang lebih baik. 🌤️",
+    en: "Keep it up, {name}! Today is a fresh chance to make better financial decisions. 🌤️",
+  },
+  {
+    id: "Halo, {name}! Sedikit lebih hemat hari ini bisa membawa kamu lebih dekat ke tujuan impian. 🎯",
+    en: "Hi, {name}! Saving a little more today can bring you closer to your dream goal. 🎯",
+  },
+  {
+    id: "Kamu hebat, {name}! Catat transaksi hari ini agar dompet tetap terarah dan tenang. ✨",
+    en: "You're doing great, {name}! Log today's transactions to keep your finances clear and calm. ✨",
+  },
+  {
+    id: "Selamat datang kembali, {name}! Yuk jaga keseimbangan antara kebutuhan, keinginan, dan tabungan. ⚖️",
+    en: "Welcome back, {name}! Let's balance your needs, wants, and savings. ⚖️",
+  },
+  {
+    id: "Pelan-pelan tetap maju, {name}. Kebiasaan kecil yang konsisten bisa membuat dompet makin sehat. 🌱",
+    en: "Small steps still move you forward, {name}. Consistent habits can build healthier finances. 🌱",
+  },
+  {
+    id: "Hari yang bagus untuk lebih bijak, {name}! Cek dulu kebutuhan sebelum belanja, ya. 🛍️",
+    en: "It's a great day to spend wisely, {name}! Check what you need before buying. 🛍️",
+  },
+  {
+    id: "Selamat menjalani hari, {name}! Sisihkan sedikit untuk masa depan sebelum menikmati sisanya. 💰",
+    en: "Have a wonderful day, {name}! Set something aside for the future before enjoying the rest. 💰",
+  },
+  {
+    id: "Ayo lanjutkan progresmu, {name}! Satu transaksi yang tercatat membuat rencana makin akurat. 📝",
+    en: "Keep your progress going, {name}! Every logged transaction makes your plan more accurate. 📝",
+  },
+  {
+    id: "Dompet yang sehat dimulai dari keputusan sederhana, {name}. Kamu pasti bisa! 💪",
+    en: "Healthy finances start with simple decisions, {name}. You've got this! 💪",
+  },
+  {
+    id: "Halo, {name}! Rayakan progres kecilmu dan tetap fokus pada tujuan besar. 🚀",
+    en: "Hi, {name}! Celebrate your small wins and stay focused on the bigger goal. 🚀",
+  },
+  {
+    id: "Hari ini, pilih satu kebiasaan baik untuk dompetmu, {name}. Mulai dari yang paling mudah. 🌟",
+    en: "Choose one good money habit today, {name}. Start with the easiest one. 🌟",
+  },
+  {
+    id: "Tetap tenang dan terarah, {name}. Keuangan yang rapi dibangun satu hari demi satu hari. 🧭",
+    en: "Stay calm and focused, {name}. Organized finances are built one day at a time. 🧭",
+  },
+  {
+    id: "Semoga harimu menyenangkan, {name}! Jangan lupa beri ruang untuk menabung dan bersenang-senang. 😊",
+    en: "Hope you have a lovely day, {name}! Make room for both saving and enjoying life. 😊",
+  },
+  {
+    id: "Konsisten lebih penting daripada sempurna, {name}. Lanjutkan langkah baikmu hari ini! 🔥",
+    en: "Consistency matters more than perfection, {name}. Keep your good momentum today! 🔥",
+  },
+] as const;
+
+const getDailyWelcomeMessage = (language: "id" | "en", userName: string) => {
+  const today = new Date();
+  const dayNumber = Math.floor(
+    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86_400_000,
+  );
+  const message = DAILY_WELCOME_MESSAGES[dayNumber % DAILY_WELCOME_MESSAGES.length];
+
+  return message[language].replace("{name}", userName);
+};
 
 export default function Dashboard({
   onNavigate,
@@ -85,10 +172,6 @@ export default function Dashboard({
   // AI Real-Time Motivation states
   const [isMotivationLoading, setIsMotivationLoading] = React.useState<boolean>(false);
   const [aiMotivationText, setAiMotivationText] = React.useState<string>("");
-
-  // Dynamic Ambient AI Advisor states
-  const [ambientAdvice, setAmbientAdvice] = React.useState<string>("");
-  const [isAmbientLoading, setIsAmbientLoading] = React.useState<boolean>(false);
 
   const motivationQuotes = React.useMemo(() => [
     {
@@ -427,13 +510,13 @@ export default function Dashboard({
 
   const [wishlist, setWishlist] = React.useState<any[]>([]);
   const [targetImpian, setTargetImpian] = React.useState<any[]>([]);
-  const [isEditTargetModalOpen, setIsEditTargetModalOpen] = React.useState(false);
   const [isTargetModalOpen, setIsTargetModalOpen] = React.useState(false);
   const [newTargetName, setNewTargetName] = React.useState("");
   const [newTargetPrice, setNewTargetPrice] = React.useState("");
   
   const [isCelebrationOpen, setIsCelebrationOpen] = React.useState(false);
   const [selectedTargetForCelebration, setSelectedTargetForCelebration] = React.useState<any>(null);
+  const [isCompletingTarget, setIsCompletingTarget] = React.useState(false);
 
   const [isNyicilModalOpen, setIsNyicilModalOpen] = React.useState(false);
   const [selectedTargetForNyicil, setSelectedTargetForNyicil] = React.useState<any>(null);
@@ -447,69 +530,60 @@ export default function Dashboard({
       ? propsSetTransactions
       : setLocalTransactions;
 
-  const handleBuyTarget = async () => {
+  React.useEffect(() => {
+    if (isCelebrationOpen || selectedTargetForCelebration) return;
+
+    const completedTarget = targetImpian.find((target) => {
+      const targetPrice = getDreamTargetPrice(target);
+      return targetPrice > 0 && getDreamTargetCollected(target, transactions) >= targetPrice;
+    });
+
+    if (completedTarget) {
+      setSelectedTargetForCelebration(completedTarget);
+      setIsCelebrationOpen(true);
+    }
+  }, [targetImpian, transactions, isCelebrationOpen, selectedTargetForCelebration]);
+
+  const handleCompleteTarget = async () => {
     if (!selectedTargetForCelebration) return;
     const target = selectedTargetForCelebration;
+    const targetId = String(target.id);
+    const updatedWishlist = wishlist.filter((item) => String(item.id) !== targetId);
+    const userEmail = localStorage.getItem("userEmail") || "";
 
-    const updatedWishlist = wishlist.filter((t) => t.id !== target.id);
-    setWishlist(updatedWishlist);
-    setTargetImpian(updatedWishlist);
-    syncWishlistWithDb(updatedWishlist);
-
-    const nominalTarget = Number((target.harga || target.price || "0").toString().replace(/\D/g, ""));
-    const newTx = {
-      id: "purchase_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-      nominal: nominalTarget,
-      jenis: "pengeluaran" as const,
-      kategori: "Target Impian",
-      catatan: `Mewujudkan impian: ${target.nama || target.name}`,
-      tanggal: new Date().toISOString().split('T')[0],
-      icon: "🎯"
-    };
-
+    setIsCompletingTarget(true);
     try {
-      if (propsSetTransactions && typeof propsSetTransactions === "function") {
-        const { insertTransaction } = await import("../utils/api");
-        const user_email = localStorage.getItem("userEmail") || "";
-        const insertedTx = await insertTransaction(newTx, user_email);
-        propsSetTransactions(prev => [insertedTx, ...prev]);
-        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-          (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
-            type: 'expense',
-            amount: nominalTarget,
-            category: 'Target Impian'
-          });
-        }
-      } else {
-        setLocalTransactions(prev => [newTx, ...prev]);
-        if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-          (window as any).triggerTransactionSuccess(undefined, undefined, {
-            type: 'expense',
-            amount: nominalTarget,
-            category: 'Target Impian'
-          });
+      if (userEmail) {
+        const { deleteGoal } = await import("../utils/api");
+        const isDeleted = await deleteGoal(userEmail, targetId);
+        if (!isDeleted) {
+          toast.error(
+            t(
+              "Target belum berhasil dipindahkan dari daftar. Coba tekan tombol sekali lagi.",
+              "The target could not be removed yet. Please try the button again.",
+            ),
+          );
+          return;
         }
       }
-    } catch (err) {
-      console.error("Failed to insert purchase transaction:", err);
-      setLocalTransactions(prev => [newTx, ...prev]);
-      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-        (window as any).triggerTransactionSuccess(undefined, undefined, {
-          type: 'expense',
-          amount: nominalTarget,
-          category: 'Target Impian'
-        });
-      }
+
+      setWishlist(updatedWishlist);
+      setTargetImpian(updatedWishlist);
+      setIsCelebrationOpen(false);
+      setSelectedTargetForCelebration(null);
+
+      toast.success(
+        t(
+          "Target selesai dan sudah dipindahkan dari daftar. Transaksi tetap tersimpan di Riwayat. 🎉",
+          "Target completed and removed from the list. The transaction remains in History. 🎉",
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to complete dream target:", error);
+      toast.error(t("Target gagal diselesaikan. Coba lagi.", "Target could not be completed. Please try again."));
+    } finally {
+      setIsCompletingTarget(false);
     }
-
-    toast.success(
-      language === "id"
-        ? "Selamat! Saldo telah diperbarui & impian tercatat di riwayat."
-        : "Congratulations! Balance updated & dream recorded in transaction history."
-    );
-
-    setIsCelebrationOpen(false);
-    setSelectedTargetForCelebration(null);
   };
 
   const handleSetorNyicil = async () => {
@@ -522,12 +596,37 @@ export default function Dashboard({
       return;
     }
 
+    const targetName = getDreamTargetName(selectedTargetForNyicil);
+    const targetPrice = getDreamTargetPrice(selectedTargetForNyicil);
+    const collectedBefore = getDreamTargetCollected(selectedTargetForNyicil, transactions);
+    const remainingAmount = Math.max(0, targetPrice - collectedBefore);
+
+    if (targetPrice <= 0) {
+      toast.error(isId ? "Harga target tidak valid. Silakan edit target terlebih dahulu." : "The target price is invalid. Please edit it first.");
+      return;
+    }
+
+    if (remainingAmount === 0) {
+      setIsNyicilModalOpen(false);
+      setSelectedTargetForCelebration(selectedTargetForNyicil);
+      setIsCelebrationOpen(true);
+      return;
+    }
+
+    if (cleanAmount > remainingAmount) {
+      toast.error(
+        isId
+          ? `Cicilan maksimal Rp ${remainingAmount.toLocaleString("id-ID")} sesuai sisa target.`
+          : `The maximum installment is Rp ${remainingAmount.toLocaleString("id-ID")}, matching the remaining target.`,
+      );
+      return;
+    }
+
     if (totalSaldo < cleanAmount) {
       toast.error(isId ? "Saldo kas tidak cukup untuk alokasi cicilan ini!" : "Insufficient cash balance for this installment!");
       return;
     }
 
-    const targetName = selectedTargetForNyicil.nama || selectedTargetForNyicil.name;
     const newTx = {
       id: "nyicil_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
       nominal: cleanAmount,
@@ -563,48 +662,33 @@ export default function Dashboard({
       }
     } catch (err) {
       console.error("Failed to insert nyicil transaction:", err);
-      setLocalTransactions(prev => [newTx, ...prev]);
+      toast.error(isId ? "Cicilan gagal disimpan. Silakan coba lagi." : "The installment could not be saved. Please try again.");
+      return;
     }
-
-    toast.success(
-      isId
-        ? `Berhasil menyisihkan Rp ${cleanAmount.toLocaleString('id-ID')} untuk ${targetName}! 🚀`
-        : `Successfully saved Rp ${cleanAmount.toLocaleString('id-ID')} for ${targetName}! 🚀`
-    );
 
     setIsNyicilModalOpen(false);
     setSelectedTargetForNyicil(null);
     setNyicilNominal("");
+
+    const collectedAfter = collectedBefore + cleanAmount;
+    if (collectedAfter >= targetPrice) {
+      setSelectedTargetForCelebration(selectedTargetForNyicil);
+      setIsCelebrationOpen(true);
+      return;
+    }
+
+    toast.success(
+      isId
+        ? `Berhasil menyisihkan Rp ${cleanAmount.toLocaleString("id-ID")} untuk ${targetName}. Sisa target Rp ${(targetPrice - collectedAfter).toLocaleString("id-ID")}! 🚀`
+        : `Successfully saved Rp ${cleanAmount.toLocaleString("id-ID")} for ${targetName}. Rp ${(targetPrice - collectedAfter).toLocaleString("id-ID")} remaining! 🚀`,
+    );
   };
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-  const [editIndex, setEditIndex] = React.useState<number | null>(null);
+  const [editTargetId, setEditTargetId] = React.useState<string | null>(null);
   const [editNama, setEditNama] = React.useState("");
   const [editHarga, setEditHarga] = React.useState("");
   const chatScrollRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-
-      if (showBirthdayModal) setShowBirthdayModal(false);
-      else if (showCelebration) handleCloseCelebration();
-      else if (isNyicilModalOpen) setIsNyicilModalOpen(false);
-      else if (isCelebrationOpen) setIsCelebrationOpen(false);
-      else if (isEditModalOpen) setIsEditModalOpen(false);
-      else if (isTargetModalOpen) setIsTargetModalOpen(false);
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [
-    showBirthdayModal,
-    showCelebration,
-    isNyicilModalOpen,
-    isCelebrationOpen,
-    isEditModalOpen,
-    isTargetModalOpen,
-  ]);
 
   const savingsPockets = React.useMemo(() => {
     let darurat = 0;
@@ -872,42 +956,66 @@ export default function Dashboard({
     }
   };
 
-  const handleHapusTarget = (idTarget: string) => {
-    const updated = wishlist.filter((target) => target.id !== idTarget);
-    setTargetImpian(updated);
-    setWishlist(updated);
-    syncWishlistWithDb(updated);
-    setIsEditTargetModalOpen(false);
-  };
-
   const formatInput = (val: string) => {
     const rawValue = val.replace(/\D/g, "");
     if (!rawValue) return "";
     return Number(rawValue).toLocaleString("id-ID");
   };
 
-  const handleEditItem = (index: number) => {
-    const item = wishlist[index];
-    setEditIndex(index);
-    setEditNama(item.name);
-    setEditHarga(formatInput(item.price.toString()));
+  const handleEditItem = (item: any) => {
+    setEditTargetId(String(item.id));
+    setEditNama(String(item.nama || item.name || ""));
+    setEditHarga(formatInput(String(item.harga || item.price || "")));
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateItem = () => {
-    if (editIndex === null) return;
-    const updatedWishlist = [...wishlist];
+  const handleUpdateItem = async () => {
+    if (editTargetId === null) return;
+
+    const cleanName = editNama.trim();
     const cleanPrice = String(editHarga).replace(/\D/g, "");
-    updatedWishlist[editIndex] = {
-      ...updatedWishlist[editIndex],
-      name: editNama,
+    if (!cleanName || !cleanPrice || Number(cleanPrice) <= 0) {
+      toast.error(t("Nama dan harga target wajib diisi.", "Target name and price are required."));
+      return;
+    }
+
+    const previousWishlist = wishlist;
+    const currentItem = wishlist.find((item) => String(item.id) === editTargetId);
+    if (!currentItem) {
+      toast.error(t("Target tidak ditemukan. Silakan muat ulang halaman.", "Target not found. Please reload the page."));
+      return;
+    }
+
+    // Keep both legacy and current field names synchronized.
+    const updatedItem = {
+      ...currentItem,
+      name: cleanName,
+      nama: cleanName,
       price: cleanPrice,
       harga: cleanPrice,
     };
+    const updatedWishlist = wishlist.map((item) =>
+      String(item.id) === editTargetId ? updatedItem : item,
+    );
+
     setWishlist(updatedWishlist);
     setTargetImpian(updatedWishlist);
-    syncWishlistWithDb(updatedWishlist);
     setIsEditModalOpen(false);
+    setEditTargetId(null);
+
+    const userEmail = localStorage.getItem("userEmail") || "";
+    if (userEmail) {
+      const { updateGoal } = await import("../utils/api");
+      const isSaved = await updateGoal(userEmail, updatedItem);
+      if (!isSaved) {
+        setWishlist(previousWishlist);
+        setTargetImpian(previousWishlist);
+        toast.error(t("Perubahan gagal disimpan. Coba lagi.", "Changes could not be saved. Please try again."));
+        return;
+      }
+    }
+
+    toast.success(t("Target impian berhasil diperbarui.", "Dream target updated successfully."));
   };
 
   const handleAddTarget = () => {
@@ -929,16 +1037,32 @@ export default function Dashboard({
     setIsTargetModalOpen(false);
   };
 
-  const handleDeleteItem = (index: number, e: React.MouseEvent) => {
+  const handleDeleteItem = async (targetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      window.confirm(t("Hapus target impian ini?", "Delete this dream target?"))
-    ) {
-      const updatedWishlist = wishlist.filter((_, i) => i !== index);
-      setWishlist(updatedWishlist);
-      setTargetImpian(updatedWishlist);
-      syncWishlistWithDb(updatedWishlist);
+    if (!window.confirm(t("Hapus target impian ini?", "Delete this dream target?"))) {
+      return;
     }
+
+    const previousWishlist = wishlist;
+    const updatedWishlist = wishlist.filter((item) => String(item.id) !== targetId);
+    setWishlist(updatedWishlist);
+    setTargetImpian(updatedWishlist);
+    setIsEditModalOpen(false);
+    setEditTargetId(null);
+
+    const userEmail = localStorage.getItem("userEmail") || "";
+    if (userEmail) {
+      const { deleteGoal } = await import("../utils/api");
+      const isDeleted = await deleteGoal(userEmail, targetId);
+      if (!isDeleted) {
+        setWishlist(previousWishlist);
+        setTargetImpian(previousWishlist);
+        toast.error(t("Target gagal dihapus. Coba lagi.", "Target could not be deleted. Please try again."));
+        return;
+      }
+    }
+
+    toast.success(t("Target impian berhasil dihapus.", "Dream target deleted successfully."));
   };
 
   const [isSyncing, setIsSyncing] = React.useState(false);
@@ -1413,55 +1537,8 @@ export default function Dashboard({
     .reduce((acc, t) => acc + (Number(t.nominal) || 0), 0);
   const totalSaldo = totalPemasukan - totalPengeluaran;
 
-  // Real-time Ambient AI Advisor fetch effect
-  React.useEffect(() => {
-    let isMounted = true;
-    if (isLoading) return;
-    const fetchAdvice = async () => {
-      setIsAmbientLoading(true);
-      try {
-        const advice = await fetchAmbientAiAdvice(totalSaldo, language);
-        if (isMounted) {
-          if (advice) {
-            const cleanedText = advice.replace(/^["'“«]+|["'”»]+$/g, '').trim();
-            setAmbientAdvice(cleanedText);
-          } else {
-            if (totalSaldo <= 50000) {
-              setAmbientAdvice(
-                language === "en"
-                  ? "Low balance alert! Time to slow down on non-essential spending today! 🛑"
-                  : "Dompet menipis nih! Waktunya ngerem jajan yang nggak penting dulu ya! 🛑"
-              );
-            } else {
-              setAmbientAdvice(
-                language === "en"
-                  ? "Nice balance! Keep saving and put some into smart investments! 🚀"
-                  : "Saldo aman jaya! Jangan lupa tabung sebagian dan investasikan ya! 🚀"
-              );
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching Ambient AI advice:", err);
-        if (isMounted) {
-          setAmbientAdvice(
-            language === "en"
-              ? "Keep tracking your expenses to stay financially healthy! ✨"
-              : "Catat terus pengeluaranmu agar keuanganmu tetap sehat! ✨"
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsAmbientLoading(false);
-        }
-      }
-    };
-
-    fetchAdvice();
-    return () => {
-      isMounted = false;
-    };
-  }, [totalSaldo, language, isLoading]);
+  // Pesan lokal ini berubah otomatis setiap hari dan tidak menunggu layanan AI.
+  const dailyWelcomeMessage = getDailyWelcomeMessage(language, userName);
 
   const summaryCards = [
     {
@@ -1558,7 +1635,7 @@ export default function Dashboard({
         )}
       </header>
 
-      {/* Ambient AI Advisor Component (Moved to Top) */}
+      {/* Pesan harian lokal: langsung tampil tanpa request AI */}
       <motion.div
         className="p-4 bg-cream-mooduit rounded-2xl shadow-sm border-0 d-flex gap-4 align-items-center mb-4 mooduit-ambient-ai-banner"
         initial={{ opacity: 0, y: 10 }}
@@ -1572,17 +1649,13 @@ export default function Dashboard({
           <div
             className="text-xs sm:text-sm font-extrabold text-brown-mooduit opacity-80 uppercase tracking-wider mb-1 mooduit-ambient-ai-title"
           >
-            Ambient AI Advisor
+            {t("Pesan Hari Ini", "Today's Message")}
           </div>
-          {isAmbientLoading || isLoading ? (
-            <div className="w-full h-10 bg-slate-200/50 dark:bg-slate-700/50 rounded-lg animate-pulse"></div>
-          ) : (
-            <p
-              className="mb-0 font-bold text-brown-mooduit text-justify text-sm sm:text-base leading-relaxed mooduit-ambient-ai-desc"
-            >
-              {ambientAdvice}
-            </p>
-          )}
+          <p
+            className="mb-0 font-bold text-brown-mooduit text-left text-sm sm:text-base leading-relaxed mooduit-ambient-ai-desc"
+          >
+            {dailyWelcomeMessage}
+          </p>
         </div>
       </motion.div>
 
@@ -1731,21 +1804,16 @@ export default function Dashboard({
                   style={{ maxHeight: "300px" }}
                 >
                   {targetImpian.map((target) => {
-                    const targetName = target.nama || target.name;
-                    const hargaTarget = Number((target.harga || target.price || "0").toString().replace(/\D/g, ""));
-                    const terkumpul = transactions
-                      .filter(t => (t.kategori === "Target Impian" || t.kategori === "Tabungan") && String(t.catatan || t.description || "").toLowerCase().includes(targetName.toLowerCase()))
-                      .reduce((sum, t) => sum + (Number(t.nominal || t.amount) || 0), 0);
+                    const targetName = getDreamTargetName(target);
+                    const hargaTarget = getDreamTargetPrice(target);
+                    const terkumpul = getDreamTargetCollected(target, transactions);
                     const persentase = hargaTarget > 0 ? Math.min(100, Math.floor((terkumpul / hargaTarget) * 100)) : 0;
 
                     return (
                       <div
                         key={target.id}
                         className="border border-gray-100 dark:border-slate-700 rounded-2xl p-4 flex flex-col relative group bg-light dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
-                        onClick={() => {
-                          const idx = wishlist.findIndex((w: any) => w.id === target.id);
-                          if (idx !== -1) handleEditItem(idx);
-                        }}
+                        onClick={() => handleEditItem(target)}
                       >
                         {/* Bagian Atas: Nama, Harga, dan Tombol Nyicil */}
                         <div className="flex justify-between items-center w-full mb-3">
@@ -2142,10 +2210,7 @@ export default function Dashboard({
       <AnimatePresence>
         {isEditModalOpen && (
           <div
-            className="mooduit-modal-overlay"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setIsEditModalOpen(false);
-            }}
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.4)",
@@ -2156,20 +2221,20 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="edit-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 id="edit-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
                   {t("Edit Target Impian", "Edit Dream Target")}
                 </h3>
                 <button
                   type="button"
-                  className="mooduit-modal-close btn-close dark:filter dark:invert"
-                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn-close dark:filter dark:invert"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditTargetId(null);
+                  }}
                 />
               </div>
 
@@ -2201,26 +2266,26 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="mooduit-modal-actions justify-content-between">
-                {editIndex !== null && (
+              <div className="d-flex justify-content-between align-items-center gap-2">
+                {editTargetId !== null && (
                   <button
                     type="button"
-                    className="mooduit-modal-icon-action btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
+                    className="btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
                     style={{ width: "42px", height: "42px" }}
                     title={t("Hapus", "Delete")}
-                    onClick={(e) => {
-                      handleDeleteItem(editIndex, e);
-                      setIsEditModalOpen(false);
-                    }}
+                    onClick={(e) => handleDeleteItem(editTargetId, e)}
                   >
                     <Trash2 size={16} />
                   </button>
                 )}
-                <div className="mooduit-modal-action-group">
+                <div className="d-flex gap-2 ms-auto">
                   <button
                     type="button"
                     className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
-                    onClick={() => setIsEditModalOpen(false)}
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setEditTargetId(null);
+                    }}
                   >
                     {t("Batal", "Cancel")}
                   </button>
@@ -2242,10 +2307,7 @@ export default function Dashboard({
       <AnimatePresence>
         {isTargetModalOpen && (
           <div
-            className="mooduit-modal-overlay"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setIsTargetModalOpen(false);
-            }}
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.4)",
@@ -2256,19 +2318,16 @@ export default function Dashboard({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="add-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 id="add-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
                   {t("Tambah Target Impian Baru", "Add New Dream Target")}
                 </h3>
                 <button
                   type="button"
-                  className="mooduit-modal-close btn-close dark:filter dark:invert"
+                  className="btn-close dark:filter dark:invert"
                   onClick={() => setIsTargetModalOpen(false)}
                 />
               </div>
@@ -2301,7 +2360,7 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="mooduit-modal-actions justify-content-end">
+              <div className="d-flex justify-content-end gap-2">
                 <button
                   type="button"
                   className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
@@ -2312,7 +2371,8 @@ export default function Dashboard({
                 <button
                   type="button"
                   disabled={!newTargetName || !newTargetPrice}
-                  className="btn btn-mooduit rounded-xl px-4 py-2 text-xs sm:text-sm font-bold disabled:opacity-50"
+                  className="btn rounded-xl px-4 py-2 text-xs sm:text-sm font-bold disabled:opacity-50 shadow-sm"
+                  style={{ backgroundColor: "#112F58", color: "#ffffff", border: "1px solid #112F58" }}
                   onClick={handleAddTarget}
                 >
                   {t("Tambah Target", "Add Target")}
@@ -2323,14 +2383,11 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
-      {/* Celebration Modal Wujudkan Impian */}
+      {/* Celebration Modal Target Impian Tercapai */}
       <AnimatePresence>
         {isCelebrationOpen && selectedTargetForCelebration && (
           <div
-            className="mooduit-modal-overlay"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setIsCelebrationOpen(false);
-            }}
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -2341,37 +2398,31 @@ export default function Dashboard({
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              className="mooduit-modal-panel bg-white dark:bg-slate-800 rounded-3xl shadow-2xl text-center border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="celebrate-target-title"
             >
               <div className="text-5xl mb-3 animate-bounce">🎉</div>
-              <h3 id="celebrate-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-2">
-                {t("Wujudkan Impian Ini?", "Achieve this Dream?")}
+              <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-2">
+                {t("Selamat, Impianmu Tercapai!", "Congratulations, You Reached Your Dream!")}
               </h3>
               <p className="text-muted text-sm sm:text-base leading-relaxed mb-4">
                 {t(
-                  `Apakah kamu sudah siap mewujudkan "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" seharga Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? Transaksi pengeluaran akan dicatat otomatis.`,
-                  `Are you ready to purchase "${selectedTargetForCelebration.nama || selectedTargetForCelebration.name}" for Rp ${Number((selectedTargetForCelebration.harga || selectedTargetForCelebration.price || "0").toString().replace(/\D/g, "")).toLocaleString("id-ID")}? An expense transaction will be recorded automatically.`
+                  `Hebat! Dana untuk "${getDreamTargetName(selectedTargetForCelebration)}" sudah terkumpul 100%. Semoga pembeliannya bermanfaat dan menjadi awal tercapainya impian-impian berikutnya.`,
+                  `Amazing! The funds for "${getDreamTargetName(selectedTargetForCelebration)}" are now 100% complete. May your purchase be useful and mark the beginning of many more dreams achieved.`
                 )}
               </p>
 
-              <div className="mooduit-modal-actions justify-content-center">
+              <div className="d-flex justify-content-center">
                 <button
                   type="button"
-                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold"
-                  onClick={() => setIsCelebrationOpen(false)}
+                  disabled={isCompletingTarget}
+                  className="btn rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold disabled:opacity-60"
+                  style={{ backgroundColor: "#112F58", color: "#ffffff", border: "1px solid #112F58" }}
+                  onClick={handleCompleteTarget}
                 >
-                  {t("Nanti Dulu", "Not Yet")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-mooduit rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold bg-[#112F58] text-white hover:bg-[#1a447d]"
-                  onClick={handleBuyTarget}
-                >
-                  🚀 {t("Ya, Wujudkan!", "Yes, Achieve it!")}
+                  {isCompletingTarget
+                    ? t("Menyelesaikan...", "Completing...")
+                    : `🎊 ${t("Mantap, Selesaikan Target", "Awesome, Complete Target")}`}
                 </button>
               </div>
             </motion.div>
@@ -2383,10 +2434,7 @@ export default function Dashboard({
       <AnimatePresence>
         {isNyicilModalOpen && selectedTargetForNyicil && (
           <div
-            className="mooduit-modal-overlay"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setIsNyicilModalOpen(false);
-            }}
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -2397,19 +2445,16 @@ export default function Dashboard({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="mooduit-modal-panel mooduit-modal-panel--compact bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="installment-target-title"
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 id="installment-target-title" className="mooduit-modal-title fw-800 text-primary-mooduit dark:text-white mb-0">
+                <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
                   💰 {t("Nyicil Target Impian", "Installment for Target")}
                 </h3>
                 <button
                   type="button"
-                  className="mooduit-modal-close btn-close dark:filter dark:invert"
+                  className="btn-close dark:filter dark:invert"
                   onClick={() => setIsNyicilModalOpen(false)}
                 />
               </div>
@@ -2427,7 +2472,7 @@ export default function Dashboard({
                 />
               </div>
 
-              <div className="mooduit-modal-actions justify-content-end">
+              <div className="d-flex gap-2 justify-content-end">
                 <button
                   type="button"
                   className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
@@ -2439,58 +2484,7 @@ export default function Dashboard({
                   type="button"
                   disabled={!nyicilNominal}
                   className="px-4 py-2 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer disabled:opacity-50"
-                  onClick={() => {
-                    const rawNominal = Number(nyicilNominal.replace(/\D/g, ""));
-                    if (!rawNominal || rawNominal <= 0) {
-                      toast.error(t("Masukkan nominal cicilan yang valid!", "Enter a valid installment amount!"));
-                      return;
-                    }
-
-                    const targetName = selectedTargetForNyicil.nama || selectedTargetForNyicil.name;
-                    const newTx = {
-                      id: "tx_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-                      nominal: rawNominal,
-                      jenis: "pengeluaran",
-                      kategori: "Target Impian",
-                      catatan: `Cicilan: ${targetName}`,
-                      tanggal: new Date().toISOString().split('T')[0],
-                      icon: "🎯"
-                    };
-
-                    const handleSaveNyicil = async () => {
-                      try {
-                        if (propsSetTransactions && typeof propsSetTransactions === "function") {
-                          const { insertTransaction } = await import("../utils/api");
-                          const user_email = localStorage.getItem("userEmail") || "";
-                          const insertedTx = await insertTransaction(newTx, user_email);
-                          propsSetTransactions(prev => [insertedTx, ...prev]);
-                          if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                            (window as any).triggerTransactionSuccess(insertedTx.currentStreak, insertedTx.streakIncreasedToday, {
-                              type: "pengeluaran",
-                              amount: rawNominal,
-                              category: "Target Impian"
-                            });
-                          }
-                        } else {
-                          setLocalTransactions(prev => [newTx, ...prev]);
-                          if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                            (window as any).triggerTransactionSuccess(undefined, undefined, {
-                              type: "pengeluaran",
-                              amount: rawNominal,
-                              category: "Target Impian"
-                            });
-                          }
-                        }
-                      } catch (err) {
-                        console.error("Failed to insert nyicil transaction:", err);
-                        setLocalTransactions(prev => [newTx, ...prev]);
-                      }
-                    };
-
-                    handleSaveNyicil();
-                    toast.success(t(`Berhasil mencicil Rp ${rawNominal.toLocaleString("id-ID")} untuk ${targetName}!`, `Successfully added Rp ${rawNominal.toLocaleString("id-ID")} towards ${targetName}!`));
-                    setIsNyicilModalOpen(false);
-                  }}
+                  onClick={handleSetorNyicil}
                 >
                   {t("Simpan Cicilan", "Save Installment")}
                 </button>
@@ -2504,10 +2498,7 @@ export default function Dashboard({
       <AnimatePresence>
         {showCelebration && (
           <div
-            className="mooduit-modal-overlay"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) handleCloseCelebration();
-            }}
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             style={{
               zIndex: 99999,
               backgroundColor: "rgba(0,0,0,0.6)",
@@ -2518,14 +2509,11 @@ export default function Dashboard({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="mooduit-modal-panel mooduit-modal-panel--compact bg-white dark:bg-slate-800 rounded-3xl shadow-2xl text-center border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="streak-celebration-title"
             >
               <div className="text-6xl mb-3 animate-bounce">🔥</div>
-              <h3 id="streak-celebration-title" className="mooduit-modal-title fw-800 text-[#112F58] dark:text-white mb-1">
+              <h3 className="fw-800 text-[#112F58] dark:text-white text-2xl mb-1">
                 {streakIncreasedToday ? t("Streak Bertambah! 🔥", "Streak Increased! 🔥") : t("Streak Menyala! 🔥", "Streak is Glowing! 🔥")}
               </h3>
               <div className="inline-block px-4 py-1.5 bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-extrabold rounded-full text-sm mb-3">
@@ -2563,6 +2551,7 @@ export default function Dashboard({
         isOpen={showBirthdayModal}
         onClose={() => setShowBirthdayModal(false)}
         userName={userName}
+        userDob={userDob}
       />
     </div>
   );

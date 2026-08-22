@@ -44,20 +44,6 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
 
-  React.useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-
-      if (isAvatarModalOpen) setIsAvatarModalOpen(false);
-      else if (isGuideModalOpen) setIsGuideModalOpen(false);
-      else if (isPrivacyModalOpen) setIsPrivacyModalOpen(false);
-      else if (isSecurityModalOpen && !isEditingPassword) setIsSecurityModalOpen(false);
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isAvatarModalOpen, isGuideModalOpen, isPrivacyModalOpen, isSecurityModalOpen, isEditingPassword]);
-
   // VIEW NAVIGATION STATE
   const [activeView, setActiveView] = useState<'main' | 'profile'>('main');
 
@@ -863,7 +849,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                       <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 text-left">
                         {t("Email Terdaftar", "Registered Email")}
                       </label>
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                      <div className="security-email-display p-3.5 border rounded-2xl flex items-center gap-3">
                         <span className="text-xl flex-shrink-0">📧</span>
                         <div className="text-left font-semibold text-sm sm:text-base break-all">
                           {userEmail}
@@ -1074,7 +1060,7 @@ export default function Settings({ onLogout }: SettingsProps) {
               {/* Header */}
               <div className="security-modal-header">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-slate-100 dark:bg-slate-800 text-[#112F58] dark:text-amber-400 rounded-xl">
+                  <div className="guide-modal-icon p-2 rounded-xl">
                     <BookOpen size={20} />
                   </div>
                   <div>
