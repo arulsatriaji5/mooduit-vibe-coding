@@ -59,17 +59,6 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
     }
   }, [pendingData, onClearPendingData]);
 
-  React.useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (isManualModalOpen) setIsManualModalOpen(false);
-      else if (showActionModal) setShowActionModal(false);
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isManualModalOpen, showActionModal]);
-
   const handleNominalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, "");
     setManualNominal(rawValue ? Number(rawValue).toLocaleString('id-ID') : "");
@@ -286,7 +275,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               <div className="d-flex flex-column">
                 <button 
                   type="button"
-                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-3 focus:outline-none shadow-sm cursor-pointer"
+                  className="group w-full min-w-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-3 focus:outline-none shadow-sm cursor-pointer overflow-hidden"
                   onClick={() => {
                     setShowActionModal(false);
                     onNavigate('scanner');
@@ -295,15 +284,20 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                   <div className="w-12 h-12 rounded-full flex shrink-0 items-center justify-center bg-blue-500 text-white shadow-sm">
                     <Camera size={24} />
                   </div>
-                  <div className="text-start">
-                    <h3 className="font-bold text-white mb-0 text-base md:text-lg">{t('Scan Struk', 'Scan Receipt')}</h3>
-                    <p className="text-xs sm:text-sm text-blue-100 opacity-85 mb-0 leading-relaxed">{t('Foto nota atau screenshot mutasi', 'Photograph receipt or transaction screenshot')}</p>
+                  <div className="text-start min-w-0 flex-1 overflow-hidden">
+                    <h3 className="font-bold text-white mb-0 text-base md:text-lg leading-tight">{t('Scan Struk', 'Scan Receipt')}</h3>
+                    <p
+                      className="w-full max-w-full text-[11px] sm:text-sm text-blue-100 opacity-85 mb-0 leading-snug"
+                      style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                    >
+                      {t('Foto nota atau screenshot mutasi', 'Photograph receipt or transaction screenshot')}
+                    </p>
                   </div>
                 </button>
 
                 <button 
                   type="button"
-                  className="group w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-2 focus:outline-none shadow-sm cursor-pointer"
+                  className="group w-full min-w-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-[#112F58] hover:bg-[#0c2240] active:bg-[#08172b] active:scale-95 transition-all duration-200 mb-2 focus:outline-none shadow-sm cursor-pointer overflow-hidden"
                   onClick={() => {
                     setShowActionModal(false);
                     setIsManualModalOpen(true);
@@ -312,9 +306,14 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                   <div className="w-12 h-12 rounded-full flex shrink-0 items-center justify-center bg-teal-500 text-white shadow-sm">
                     <Keyboard size={24} />
                   </div>
-                  <div className="text-start">
-                    <h3 className="font-bold text-white mb-0 text-base md:text-lg">{t('Input Manual', 'Manual Input')}</h3>
-                    <p className="text-xs sm:text-sm text-blue-100 opacity-85 mb-0 leading-relaxed">{t('Masukkan data secara detail', 'Enter detailed data')}</p>
+                  <div className="text-start min-w-0 flex-1 overflow-hidden">
+                    <h3 className="font-bold text-white mb-0 text-base md:text-lg leading-tight">{t('Input Manual', 'Manual Input')}</h3>
+                    <p
+                      className="w-full max-w-full text-[11px] sm:text-sm text-blue-100 opacity-85 mb-0 leading-snug"
+                      style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                    >
+                      {t('Masukkan data secara detail', 'Enter detailed data')}
+                    </p>
                   </div>
                 </button>
               </div>
@@ -411,23 +410,27 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                 {/* GRID KATEGORI */}
                 <div>
                   <label className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2 sm:mb-3 block px-1">{t('Pilih Kategori', 'Select Category')}</label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 group-kategori">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-3 group-kategori">
                     {kategoriAktif.map((kat) => (
                       <button 
                         key={kat.id}
                         type="button"
+                        aria-pressed={manualKategori === kat.id}
                         onClick={() => setManualKategori(kat.id)}
-                        className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                        className={`min-w-0 min-h-[70px] overflow-hidden flex flex-col items-center justify-center gap-1 sm:gap-2 px-1.5 py-2 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
                           manualKategori === kat.id 
                             ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
                             : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
                         }`}
                       >
-                        <span className="text-xl sm:text-2xl drop-shadow-sm">{kat.icon}</span>
-                        <span className={`text-xs sm:text-sm text-center font-bold leading-tight break-words transition-colors ${
+                        <span className="text-lg sm:text-2xl leading-none drop-shadow-sm">{kat.icon}</span>
+                        <span
+                          className={`w-full min-w-0 px-0.5 text-[9px] min-[375px]:text-[10px] sm:text-xs text-center font-bold leading-[1.15] transition-colors ${
                           manualKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
-                        }`}>
-                          {kat.id.toUpperCase()}
+                          }`}
+                          style={{ overflowWrap: 'anywhere' }}
+                        >
+                          {kat.id}
                         </span>
                       </button>
                     ))}
