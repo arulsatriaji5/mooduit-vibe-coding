@@ -199,35 +199,43 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
     const user_email = localStorage.getItem("userEmail") || "";
     if (!user_email) return;
 
-    // Load custom budget plan from database
-    import('../utils/api').then(({ fetchBudgetPlanCustom, fetchGoals, fetchBudgetPlan }) => {
-      fetchBudgetPlanCustom(user_email).then((data) => {
-        if (data) {
-          setIncome(data.income || '');
-          setExpenses(data.expenses || '');
-          setEmergencyTarget(data.emergencyTarget || '');
-          setSavingsTarget(data.savingsTarget || '20');
-          setShowResult(true);
-          setActiveTab('custom_budget');
-          setIsPlanSaved(true);
-        }
-      }).catch(console.error);
+    // Load both budget types first, then open only the mode that was saved last.
+    // This prevents an older custom plan from overriding a newly saved 50/30/20 plan.
+    import('../utils/api').then(async ({ fetchBudgetPlanCustom, fetchGoals, fetchBudgetPlan }) => {
+      try {
+        const [customPlan, loadedWishlist, formulaPlan] = await Promise.all([
+          fetchBudgetPlanCustom(user_email),
+          fetchGoals(user_email),
+          fetchBudgetPlan(user_email),
+        ]);
 
-      // Load goals from database
-      fetchGoals(user_email).then((loadedWishlist) => {
         setWishlist(loadedWishlist || []);
         setTargetImpian(loadedWishlist || []);
-      }).catch(console.error);
 
-      // Load 50/30/20 budget from database
-      fetchBudgetPlan(user_email).then((dbBudget) => {
-        if (dbBudget) {
-          setPendapatan(dbBudget.pendapatan || '');
-          if (dbBudget.hasilBudget) {
-            setHasilBudget(dbBudget.hasilBudget);
-          }
+        if (customPlan) {
+          setIncome(customPlan.income || '');
+          setExpenses(customPlan.expenses || '');
+          setEmergencyTarget(customPlan.emergencyTarget || '');
+          setSavingsTarget(customPlan.savingsTarget || '20');
         }
-      }).catch(console.error);
+
+        if (formulaPlan) {
+          setPendapatan(formatInput(formulaPlan.pendapatan || ''));
+          setHasilBudget(formulaPlan.hasilBudget || null);
+        }
+
+        const savedMode = formulaPlan?.activeMode === 'custom_budget'
+          ? 'custom_budget'
+          : 'formula_50_30_20';
+        const hasFormulaPlan = Number(String(formulaPlan?.pendapatan || '0').replace(/\D/g, '')) > 0;
+        const hasSavedPlan = savedMode === 'custom_budget' ? Boolean(customPlan) : hasFormulaPlan;
+
+        setActiveTab(savedMode);
+        setShowResult(hasSavedPlan);
+        setIsPlanSaved(hasSavedPlan);
+      } catch (error) {
+        console.error('Failed to load Smart Budget data:', error);
+      }
     });
   }, []);
 
@@ -278,6 +286,38 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
   const expensesVal = Number(expenses.replace(/\D/g, '')) || 0;
   const cicilanDarurat = incomeVal * 0.10; 
   const jajanVal = incomeVal - expensesVal - cicilanDarurat;
+  const formulaResultItems = hasilBudget ? [
+    {
+      key: 'needs',
+      label: activeLang.kebutuhanPokok,
+      description: activeLang.kebutuhanDesc,
+      amount: hasilBudget.kebutuhan,
+      percentage: 50,
+      background: '#f4f7fb',
+      border: '#dbe4ef',
+      color: '#112F58',
+    },
+    {
+      key: 'wants',
+      label: activeLang.keinginanLifestyle,
+      description: activeLang.keinginanDesc,
+      amount: hasilBudget.keinginan,
+      percentage: 30,
+      background: '#fffbeb',
+      border: '#fde7ad',
+      color: '#b45309',
+    },
+    {
+      key: 'savings',
+      label: activeLang.tabunganMasaDepan,
+      description: activeLang.tabunganDesc,
+      amount: hasilBudget.tabungan,
+      percentage: 20,
+      background: '#ecfdf5',
+      border: '#b7efd7',
+      color: '#047857',
+    },
+  ] : [];
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 pb-32 app-container">
@@ -355,7 +395,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
         activeTab === 'formula_50_30_20' ? (
           <div className="row g-4">
             <div className="col-12 col-lg-5">
-              <div className="card-mooduit p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
+              <div className="card-mooduit p-3 p-sm-4 shadow-sm">
                 <div>
                   <div className="d-flex align-items-center gap-2.5 mb-3">
                     <div className="bg-[#112F58]/10 text-[#112F58] p-2.5 rounded-xl">
@@ -363,17 +403,17 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
                     <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">{activeLang.aturanFinansial503020}</h2>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed mb-3">
                     {activeLang.desc503020}
                   </p>
 
-                  <div className="mb-4">
+                  <div className="mb-2">
                     <label className="form-label text-xs sm:text-sm fw-bold text-gray-700 dark:text-gray-300">{activeLang.inputPendapatan}</label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-gray-200 fw-bold text-muted">Rp</span>
                       <input 
                         type="text" 
-                        className="form-control py-3 rounded-r-xl border-gray-200 font-bold text-base md:text-lg focus:border-[#112F58] focus:outline-none" 
+                        className="form-control py-2.5 rounded-r-xl border-gray-200 font-bold text-base md:text-lg focus:border-[#112F58] focus:outline-none" 
                         placeholder={activeLang.placeholderPendapatan}
                         value={pendapatan}
                         onChange={(e) => {
@@ -388,9 +428,9 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   </div>
                 </div>
 
-                <div className="mt-4">
+                <div className="mt-2">
                   <button
-                    className="btn w-100 py-3.5 rounded-xl text-white fw-bold d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[0.99] active:scale-95 shadow-md border-0 text-sm md:text-base cursor-pointer"
+                    className="btn w-100 py-2.5 rounded-xl text-white fw-bold d-flex align-items-center justify-content-center gap-2 transition-all hover:scale-[0.99] active:scale-95 shadow-md border-0 text-sm md:text-base cursor-pointer"
                     style={{ backgroundColor: '#112F58' }}
                     onClick={hitungBudget}
                   >
@@ -402,30 +442,89 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
             </div>
 
             <div className="col-12 col-lg-7">
+              <div className="card-mooduit p-3 shadow-sm mb-3">
+                <div className="d-flex justify-content-between align-items-center gap-3 mb-2">
+                  <div>
+                    <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-1">🎯 {activeLang.targetImpian}</h2>
+                    <p className="text-xs sm:text-sm text-muted mb-0">
+                      {language === 'en'
+                        ? 'Your 20% future allocation can be directed toward these goals.'
+                        : 'Alokasi 20% masa depan dapat diarahkan untuk mencapai impian ini.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-mooduit-outline d-flex align-items-center gap-1 py-1.5 px-3 text-xs sm:text-sm whitespace-nowrap"
+                    onClick={addWishlistItem}
+                  >
+                    <Plus size={16} />
+                    <span className="fw-bold">{activeLang.tambahItem}</span>
+                  </button>
+                </div>
+
+                <div className="d-flex flex-column gap-2 max-h-[135px] overflow-y-auto pr-1 custom-scrollbar">
+                  {wishlist.length === 0 ? (
+                    <div className="text-center py-3 bg-light rounded-xl border border-dashed border-muted opacity-60">
+                      <p className="text-xs sm:text-sm text-muted leading-relaxed mb-0">
+                        {activeLang.belumAdaTarget}<br />{activeLang.klikTambahItem}
+                      </p>
+                    </div>
+                  ) : wishlist.map((item) => (
+                    <div key={item.id} className="p-2 bg-light rounded-xl border border-light position-relative">
+                      <button
+                        type="button"
+                        aria-label={language === 'en' ? 'Delete goal' : 'Hapus target'}
+                        className="position-absolute top-0 end-0 m-2 btn btn-link text-danger p-0 opacity-50 hover:opacity-100"
+                        onClick={() => removeWishlistItem(item.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm border-0 bg-transparent fw-bold text-sm md:text-base pr-4"
+                        placeholder={activeLang.namaBarang}
+                        value={item.name}
+                        onChange={(e) => handleWishlistChange(item.id, 'name', e.target.value)}
+                      />
+                      <div className="input-group input-group-sm mt-1">
+                        <span className="input-group-text bg-transparent border-0 text-xs sm:text-sm opacity-50">Rp</span>
+                        <input
+                          type="text"
+                          className="form-control border-0 bg-transparent text-sm md:text-base"
+                          placeholder={activeLang.harga}
+                          value={item.price}
+                          onChange={(e) => handleWishlistChange(item.id, 'price', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {hasilBudget ? (
                 <motion.div 
-                  className="card-mooduit p-4 shadow-sm h-100"
+                  className="card-mooduit p-3 shadow-sm"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="smart-budget-result-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+                  <div className="smart-budget-result-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                     <h2 className="smart-budget-result-title fw-800 text-primary-mooduit mb-0">{activeLang.hasilKalkulasi}</h2>
                     <div className="badge border border-[#112F58]/25 bg-[#112F58]/5 text-[#112F58] px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
                       {activeLang.targetIdeal}
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-4">
+                  <div className="space-y-2 mb-3">
                     {/* KEBUTUHAN POKOK - 50% */}
-                    <div className="p-3 sm:p-4 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl">
-                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                    <div className="p-2.5 sm:p-3 bg-[#112F58]/5 border border-[#112F58]/10 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-2 mb-1.5">
                         <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-[#112F58]/10 text-[#112F58] p-1.5 rounded-lg">
                             <Plus size={16} />
                           </div>
                           <div>
                             <span className="text-sm sm:text-base fw-800 text-[#112F58] block">{activeLang.kebutuhanPokok}</span>
-                            <span className="text-xs sm:text-sm text-gray-500 leading-relaxed block">{activeLang.kebutuhanDesc}</span>
+                            <span className="text-xs text-gray-500 leading-relaxed block">{activeLang.kebutuhanDesc}</span>
                           </div>
                         </div>
                         <span className="smart-budget-allocation-amount fw-800 text-[#112F58] align-self-end align-self-sm-start">
@@ -441,15 +540,15 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
 
                     {/* KEINGINAN & LIFESTYLE - 30% */}
-                    <div className="p-3 sm:p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                    <div className="p-2.5 sm:p-3 bg-amber-50 border border-amber-100 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-2 mb-1.5">
                         <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-amber-100 text-amber-800 p-1.5 rounded-lg">
                             <Smile size={16} />
                           </div>
                           <div>
                             <span className="text-sm sm:text-base fw-800 text-amber-800 block">{activeLang.keinginanLifestyle}</span>
-                            <span className="text-xs sm:text-sm text-amber-600 leading-relaxed block">{activeLang.keinginanDesc}</span>
+                            <span className="text-xs text-amber-600 leading-relaxed block">{activeLang.keinginanDesc}</span>
                           </div>
                         </div>
                         <span className="smart-budget-allocation-amount fw-800 text-amber-800 font-sans align-self-end align-self-sm-start">
@@ -465,15 +564,15 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                     </div>
 
                     {/* TABUNGAN & INVESTASI - 20% */}
-                    <div className="p-3 sm:p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-3 mb-2">
+                    <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                      <div className="smart-budget-allocation-row d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-start gap-2 mb-1.5">
                         <div className="d-flex align-items-start gap-2.5 min-w-0">
                           <div className="bg-emerald-100 text-emerald-800 p-1.5 rounded-lg">
                             <PiggyBank size={16} />
                           </div>
                           <div>
                             <span className="text-sm sm:text-base fw-800 text-emerald-800 block">{activeLang.tabunganMasaDepan}</span>
-                            <span className="text-xs sm:text-sm text-[#059669] leading-relaxed block">{activeLang.tabunganDesc}</span>
+                            <span className="text-xs text-[#059669] leading-relaxed block">{activeLang.tabunganDesc}</span>
                           </div>
                         </div>
                         <span className="smart-budget-allocation-amount fw-800 text-emerald-800 align-self-end align-self-sm-start">
@@ -491,7 +590,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
 
                   <div className="d-flex flex-column flex-sm-row gap-3">
                     <button
-                      className="btn flex-grow-1 py-3 text-sm sm:text-base fw-bold border-2 border-dashed border-[#112F58] hover:bg-[#112F58]/5 text-[#112F58] rounded-xl transition-all cursor-pointer"
+                      className="btn flex-grow-1 py-2.5 text-sm sm:text-base fw-bold border-2 border-dashed border-[#112F58] hover:bg-[#112F58]/5 text-[#112F58] rounded-xl transition-all cursor-pointer"
                       onClick={() => {
                         setIncome(pendapatan);
                         setExpenses(formatInput(String(hasilBudget.kebutuhan)));
@@ -501,7 +600,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                       {activeLang.gunakanSimulasi}
                     </button>
                     <button
-                      className="btn py-3 px-4 text-sm sm:text-base fw-bold text-white rounded-xl shadow-sm transition-all border-0 cursor-pointer"
+                      className="btn py-2.5 px-4 text-sm sm:text-base fw-bold text-white rounded-xl shadow-sm transition-all border-0 cursor-pointer"
                       style={{ backgroundColor: '#112F58' }}
                       onClick={async () => {
                         const user_email = localStorage.getItem("userEmail") || "";
@@ -513,13 +612,24 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                         // Persist to budgets table in database
                         try {
                           const cleanIncomeNum = Number(pendapatan.replace(/\D/g, "")) || 0;
-                          await saveBudgetPlanDB(cleanIncomeNum, user_email);
+                          const savedBudget = await saveBudgetPlanDB(cleanIncomeNum, user_email);
+                          if (!savedBudget) throw new Error('Budget 50/30/20 gagal disimpan');
+
+                          const { syncGoals } = await import('../utils/api');
+                          await syncGoals(user_email, wishlist);
+                          setPendapatan(formatInput(String(savedBudget.pendapatan)));
+                          setHasilBudget(savedBudget.hasilBudget);
+                          setActiveTab('formula_50_30_20');
+                          setIsPlanSaved(true);
+                          setShowResult(true);
+                          localStorage.setItem('mooduitBudgetMode', 'formula_50_30_20');
                         } catch (err) {
                           console.error("Failed to persist budget calculation to DB:", err);
+                          toast.error(language === 'en' ? 'Budget could not be saved. Please try again.' : 'Anggaran gagal disimpan. Silakan coba lagi.');
+                          return;
                         }
-                        
+                         
                         toast.success(activeLang.saved1);
-                        if (onNavigate) onNavigate('dashboard');
                       }}
                     >
                       {activeLang.simpanAnggaran}
@@ -527,7 +637,7 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                   </div>
                 </motion.div>
               ) : (
-                <div className="card-mooduit p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center text-center py-5">
+                <div className="card-mooduit p-4 shadow-sm d-flex flex-column align-items-center justify-content-center text-center py-5">
                   <div className="bg-[#112F58]/5 p-4 rounded-full text-primary-mooduit mb-3.5">
                     <BookOpen size={40} className="opacity-75" />
                   </div>
@@ -660,6 +770,109 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
             </div>
           </div>
         )
+      ) : activeTab === 'formula_50_30_20' && hasilBudget ? (
+        <motion.div
+          className="card-mooduit p-3 sm:p-5 shadow-xl border-0 bg-white"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <Calculator size={22} className="text-primary-mooduit" />
+                <h2 className="fw-800 text-primary-mooduit text-xl md:text-2xl mb-0">
+                  {language === 'en' ? 'Your 50/30/20 Budget Plan' : 'Rencana Anggaran 50/30/20 Kamu'}
+                </h2>
+              </div>
+              <p className="text-sm md:text-base text-muted mb-0">
+                {language === 'en'
+                  ? `A fixed percentage plan based on a monthly income of ${formatIDR(Number(pendapatan.replace(/\D/g, '')) || 0)}.`
+                  : `Pembagian persentase tetap dari pendapatan bulanan ${formatIDR(Number(pendapatan.replace(/\D/g, '')) || 0)}.`}
+              </p>
+            </div>
+            <span className="px-3 py-2 rounded-full text-xs sm:text-sm fw-bold whitespace-nowrap" style={{ backgroundColor: '#e8eef6', color: '#112F58' }}>
+              {language === 'en' ? '50/30/20 Method' : 'Metode 50/30/20'}
+            </span>
+          </div>
+
+          <div className="row g-4">
+            <div className="col-12 col-lg-7">
+              <h3 className="fw-bold text-primary-mooduit text-lg mb-3">{activeLang.hasilKalkulasi}</h3>
+              <div className="d-flex flex-column gap-3">
+                {formulaResultItems.map((item) => (
+                  <div
+                    key={item.key}
+                    className="p-3 sm:p-4 rounded-2xl"
+                    style={{ backgroundColor: item.background, border: `1px solid ${item.border}` }}
+                  >
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-2">
+                      <div className="min-w-0">
+                        <div className="fw-800 text-sm sm:text-base" style={{ color: item.color }}>{item.label}</div>
+                        <div className="text-xs sm:text-sm leading-relaxed opacity-75" style={{ color: item.color }}>{item.description}</div>
+                      </div>
+                      <div className="fw-800 text-base sm:text-lg whitespace-nowrap align-self-end align-self-sm-start" style={{ color: item.color }}>
+                        {formatIDR(item.amount)}
+                      </div>
+                    </div>
+                    <div className="progress" style={{ height: '7px', borderRadius: '10px' }}>
+                      <div className="progress-bar" style={{ width: `${item.percentage}%`, backgroundColor: item.color, borderRadius: '10px' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="col-12 col-lg-5">
+              <div className="h-100 p-4 rounded-2xl border border-slate-200 bg-light d-flex flex-column">
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <h3 className="fw-800 text-primary-mooduit text-lg mb-0">🎯 {activeLang.targetImpian}</h3>
+                </div>
+                <p className="text-xs sm:text-sm text-muted leading-relaxed mb-3">
+                  {language === 'en'
+                    ? `Your 20% savings allocation is ${formatIDR(hasilBudget.tabungan)} per month.`
+                    : `Alokasi 20% untuk tabunganmu adalah ${formatIDR(hasilBudget.tabungan)} per bulan.`}
+                </p>
+
+                <div className="d-flex flex-column gap-2 mb-4">
+                  {wishlist.filter((item) => item.name && item.price).length === 0 ? (
+                    <div className="p-3 bg-white rounded-xl border border-dashed border-slate-300 text-center text-xs sm:text-sm text-muted">
+                      {language === 'en' ? 'No dream target has been added.' : 'Belum ada Target Impian yang ditambahkan.'}
+                    </div>
+                  ) : wishlist.filter((item) => item.name && item.price).map((item) => {
+                    const targetPrice = Number(item.price.replace(/\D/g, '')) || 0;
+                    const estimate = hasilBudget.tabungan > 0 ? Math.ceil(targetPrice / hasilBudget.tabungan) : 0;
+                    return (
+                      <div key={item.id} className="p-3 bg-white rounded-xl border border-slate-200">
+                        <div className="d-flex justify-content-between align-items-start gap-2">
+                          <span className="fw-bold text-primary-mooduit capitalize text-sm sm:text-base">{item.name}</span>
+                          <span className="fw-bold text-primary-mooduit whitespace-nowrap text-xs sm:text-sm">{formatIDR(targetPrice)}</span>
+                        </div>
+                        <p className="text-xs text-muted mb-0 mt-1">
+                          {estimate > 0
+                            ? (language === 'en' ? `Estimated ${estimate} month(s) from the 20% allocation.` : `Estimasi ${estimate} bulan dari alokasi 20%.`)
+                            : (language === 'en' ? 'Savings allocation is not available yet.' : 'Alokasi tabungan belum tersedia.')}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="w-100 mt-auto min-h-12 py-3 border-0 text-white font-bold rounded-xl shadow-sm cursor-pointer text-sm md:text-base"
+                  style={{ backgroundColor: '#112F58' }}
+                  onClick={() => {
+                    setIsPlanSaved(false);
+                    setShowResult(false);
+                    setActiveTab('formula_50_30_20');
+                  }}
+                >
+                  {language === 'en' ? 'Change 50/30/20 Budget' : 'Ubah Anggaran 50/30/20'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       ) : (() => {
         const isDataKosong = !incomeVal || incomeVal === 0;
         
@@ -782,9 +995,10 @@ export default function SmartBudget({ onNavigate }: SmartBudgetProps) {
                            }
                            try {
                              const { saveBudgetPlanCustom, syncGoals } = await import('../utils/api');
-                             await saveBudgetPlanCustom(user_email, { income, expenses, emergencyTarget, savingsTarget });
-                             await syncGoals(user_email, wishlist);
-                             setIsPlanSaved(true);
+                              await saveBudgetPlanCustom(user_email, { income, expenses, emergencyTarget, savingsTarget });
+                              await syncGoals(user_email, wishlist);
+                              localStorage.setItem('mooduitBudgetMode', 'custom_budget');
+                              setIsPlanSaved(true);
                            } catch (err) {
                              console.error("Failed to save custom budget plan to DB:", err);
                            }

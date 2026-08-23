@@ -72,7 +72,8 @@ async function initDB() {
         total_income REAL,
         limit_50 REAL,
         limit_30 REAL,
-        limit_20 REAL
+        limit_20 REAL,
+        active_mode TEXT DEFAULT 'formula_50_30_20'
       )
     `);
 
@@ -98,6 +99,15 @@ async function initDB() {
     `);
 
     await db.execute(`
+      CREATE TABLE IF NOT EXISTS monthly_email_log (
+        user_email TEXT NOT NULL,
+        report_period TEXT NOT NULL,
+        sent_at TEXT NOT NULL,
+        PRIMARY KEY (user_email, report_period)
+      )
+    `);
+
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS budget_plans (
         user_email TEXT PRIMARY KEY,
         income TEXT,
@@ -117,6 +127,10 @@ async function initDB() {
         // Column probably already exists or table doesn't exist yet, safe to ignore
       }
     }
+
+    try {
+      await db.execute("ALTER TABLE budgets ADD COLUMN active_mode TEXT DEFAULT 'formula_50_30_20'");
+    } catch (err) {}
 
     // Gracefully add streak & dob columns to users table for database cross-device streak & birthday persistence
     try {
@@ -695,7 +709,7 @@ app.get("/api/budgets", async (req, res) => {
 app.post("/api/budgets", async (req, res) => {
   try {
     const db = getDb();
-    const { total_income, limit_50, limit_30, limit_20, user_email } = req.body;
+    const { total_income, limit_50, limit_30, limit_20, active_mode, user_email } = req.body;
     const email = user_email || req.headers["user-email"];
     if (!email) {
       return res.status(400).json({ error: "Email pengguna wajib disertakan" });
@@ -707,14 +721,15 @@ app.post("/api/budgets", async (req, res) => {
       total_income: Number(total_income) || 0,
       limit_50: Number(limit_50) || 0,
       limit_30: Number(limit_30) || 0,
-      limit_20: Number(limit_20) || 0
+      limit_20: Number(limit_20) || 0,
+      active_mode: active_mode === "custom_budget" ? "custom_budget" : "formula_50_30_20"
     };
     
     await db.execute({
-      sql: `INSERT INTO budgets (id, user_email, total_income, limit_50, limit_30, limit_20) 
-            VALUES (?, ?, ?, ?, ?, ?) 
-            ON CONFLICT(id) DO UPDATE SET total_income = excluded.total_income, limit_50 = excluded.limit_50, limit_30 = excluded.limit_30, limit_20 = excluded.limit_20`,
-      args: [newBudget.id, newBudget.user_email, newBudget.total_income, newBudget.limit_50, newBudget.limit_30, newBudget.limit_20]
+      sql: `INSERT INTO budgets (id, user_email, total_income, limit_50, limit_30, limit_20, active_mode) 
+            VALUES (?, ?, ?, ?, ?, ?, ?) 
+            ON CONFLICT(id) DO UPDATE SET total_income = excluded.total_income, limit_50 = excluded.limit_50, limit_30 = excluded.limit_30, limit_20 = excluded.limit_20, active_mode = excluded.active_mode`,
+      args: [newBudget.id, newBudget.user_email, newBudget.total_income, newBudget.limit_50, newBudget.limit_30, newBudget.limit_20, newBudget.active_mode]
     });
 
     res.status(200).json(newBudget);
@@ -880,6 +895,13 @@ app.post("/api/budget-plans", async (req, res) => {
         emergencyTarget ? String(emergencyTarget) : "", 
         savingsTarget ? String(savingsTarget) : "20"
       ]
+    });
+
+    await db.execute({
+      sql: `INSERT INTO budgets (id, user_email, total_income, limit_50, limit_30, limit_20, active_mode)
+            VALUES (?, ?, 0, 0, 0, 0, 'custom_budget')
+            ON CONFLICT(id) DO UPDATE SET active_mode = 'custom_budget', user_email = excluded.user_email`,
+      args: [String(email), String(email)]
     });
 
     res.json({ success: true, message: "Budget plan saved successfully." });
@@ -2293,11 +2315,17 @@ app.post("/api/ambient/advice", async (req, res) => {
 });
 
 // Shared Monthly Financial Email Report Processing Handler
-async function processMonthlyFinancialReport(targetEmail?: string) {
+async function processMonthlyFinancialReport(
+  targetEmail?: string,
+  options: { previousMonth?: boolean; preventDuplicates?: boolean } = {},
+) {
   const db = getDb();
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const reportDate = options.previousMonth
+    ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+    : now;
+  const year = reportDate.getUTCFullYear();
+  const month = String(reportDate.getUTCMonth() + 1).padStart(2, "0");
   const currentMonthStr = `${year}-${month}`; // e.g. "2026-08" or "2026-07"
 
   let userList: any[] = [];
@@ -2343,6 +2371,18 @@ async function processMonthlyFinancialReport(targetEmail?: string) {
   for (const user of userList) {
     const userEmail = user.email || user.user_email;
     if (!userEmail) continue;
+    const cleanUserEmail = String(userEmail).trim().toLowerCase();
+
+    if (options.preventDuplicates) {
+      const existingLog = await db.execute({
+        sql: "SELECT user_email FROM monthly_email_log WHERE LOWER(user_email) = ? AND report_period = ?",
+        args: [cleanUserEmail, currentMonthStr],
+      });
+      if (existingLog.rows.length > 0) {
+        results.push({ email: userEmail, reportPeriod: currentMonthStr, emailSent: false, skipped: "already_sent" });
+        continue;
+      }
+    }
 
     // 1. Fetch ALL transactions for this specific user
     const userTxResult = await db.execute({
@@ -2364,12 +2404,6 @@ async function processMonthlyFinancialReport(targetEmail?: string) {
       }
       return false;
     });
-
-    // Fallback: If no transactions found strictly in current month string, but user has transactions in DB,
-    // use all user's transactions so the email report reflects the user's actual financial data
-    if (monthTransactions.length === 0 && userTransactions.length > 0) {
-      monthTransactions = userTransactions;
-    }
 
     // 3. Aggregate Total Income, Total Expense, Net Balance
     let totalIncome = 0;
@@ -2453,6 +2487,12 @@ async function processMonthlyFinancialReport(targetEmail?: string) {
         await transporter.sendMail(mailOptions);
         sentStatus = true;
         emailsSent++;
+        if (options.preventDuplicates) {
+          await db.execute({
+            sql: "INSERT OR IGNORE INTO monthly_email_log (user_email, report_period, sent_at) VALUES (?, ?, ?)",
+            args: [cleanUserEmail, currentMonthStr, new Date().toISOString()],
+          });
+        }
       } catch (err: any) {
         console.error(`Failed to send email to ${userEmail}:`, err);
       }
@@ -2497,8 +2537,29 @@ const monthlyReportHandler = async (req: any, res: any) => {
   }
 };
 
-app.get("/api/cron/monthly-report", monthlyReportHandler);
-app.post("/api/cron/monthly-report", monthlyReportHandler);
+const monthlyReportCronHandler = async (req: any, res: any) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const authorization = String(req.headers.authorization || "");
+  if (!cronSecret || authorization !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const reportSummary = await processMonthlyFinancialReport(undefined, {
+      previousMonth: true,
+      preventDuplicates: true,
+    });
+    return res.status(200).json({
+      message: "Laporan bulan sebelumnya sukses diproses",
+      ...reportSummary,
+    });
+  } catch (err: any) {
+    console.error("Monthly report cron error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+app.get("/api/cron/monthly-report", monthlyReportCronHandler);
 app.get("/api/send-report", monthlyReportHandler);
 app.post("/api/send-report", monthlyReportHandler);
 
