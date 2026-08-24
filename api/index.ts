@@ -1315,9 +1315,12 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
         sql: "INSERT INTO users (id, name, email, picture, dob, authProvider) VALUES (?, ?, ?, ?, ?, 'local')",
         args: [id, userName, cleanEmail, userPic, userDob]
       });
+      const savedUser = { id, name: userName, email: cleanEmail, picture: userPic, dob: userDob, authProvider: 'local' };
+      const birthdayEmail = await sendBirthdayEmailOnce(savedUser, req);
       return res.json({
         success: true,
-        user: { id, name: userName, email: cleanEmail, picture: userPic, dob: userDob, authProvider: 'local' }
+        user: savedUser,
+        birthdayEmail,
       });
     }
 
@@ -1331,16 +1334,20 @@ app.post(["/api/update-profile", "/api/users/profile"], async (req, res) => {
       args: [updatedName, updatedPic, updatedDob, cleanEmail]
     });
 
+    const savedUser = {
+      id: existing.id,
+      name: updatedName,
+      email: existing.email,
+      picture: updatedPic,
+      dob: updatedDob,
+      authProvider: existing.authProvider
+    };
+    const birthdayEmail = await sendBirthdayEmailOnce(savedUser, req);
+
     res.json({
       success: true,
-      user: {
-        id: existing.id,
-        name: updatedName,
-        email: existing.email,
-        picture: updatedPic,
-        dob: updatedDob,
-        authProvider: existing.authProvider
-      }
+      user: savedUser,
+      birthdayEmail,
     });
   } catch (err: any) {
     console.error("Error updating profile:", err);
@@ -2658,13 +2665,21 @@ const birthdayEmailHandler = async (req: any, res: any) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const result = await sendBirthdayEmail(userRes.rows[0], req);
+    const result = await sendBirthdayEmailOnce(userRes.rows[0], req);
     return res.json({
       success: true,
       emailSent: result.sent,
-      message: result.demo
-        ? "Mode uji: SMTP belum dikonfigurasi, jadi email belum dikirim."
-        : "Email ulang tahun berhasil dikirim!",
+      alreadySent: result.alreadySent,
+      eligible: result.eligible,
+      message: !result.eligible
+        ? "Tanggal lahir pengguna bukan hari ini."
+        : result.alreadySent
+          ? "Email ulang tahun tahun ini sudah pernah dikirim."
+          : result.demo
+            ? "Mode uji: SMTP belum dikonfigurasi, jadi email belum dikirim."
+            : result.failed
+              ? "Email ulang tahun belum berhasil dikirim."
+              : "Email ulang tahun berhasil dikirim!",
       deepLinkUrl: result.deepLinkUrl,
     });
   } catch (err: any) {
@@ -2683,6 +2698,77 @@ const getDatePartsInTimeZone = (date: Date, timeZone: string) => {
   const getPart = (type: string) => parts.find((part) => part.type === type)?.value || "";
   return { year: getPart("year"), month: getPart("month"), day: getPart("day") };
 };
+
+async function sendBirthdayEmailOnce(user: any, req?: any, now = new Date()) {
+  const cleanEmail = String(user?.email || "").trim().toLowerCase();
+  const dobMatch = String(user?.dob || "").match(/^\d{4}-(\d{2})-(\d{2})/);
+  const timeZone = process.env.BIRTHDAY_TIMEZONE || "Asia/Makassar";
+  const { year, month, day } = getDatePartsInTimeZone(now, timeZone);
+
+  if (!cleanEmail || !dobMatch || dobMatch[1] !== month || dobMatch[2] !== day) {
+    return {
+      eligible: false,
+      sent: false,
+      alreadySent: false,
+      demo: false,
+      date: `${year}-${month}-${day}`,
+      timeZone,
+    };
+  }
+
+  const db = getDb();
+  const reservation = await db.execute({
+    sql: "INSERT OR IGNORE INTO birthday_email_log (user_email, birthday_year, sent_at) VALUES (?, ?, ?)",
+    args: [cleanEmail, Number(year), new Date().toISOString()],
+  });
+
+  if (Number(reservation.rowsAffected || 0) === 0) {
+    return {
+      eligible: true,
+      sent: false,
+      alreadySent: true,
+      demo: false,
+      date: `${year}-${month}-${day}`,
+      timeZone,
+    };
+  }
+
+  try {
+    const result = await sendBirthdayEmail(user, req);
+    if (!result.sent) {
+      await db.execute({
+        sql: "DELETE FROM birthday_email_log WHERE LOWER(user_email) = ? AND birthday_year = ?",
+        args: [cleanEmail, Number(year)],
+      });
+    }
+
+    return {
+      eligible: true,
+      sent: result.sent,
+      alreadySent: false,
+      demo: result.demo,
+      deepLinkUrl: result.deepLinkUrl,
+      date: `${year}-${month}-${day}`,
+      timeZone,
+    };
+  } catch (error: any) {
+    console.error(`Birthday email failed for ${cleanEmail}:`, error);
+    await db.execute({
+      sql: "DELETE FROM birthday_email_log WHERE LOWER(user_email) = ? AND birthday_year = ?",
+      args: [cleanEmail, Number(year)],
+    }).catch(() => undefined);
+    return {
+      eligible: true,
+      sent: false,
+      alreadySent: false,
+      demo: false,
+      failed: true,
+      error: error?.message || "Birthday email failed",
+      date: `${year}-${month}-${day}`,
+      timeZone,
+    };
+  }
+}
 
 const birthdayCronHandler = async (req: any, res: any) => {
   const cronSecret = process.env.CRON_SECRET;
@@ -2707,31 +2793,11 @@ const birthdayCronHandler = async (req: any, res: any) => {
     let smtpNotConfigured = false;
 
     for (const user of usersResult.rows || []) {
-      const cleanEmail = String(user.email || "").trim().toLowerCase();
-      const existingLog = await db.execute({
-        sql: "SELECT user_email FROM birthday_email_log WHERE LOWER(user_email) = ? AND birthday_year = ?",
-        args: [cleanEmail, Number(year)],
-      });
-      if (existingLog.rows.length > 0) {
-        alreadySent += 1;
-        continue;
-      }
-
-      try {
-        const result = await sendBirthdayEmail(user, req);
-        if (result.demo) {
-          smtpNotConfigured = true;
-          continue;
-        }
-        await db.execute({
-          sql: "INSERT OR IGNORE INTO birthday_email_log (user_email, birthday_year, sent_at) VALUES (?, ?, ?)",
-          args: [cleanEmail, Number(year), new Date().toISOString()],
-        });
-        emailsSent += 1;
-      } catch (err) {
-        failed += 1;
-        console.error(`Birthday email failed for ${cleanEmail}:`, err);
-      }
+      const result = await sendBirthdayEmailOnce(user, req);
+      if (result.sent) emailsSent += 1;
+      if (result.alreadySent) alreadySent += 1;
+      if (result.demo) smtpNotConfigured = true;
+      if (result.failed) failed += 1;
     }
 
     return res.json({

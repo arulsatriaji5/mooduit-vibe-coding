@@ -2211,6 +2211,11 @@ export default function Dashboard({
         {isEditModalOpen && (
           <div
             className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            role="presentation"
+            onClick={() => {
+              setIsEditModalOpen(false);
+              setEditTargetId(null);
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.4)",
@@ -2223,19 +2228,27 @@ export default function Dashboard({
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-xl w-100 border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "440px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-dream-target-title"
+              onClick={(event) => event.stopPropagation()}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
+                <h3 id="edit-dream-target-title" className="fw-800 text-primary-mooduit dark:text-white text-xl sm:text-2xl mb-0">
                   {t("Edit Target Impian", "Edit Dream Target")}
                 </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert"
+                  className="border-0 bg-transparent d-flex align-items-center justify-content-center p-2"
+                  style={{ color: darkMode ? "#ffffff" : "#112F58", borderRadius: "9999px" }}
+                  aria-label={t("Tutup popup edit target", "Close edit target popup")}
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setEditTargetId(null);
                   }}
-                />
+                >
+                  <X size={22} strokeWidth={2.5} />
+                </button>
               </div>
 
               <div className="space-y-3 mb-4">
@@ -2266,37 +2279,40 @@ export default function Dashboard({
                 </div>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center gap-2">
+              <div className="d-flex align-items-stretch gap-2">
                 {editTargetId !== null && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger rounded-xl p-2 d-flex align-items-center justify-content-center"
-                    style={{ width: "42px", height: "42px" }}
+                    className="rounded-xl px-3 py-2 d-flex align-items-center justify-content-center gap-2 text-xs sm:text-sm font-bold"
+                    style={{
+                      flex: 1,
+                      minHeight: "44px",
+                      backgroundColor: "#fff1f2",
+                      color: "#dc2626",
+                      border: "1px solid #fda4af",
+                    }}
                     title={t("Hapus", "Delete")}
+                    aria-label={t("Hapus target impian", "Delete dream target")}
                     onClick={(e) => handleDeleteItem(editTargetId, e)}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={17} />
+                    {t("Hapus", "Delete")}
                   </button>
                 )}
-                <div className="d-flex gap-2 ms-auto">
-                  <button
-                    type="button"
-                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
-                    onClick={() => {
-                      setIsEditModalOpen(false);
-                      setEditTargetId(null);
-                    }}
-                  >
-                    {t("Batal", "Cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
-                    onClick={handleUpdateItem}
-                  >
-                    {t("Simpan", "Save")}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
+                  style={{
+                    flex: 1,
+                    minHeight: "44px",
+                    backgroundColor: "#112F58",
+                    color: "#ffffff",
+                    border: "1px solid #112F58",
+                  }}
+                  onClick={handleUpdateItem}
+                >
+                  {t("Simpan", "Save")}
+                </button>
               </div>
             </motion.div>
           </div>
@@ -2435,6 +2451,17 @@ export default function Dashboard({
         {isNyicilModalOpen && selectedTargetForNyicil && (
           <div
             className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            role="presentation"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsNyicilModalOpen(false);
+              }
+            }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsNyicilModalOpen(false);
+              }
+            }}
             style={{
               zIndex: 2000,
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -2447,16 +2474,24 @@ export default function Dashboard({
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="installment-dream-target-title"
+              onClick={(event) => event.stopPropagation()}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
-                  💰 {t("Nyicil Target Impian", "Installment for Target")}
+                <h3 id="installment-dream-target-title" className="fw-800 text-primary-mooduit dark:text-white text-lg sm:text-xl mb-0">
+                  {t("Nyicil", "Installment")}
                 </h3>
                 <button
                   type="button"
-                  className="btn-close dark:filter dark:invert"
+                  className="border-0 bg-transparent d-flex align-items-center justify-content-center p-2"
+                  style={{ color: darkMode ? "#ffffff" : "#112F58", borderRadius: "9999px" }}
+                  aria-label={t("Tutup popup cicilan", "Close installment popup")}
                   onClick={() => setIsNyicilModalOpen(false)}
-                />
+                >
+                  <X size={22} strokeWidth={2.5} />
+                </button>
               </div>
 
               <div className="mb-4">
@@ -2472,18 +2507,11 @@ export default function Dashboard({
                 />
               </div>
 
-              <div className="d-flex gap-2 justify-content-end">
-                <button
-                  type="button"
-                  className="btn btn-light dark:bg-slate-700 dark:text-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold"
-                  onClick={() => setIsNyicilModalOpen(false)}
-                >
-                  {t("Batal", "Cancel")}
-                </button>
+              <div className="d-flex justify-content-end">
                 <button
                   type="button"
                   disabled={!nyicilNominal}
-                  className="px-4 py-2 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer disabled:opacity-50"
+                  className="w-100 px-4 py-2.5 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer disabled:opacity-50"
                   onClick={handleSetorNyicil}
                 >
                   {t("Simpan Cicilan", "Save Installment")}
@@ -2512,12 +2540,37 @@ export default function Dashboard({
               className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl w-100 text-center border border-slate-200 dark:border-slate-700"
               style={{ maxWidth: "420px" }}
             >
-              <div className="text-6xl mb-3 animate-bounce">🔥</div>
+              <div className="position-relative d-flex align-items-center justify-content-center mb-3" style={{ height: "82px" }}>
+                <motion.div
+                  className="position-absolute rounded-circle"
+                  style={{ width: "72px", height: "72px", background: "rgba(251,146,60,0.22)", filter: "blur(10px)" }}
+                  animate={{ scale: [0.82, 1.18, 0.9, 1.12, 0.82], opacity: [0.35, 0.75, 0.45, 0.7, 0.35] }}
+                  transition={{ duration: 1.45, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="position-relative text-6xl"
+                  style={{ filter: "drop-shadow(0 8px 12px rgba(249,115,22,0.35))", transformOrigin: "50% 85%" }}
+                  animate={{ y: [2, -7, 1, -4, 2], scale: [0.96, 1.08, 1, 1.05, 0.96], rotate: [-3, 3, -2, 2, -3] }}
+                  transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  🔥
+                </motion.div>
+              </div>
               <h3 className="fw-800 text-[#112F58] dark:text-white text-2xl mb-1">
                 {streakIncreasedToday ? t("Streak Bertambah! 🔥", "Streak Increased! 🔥") : t("Streak Menyala! 🔥", "Streak is Glowing! 🔥")}
               </h3>
-              <div className="inline-block px-4 py-1.5 bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-extrabold rounded-full text-sm mb-3">
-                {streakCount} {t("Hari Beruntun", "Days Streak")}
+              <div
+                className="inline-block px-4 py-1.5 font-extrabold rounded-full text-sm mb-3"
+                style={{
+                  backgroundColor: streakCount === 1 ? "#ffffff" : (darkMode ? "#431407" : "#ffedd5"),
+                  color: streakCount === 1 ? "#ea580c" : (darkMode ? "#fb923c" : "#ea580c"),
+                  border: streakCount === 1 ? "1px solid #fed7aa" : "1px solid transparent",
+                  boxShadow: streakCount === 1 ? "0 5px 14px rgba(234,88,12,0.12)" : "none",
+                }}
+              >
+                {streakCount === 1
+                  ? t("1 Hari", "1 Day")
+                  : `${streakCount} ${t("Hari Beruntun", "Day Streak")}`}
               </div>
               <p 
                 className="text-sm sm:text-base font-bold mb-0 leading-relaxed italic transition-colors"
@@ -2552,6 +2605,8 @@ export default function Dashboard({
         onClose={() => setShowBirthdayModal(false)}
         userName={userName}
         userDob={userDob}
+        userAvatar={localStorage.getItem("userAvatar") || undefined}
+        userKey={localStorage.getItem("userEmail") || userName}
       />
     </div>
   );

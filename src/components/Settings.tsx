@@ -104,6 +104,13 @@ export default function Settings({ onLogout }: SettingsProps) {
     }
   };
 
+  const isBirthdayToday = (dob: string) => {
+    const match = String(dob || '').match(/^\d{4}-(\d{2})-(\d{2})/);
+    if (!match) return false;
+    const today = new Date();
+    return today.getMonth() + 1 === Number(match[1]) && today.getDate() === Number(match[2]);
+  };
+
   const compressImage = (file: File, maxWidth = 256, maxHeight = 256, quality = 0.85): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -185,17 +192,20 @@ export default function Settings({ onLogout }: SettingsProps) {
     window.dispatchEvent(new Event('profileUpdated'));
 
     if (userEmail) {
-      try {
-        await fetch('/api/update-profile', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar, dob: dobToSave })
-        });
-      } catch (err) {
-        console.error('Failed to update profile to backend database:', err);
+      const response = await fetch('/api/update-profile', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, name: newName, picture: newAvatar, dob: dobToSave })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
       }
+      return data;
     }
+
+    return null;
   };
 
   const handleAvatarClick = () => {
@@ -607,9 +617,34 @@ export default function Settings({ onLogout }: SettingsProps) {
               {/* SAVE BUTTON */}
               <button 
                 onClick={async () => {
-                  await syncProfileAndSession(currentAvatar, userName, userDob);
-                  toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
-                  setActiveView('main');
+                  try {
+                    const result = await syncProfileAndSession(currentAvatar, userName, userDob);
+                    const birthdayEmail = result?.birthdayEmail;
+
+                    if (birthdayEmail?.sent) {
+                      toast.success(language === 'id'
+                        ? 'Profil diperbarui dan email ulang tahun sudah dikirim! 🎂'
+                        : 'Profile updated and the birthday email was sent! 🎂');
+                    } else if (birthdayEmail?.alreadySent) {
+                      toast.success(language === 'id'
+                        ? 'Profil diperbarui. Email ulang tahun tahun ini sudah pernah dikirim. 🎉'
+                        : 'Profile updated. This year\'s birthday email was already sent. 🎉');
+                    } else if (isBirthdayToday(userDob) && birthdayEmail?.demo) {
+                      toast.error(language === 'id'
+                        ? 'Profil tersimpan, tetapi email belum terkirim karena SMTP Vercel belum dikonfigurasi.'
+                        : 'Profile saved, but the email was not sent because Vercel SMTP is not configured.');
+                    } else if (isBirthdayToday(userDob) && birthdayEmail?.failed) {
+                      toast.error(language === 'id'
+                        ? 'Profil tersimpan, tetapi layanan email sedang gagal. Email akan dicoba lagi oleh jadwal otomatis.'
+                        : 'Profile saved, but the email service failed. The scheduled job will try again.');
+                    } else {
+                      toast.success(language === 'id' ? 'Profil berhasil diperbarui! 🎉' : 'Profile successfully updated! 🎉');
+                    }
+                    setActiveView('main');
+                  } catch (error: any) {
+                    console.error('Failed to save profile:', error);
+                    toast.error(error?.message || (language === 'id' ? 'Profil gagal diperbarui.' : 'Failed to update profile.'));
+                  }
                 }}
                 className="w-full mooduit-save-profile-btn text-sm sm:text-base"
               >
