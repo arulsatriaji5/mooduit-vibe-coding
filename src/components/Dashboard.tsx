@@ -162,6 +162,48 @@ export default function Dashboard({
     }
   }, []);
 
+  // Keep the birthday indicator in sync after the date of birth is edited in
+  // Settings, across tabs, and after returning to the Dashboard.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const applyStoredDob = (event?: Event) => {
+      const eventDob = (event as CustomEvent<{ dob?: string }> | undefined)?.detail?.dob;
+      const latestDob = eventDob || localStorage.getItem("userDob") || "";
+      setUserDob(latestDob);
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === "userDob" || event.key === "mooduit_user" || event.key === "mooduit_session") {
+        applyStoredDob();
+      }
+    };
+
+    applyStoredDob();
+    window.addEventListener("profileUpdated", applyStoredDob as EventListener);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", applyStoredDob);
+
+    const userEmail = localStorage.getItem("userEmail") || "";
+    if (userEmail) {
+      fetch(`/api/users/profile?email=${encodeURIComponent(userEmail)}`, { credentials: "include" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((profile) => {
+          if (profile?.dob) {
+            localStorage.setItem("userDob", String(profile.dob));
+            setUserDob(String(profile.dob));
+          }
+        })
+        .catch((error) => console.warn("Failed to refresh birthday profile:", error));
+    }
+
+    return () => {
+      window.removeEventListener("profileUpdated", applyStoredDob as EventListener);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", applyStoredDob);
+    };
+  }, []);
+
   // Daily Streak and Celebration Pop-up States
   const [streakCount, setStreakCount] = React.useState<number>(0);
   const [streakActive, setStreakActive] = React.useState<boolean>(false);

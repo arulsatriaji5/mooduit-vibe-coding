@@ -38,6 +38,8 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   const [menuTerbuka, setMenuTerbuka] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [transaksiDiedit, setTransaksiDiedit] = useState<any>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+  const [isDeletingTransaction, setIsDeletingTransaction] = useState(false);
 
   const [editNominal, setEditNominal] = useState('');
   const [editCatatan, setEditCatatan] = useState('');
@@ -90,25 +92,26 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   }, [propsTransactions]);
 
   useEffect(() => {
-    if (isEditModalOpen || isMonthDropdownOpen || isFilterModalOpen) {
+    if (isEditModalOpen || isMonthDropdownOpen || isFilterModalOpen || transactionToDelete) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isEditModalOpen, isMonthDropdownOpen, isFilterModalOpen]);
+  }, [isEditModalOpen, isMonthDropdownOpen, isFilterModalOpen, transactionToDelete]);
 
   useEffect(() => {
+    if (!transactionToDelete) return;
+
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (isEditModalOpen) setIsEditModalOpen(false);
-      else if (isFilterModalOpen) setIsFilterModalOpen(false);
-      else if (isMonthDropdownOpen) setIsMonthDropdownOpen(false);
+      if (event.key === 'Escape' && !isDeletingTransaction) {
+        setTransactionToDelete(null);
+      }
     };
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [isEditModalOpen, isFilterModalOpen, isMonthDropdownOpen]);
+  }, [transactionToDelete, isDeletingTransaction]);
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -186,18 +189,33 @@ export default function Transactions({ transactions: propsTransactions, setTrans
     handleOpenEdit(transaction);
   };
 
-  const platformNativeDeleteFunction = async (id: any, e?: React.MouseEvent) => {
+  const platformNativeDeleteFunction = (id: any, e?: React.MouseEvent) => {
     if (!id) return;
     if (e) {
       e.stopPropagation(); 
     }
-    let confirmDelete = false;
-    try { confirmDelete = window.confirm(t('Hapus transaksi ini?', 'Delete this transaction?')); } catch { confirmDelete = true; }
-    if (!confirmDelete) return;
-
     const matchedTx = transactions.find(t => t && String(t.id || t._id) === String(id));
-    if (matchedTx) await executeHardDelete(matchedTx);
-    else await executeHardDelete({ id });
+    setMenuTerbuka(null);
+    setTransactionToDelete(matchedTx || { id });
+  };
+
+  const closeDeleteConfirmation = () => {
+    if (!isDeletingTransaction) {
+      setTransactionToDelete(null);
+    }
+  };
+
+  const confirmDeleteTransaction = async () => {
+    if (!transactionToDelete || isDeletingTransaction) return;
+
+    setIsDeletingTransaction(true);
+    try {
+      await executeHardDelete(transactionToDelete);
+      setTransactionToDelete(null);
+      toast.success(t('Transaksi berhasil dihapus.', 'Transaction deleted successfully.'));
+    } finally {
+      setIsDeletingTransaction(false);
+    }
   };
 
   const formatTanggalIndo = (tglStr: string) => {
@@ -630,14 +648,110 @@ export default function Transactions({ transactions: propsTransactions, setTrans
         )}
       </AnimatePresence>
 
+      {/* DELETE TRANSACTION CONFIRMATION */}
       <AnimatePresence>
-        {isFilterModalOpen && (
-          <div
-            className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setIsFilterModalOpen(false);
+        {transactionToDelete && (
+          <motion.div
+            className="fixed inset-0 z-[100000] flex items-center justify-center bg-[#112F58]/55 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="presentation"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) closeDeleteConfirmation();
             }}
           >
+            <motion.div
+              className="relative w-full max-w-[430px] overflow-hidden rounded-[28px] bg-white shadow-2xl dark:bg-slate-900"
+              initial={{ opacity: 0, scale: 0.92, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-transaction-title"
+              aria-describedby="delete-transaction-description"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={closeDeleteConfirmation}
+                disabled={isDeletingTransaction}
+                className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center border-0 !bg-transparent transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ backgroundColor: 'transparent', color: '#112F58' }}
+                aria-label={t('Tutup konfirmasi hapus', 'Close delete confirmation')}
+              >
+                <X size={20} strokeWidth={2.4} />
+              </button>
+
+              <div className="px-5 pb-5 pt-7 text-center sm:px-7 sm:pb-7 sm:pt-8">
+                <motion.div
+                  className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-500 ring-1 ring-red-100 dark:bg-red-950/40 dark:ring-red-900/50"
+                  initial={{ rotate: -8, scale: 0.8 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ delay: 0.08, type: 'spring', stiffness: 350 }}
+                >
+                  <Trash2 size={30} strokeWidth={2.2} />
+                </motion.div>
+
+                <h2 id="delete-transaction-title" className="mb-2 text-xl font-extrabold text-[#112F58] dark:text-white sm:text-2xl">
+                  {t('Hapus Transaksi?', 'Delete Transaction?')}
+                </h2>
+                <p id="delete-transaction-description" className="mx-auto mb-5 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                  {t(
+                    'Pastikan transaksi ini memang ingin dihapus. Data yang sudah dihapus tidak dapat dikembalikan.',
+                    'Make sure you want to delete this transaction. Deleted data cannot be restored.'
+                  )}
+                </p>
+
+                <div
+                  className="mb-5 rounded-2xl border !bg-white p-4 text-left shadow-sm"
+                  style={{ backgroundColor: '#ffffff', borderColor: '#dbe3ec' }}
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="mb-1 truncate text-sm font-extrabold" style={{ color: '#112F58' }}>
+                        {transactionToDelete.catatan || transactionToDelete.kategori || t('Transaksi', 'Transaction')}
+                      </p>
+                      <p className="mb-0 text-xs" style={{ color: '#64748b' }}>
+                        {[transactionToDelete.kategori, formatTanggalIndo(transactionToDelete.tanggal)].filter(Boolean).join(' • ')}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-sm font-extrabold ${transactionToDelete.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {transactionToDelete.jenis === 'pemasukan' ? '+' : '-'}Rp {Number(transactionToDelete.nominal || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={closeDeleteConfirmation}
+                    disabled={isDeletingTransaction}
+                    className="min-h-12 rounded-xl border !bg-white px-4 py-3 text-sm font-extrabold !text-[#112F58] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#112F58' }}
+                  >
+                    <span style={{ color: '#112F58' }}>{t('Batal', 'Cancel')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDeleteTransaction}
+                    disabled={isDeletingTransaction}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-xl border-0 bg-red-500 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+                  >
+                    <Trash2 size={17} />
+                    {isDeletingTransaction ? t('Menghapus...', 'Deleting...') : t('Hapus', 'Delete')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-all duration-300">
             <motion.div
               initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
               className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden relative z-10 max-h-[90vh]"

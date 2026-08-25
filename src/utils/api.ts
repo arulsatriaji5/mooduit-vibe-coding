@@ -85,27 +85,6 @@ export function mapDBToFrontend(dt: any): any {
   };
 }
 
-export function resolveUserEmail(explicitEmail?: string): string {
-  if (explicitEmail && explicitEmail.trim()) return explicitEmail.trim();
-  if (typeof window !== 'undefined') {
-    try {
-      const email = localStorage.getItem('userEmail');
-      if (email && email.trim()) return email.trim();
-      const moodUser = localStorage.getItem('mooduit_user');
-      if (moodUser) {
-        const parsed = JSON.parse(moodUser);
-        if (parsed.email && parsed.email.trim()) return parsed.email.trim();
-      }
-      const moodSession = localStorage.getItem('mooduit_session');
-      if (moodSession) {
-        const parsed = JSON.parse(moodSession);
-        if (parsed.email && parsed.email.trim()) return parsed.email.trim();
-      }
-    } catch (e) {}
-  }
-  return "";
-}
-
 export function mapFrontendToDB(ft: any): any {
   return {
     id: ft.id ? String(ft.id) : undefined,
@@ -119,15 +98,11 @@ export function mapFrontendToDB(ft: any): any {
 
 export async function fetchAllTransactions(user_email?: string): Promise<any[]> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) return [];
-    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(email)}`, {
-      credentials: 'include',
-      headers: { 'user-email': email }
-    });
+    if (!user_email) return [];
+    const response = await fetch(`/api/transactions?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch transactions');
     const dbData = await response.json();
-    return Array.isArray(dbData) ? dbData.map(mapDBToFrontend) : [];
+    return dbData.map(mapDBToFrontend);
   } catch (err) {
     console.error("Error fetching transactions from DB:", err);
     return [];
@@ -136,25 +111,21 @@ export async function fetchAllTransactions(user_email?: string): Promise<any[]> 
 
 export async function insertTransaction(tx: any, user_email?: string): Promise<any> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) {
-      console.warn("insertTransaction: user email not found in session/localStorage, returning local transaction");
-      return tx;
-    }
-    const dbPayload = { ...mapFrontendToDB(tx), user_email: email };
+    if (!user_email) throw new Error('user_email is required');
+    const dbPayload = {
+      ...mapFrontendToDB(tx),
+      user_email,
+      // Streak follows the day the user records the transaction, not a backdated
+      // transaction date selected in the form.
+      clientLocalDate: new Date().toLocaleDateString('en-CA')
+    };
     const response = await fetch('/api/transactions', {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'user-email': email
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dbPayload)
     });
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson.error || 'Failed to insert transaction');
-    }
+    if (!response.ok) throw new Error('Failed to insert transaction');
     const result = await response.json();
     return mapDBToFrontend(result);
   } catch (err) {
@@ -165,22 +136,15 @@ export async function insertTransaction(tx: any, user_email?: string): Promise<a
 
 export async function updateTransactionDB(id: string | number, tx: any, user_email?: string): Promise<any> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) return tx;
-    const dbPayload = { ...mapFrontendToDB(tx), user_email: email };
+    if (!user_email) throw new Error('user_email is required');
+    const dbPayload = { ...mapFrontendToDB(tx), user_email };
     const response = await fetch(`/api/transactions/${id}`, {
       method: 'PUT',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'user-email': email
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dbPayload)
     });
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson.error || 'Failed to update transaction');
-    }
+    if (!response.ok) throw new Error('Failed to update transaction');
     const result = await response.json();
     return mapDBToFrontend(result);
   } catch (err) {
@@ -191,12 +155,10 @@ export async function updateTransactionDB(id: string | number, tx: any, user_ema
 
 export async function deleteTransactionDB(id: string | number, user_email?: string): Promise<boolean> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) return false;
-    const response = await fetch(`/api/transactions/${id}?user_email=${encodeURIComponent(email)}`, {
+    if (!user_email) throw new Error('user_email is required');
+    const response = await fetch(`/api/transactions/${id}?user_email=${encodeURIComponent(user_email)}`, {
       method: 'DELETE',
-      credentials: 'include',
-      headers: { 'user-email': email }
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Failed to delete transaction');
     const result = await response.json();
@@ -209,12 +171,8 @@ export async function deleteTransactionDB(id: string | number, user_email?: stri
 
 export async function fetchBudgetPlan(user_email?: string): Promise<any | null> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) return null;
-    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(email)}`, {
-      credentials: 'include',
-      headers: { 'user-email': email }
-    });
+    if (!user_email) return null;
+    const response = await fetch(`/api/budgets?user_email=${encodeURIComponent(user_email)}`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch budget');
     const budget = await response.json();
     if (!budget) return null;
@@ -224,7 +182,8 @@ export async function fetchBudgetPlan(user_email?: string): Promise<any | null> 
         kebutuhan: budget.limit_50,
         keinginan: budget.limit_30,
         tabungan: budget.limit_20
-      }
+      },
+      activeMode: budget.active_mode || 'formula_50_30_20'
     };
   } catch (err) {
     console.error("Error fetching budget plan from DB:", err);
@@ -234,22 +193,19 @@ export async function fetchBudgetPlan(user_email?: string): Promise<any | null> 
 
 export async function saveBudgetPlanDB(pendapatan: number, user_email?: string): Promise<any> {
   try {
-    const email = resolveUserEmail(user_email);
-    if (!email) throw new Error('user_email is required');
+    if (!user_email) throw new Error('user_email is required');
     const payload = {
-      user_email: email,
+      user_email,
       total_income: pendapatan,
       limit_50: pendapatan * 0.5,
       limit_30: pendapatan * 0.3,
-      limit_20: pendapatan * 0.2
+      limit_20: pendapatan * 0.2,
+      active_mode: 'formula_50_30_20'
     };
     const response = await fetch('/api/budgets', {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'user-email': email
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error('Failed to save budget plan');
@@ -260,7 +216,8 @@ export async function saveBudgetPlanDB(pendapatan: number, user_email?: string):
         kebutuhan: budget.limit_50,
         keinginan: budget.limit_30,
         tabungan: budget.limit_20
-      }
+      },
+      activeMode: budget.active_mode || 'formula_50_30_20'
     };
   } catch (err) {
     console.error("Error saving budget plan to DB:", err);

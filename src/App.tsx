@@ -88,6 +88,9 @@ export default function App() {
           safeSet('userEmail', authenticatedUser.email);
           safeSet('authProvider', authenticatedUser.authProvider || 'local');
           safeSet('userAvatar', finalAvatar);
+          if (authenticatedUser.dob) {
+            safeSet('userDob', String(authenticatedUser.dob));
+          }
           if (userEmail) {
             safeSet(`avatar_${userEmail}`, finalAvatar);
           }
@@ -113,6 +116,9 @@ export default function App() {
           localStorage.setItem('userName', authenticatedUser.name);
           localStorage.setItem('userEmail', authenticatedUser.email);
           localStorage.setItem('authProvider', authenticatedUser.authProvider || 'local');
+          if (authenticatedUser.dob) {
+            localStorage.setItem('userDob', String(authenticatedUser.dob));
+          }
           if (authenticatedUser.picture) {
             localStorage.setItem('userAvatar', authenticatedUser.picture);
           }
@@ -190,6 +196,7 @@ export default function App() {
           email: oauthEmail,
           picture: finalAvatar,
           avatar: finalAvatar,
+          dob: backendUser.dob || '',
           token: token || null,
           authProvider: backendUser.authProvider || 'google'
         };
@@ -202,6 +209,7 @@ export default function App() {
         safeSet('userName', finalName);
         safeSet('userEmail', oauthEmail);
         safeSet('authProvider', backendUser.authProvider || 'google');
+        if (backendUser.dob) safeSet('userDob', String(backendUser.dob));
         if (token) safeSet('userToken', token);
         if (finalAvatar) {
           safeSet('userAvatar', finalAvatar);
@@ -333,6 +341,9 @@ export default function App() {
     safeSet('userName', normalizedUser.name);
     safeSet('userEmail', normalizedUser.email);
     safeSet('userAvatar', finalAvatar);
+    if (normalizedUser.dob) {
+      safeSet('userDob', String(normalizedUser.dob));
+    }
     if (userEmail) {
       safeSet(`avatar_${userEmail}`, finalAvatar);
     }

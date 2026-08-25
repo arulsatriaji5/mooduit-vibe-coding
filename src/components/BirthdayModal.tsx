@@ -9,8 +9,19 @@ export const isUserBirthdayToday = (dob: string) => {
   const match = String(dob).match(/^\d{4}-(\d{2})-(\d{2})/);
   if (!match) return false;
 
-  const today = new Date();
-  return today.getMonth() + 1 === Number(match[1]) && today.getDate() === Number(match[2]);
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Makassar',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const month = Number(parts.find((part) => part.type === 'month')?.value || 0);
+    const day = Number(parts.find((part) => part.type === 'day')?.value || 0);
+    return month === Number(match[1]) && day === Number(match[2]);
+  } catch {
+    const today = new Date();
+    return today.getMonth() + 1 === Number(match[1]) && today.getDate() === Number(match[2]);
+  }
 };
 
 interface BirthdayModalProps {
@@ -96,10 +107,21 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
     const avatarSize = 250;
     const avatarX = (canvas.width - avatarSize) / 2;
     const avatarY = 300;
+    const avatarCenterX = avatarX + avatarSize / 2;
+    const avatarCenterY = avatarY + avatarSize / 2;
     context.fillStyle = palette.accent;
-    context.fillRect(avatarX - 10, avatarY - 10, avatarSize + 20, avatarSize + 20);
+    context.beginPath();
+    context.arc(avatarCenterX, avatarCenterY, avatarSize / 2 + 10, 0, Math.PI * 2);
+    context.fill();
     context.fillStyle = '#ffffff';
-    context.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    context.beginPath();
+    context.arc(avatarCenterX, avatarCenterY, avatarSize / 2, 0, Math.PI * 2);
+    context.fill();
+
+    context.save();
+    context.beginPath();
+    context.arc(avatarCenterX, avatarCenterY, avatarSize / 2, 0, Math.PI * 2);
+    context.clip();
 
     try {
       const avatar = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -119,8 +141,10 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
       context.fillStyle = palette.start;
       context.font = '800 92px sans-serif';
       const initials = (userName || 'MU').split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase();
-      context.fillText(initials, canvas.width / 2, avatarY + 158);
+      context.textBaseline = 'middle';
+      context.fillText(initials, canvas.width / 2, avatarCenterY);
     }
+    context.restore();
 
     context.fillStyle = '#ffffff';
     let nameFontSize = 70;
@@ -256,7 +280,7 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
             className="relative z-10 w-full max-w-[560px]"
           >
             <div
-              className="relative aspect-square w-full overflow-hidden rounded-[28px] border border-white/30 text-center shadow-2xl"
+              className="relative aspect-square w-full overflow-hidden rounded-none border border-white/30 text-center shadow-2xl"
               style={{ background: palette.gradient }}
             >
               <div className="pointer-events-none absolute inset-0 opacity-50">
@@ -286,13 +310,13 @@ export const BirthdayModal: React.FC<BirthdayModalProps> = ({
                 </h1>
 
                 <div
-                  className="relative mt-[5%] aspect-square w-[25%] min-w-[74px] max-w-[128px] overflow-visible border-[4px] bg-white/15 p-1 shadow-xl"
+                  className="relative mt-[5%] aspect-square w-[25%] min-w-[74px] max-w-[128px] overflow-visible rounded-full border-[4px] bg-white/15 p-1 shadow-xl"
                   style={{ borderColor: palette.accent }}
                 >
                   <img
                     src={avatarSource}
                     alt={language === 'id' ? `Foto profil ${userName}` : `${userName} profile photo`}
-                    className="h-full w-full bg-white object-cover"
+                    className="h-full w-full rounded-full bg-white object-cover"
                     crossOrigin="anonymous"
                   />
                   <div className="absolute -bottom-2 -right-2 flex aspect-square w-[30%] min-w-7 items-center justify-center rounded-full border-2 border-white bg-yellow-400 text-[clamp(12px,3vw,18px)] shadow-sm">

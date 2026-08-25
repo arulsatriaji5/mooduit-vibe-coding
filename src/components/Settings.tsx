@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
+import { isUserBirthdayToday } from './BirthdayModal';
 import './Settings.css';
 
 interface SettingsProps {
@@ -104,13 +105,6 @@ export default function Settings({ onLogout }: SettingsProps) {
     }
   };
 
-  const isBirthdayToday = (dob: string) => {
-    const match = String(dob || '').match(/^\d{4}-(\d{2})-(\d{2})/);
-    if (!match) return false;
-    const today = new Date();
-    return today.getMonth() + 1 === Number(match[1]) && today.getDate() === Number(match[2]);
-  };
-
   const compressImage = (file: File, maxWidth = 256, maxHeight = 256, quality = 0.85): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -189,7 +183,9 @@ export default function Settings({ onLogout }: SettingsProps) {
     }
 
     window.dispatchEvent(new Event('avatarChanged'));
-    window.dispatchEvent(new Event('profileUpdated'));
+    window.dispatchEvent(new CustomEvent('profileUpdated', {
+      detail: { name: newName, picture: newAvatar, dob: dobToSave }
+    }));
 
     if (userEmail) {
       const response = await fetch('/api/update-profile', {
@@ -629,11 +625,11 @@ export default function Settings({ onLogout }: SettingsProps) {
                       toast.success(language === 'id'
                         ? 'Profil diperbarui. Email ulang tahun tahun ini sudah pernah dikirim. 🎉'
                         : 'Profile updated. This year\'s birthday email was already sent. 🎉');
-                    } else if (isBirthdayToday(userDob) && birthdayEmail?.demo) {
+                    } else if (isUserBirthdayToday(userDob) && birthdayEmail?.demo) {
                       toast.error(language === 'id'
                         ? 'Profil tersimpan, tetapi email belum terkirim karena SMTP Vercel belum dikonfigurasi.'
                         : 'Profile saved, but the email was not sent because Vercel SMTP is not configured.');
-                    } else if (isBirthdayToday(userDob) && birthdayEmail?.failed) {
+                    } else if (isUserBirthdayToday(userDob) && birthdayEmail?.failed) {
                       toast.error(language === 'id'
                         ? 'Profil tersimpan, tetapi layanan email sedang gagal. Email akan dicoba lagi oleh jadwal otomatis.'
                         : 'Profile saved, but the email service failed. The scheduled job will try again.');

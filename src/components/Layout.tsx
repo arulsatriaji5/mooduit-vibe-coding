@@ -417,7 +417,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                         type="button"
                         aria-pressed={manualKategori === kat.id}
                         onClick={() => setManualKategori(kat.id)}
-                        className={`min-w-0 min-h-[70px] overflow-hidden flex flex-col items-center justify-center gap-1 sm:gap-2 px-1.5 py-2 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
+                        className={`min-w-0 min-h-[76px] overflow-hidden flex flex-col items-center justify-center gap-1 px-1.5 py-2 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
                           manualKategori === kat.id 
                             ? "bg-[#112f58] border-[#112f58] text-white shadow-md scale-[1.02]" 
                             : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-[#112f58] hover:border-[#112f58] dark:hover:bg-slate-700 dark:hover:border-slate-700 hover:text-white dark:hover:text-white"
@@ -425,12 +425,16 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                       >
                         <span className="text-lg sm:text-2xl leading-none drop-shadow-sm">{kat.icon}</span>
                         <span
-                          className={`w-full min-w-0 px-0.5 text-[9px] min-[375px]:text-[10px] sm:text-xs text-center font-bold leading-[1.15] transition-colors ${
+                          className={`w-full min-w-0 px-0.5 text-[9px] min-[375px]:text-[10px] sm:text-xs text-center font-bold leading-[1.15] whitespace-normal transition-colors ${
                           manualKategori === kat.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-white dark:group-hover:text-white'
                           }`}
-                          style={{ overflowWrap: 'anywhere' }}
                         >
-                          {kat.id}
+                          {kat.id === 'Kebutuhan Pokok' ? (
+                            <>
+                              <span className="block whitespace-nowrap">Kebutuhan</span>
+                              <span className="block whitespace-nowrap">Pokok</span>
+                            </>
+                          ) : kat.id}
                         </span>
                       </button>
                     ))}

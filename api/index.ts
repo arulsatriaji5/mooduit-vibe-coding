@@ -117,6 +117,15 @@ async function initDB() {
       )
     `);
 
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS streak_activity_log (
+        user_email TEXT NOT NULL,
+        activity_date TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_email, activity_date)
+      )
+    `);
+
     // Gracefully add user_email column if tables already exist from previous sessions
     const tablesToAlter = ["transactions", "budgets"];
     for (const table of tablesToAlter) {
@@ -153,6 +162,15 @@ async function initDB() {
     } catch (err) {}
     try {
       await db.execute("ALTER TABLE users ADD COLUMN last_restore_month TEXT");
+    } catch (err) {}
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN streak_started_date TEXT");
+    } catch (err) {}
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN streak_last_evaluated_date TEXT");
+    } catch (err) {}
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN streak_missed_dates TEXT DEFAULT '[]'");
     } catch (err) {}
     try {
       await db.execute("ALTER TABLE users ADD COLUMN dob TEXT");
@@ -314,22 +332,36 @@ app.get("/api/transactions", async (req, res) => {
   }
 });
 
-// Helper to synchronize and persist Daily Streak in database across devices
+// Synchronize the streak across devices.
+// Rule: the flame is active only after a transaction today. One missed day keeps
+// the number, while the second missed day inside a rolling 7-day window resets it.
 async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite: boolean = false, clientLocalDate?: string) {
+  const emptyStreak = {
+    current_streak: 0,
+    streakCount: 0,
+    last_active_date: "",
+    lost_streak: 0,
+    restore_count: 0,
+    last_restore_month: "",
+    streakActive: false,
+    streakIncreasedToday: false,
+    missedDaysThisWeek: 0
+  };
+
   if (!userEmail) {
-    return { current_streak: 0, streakCount: 0, last_active_date: "", lost_streak: 0, restore_count: 0, last_restore_month: "", streakActive: false, streakIncreasedToday: false };
+    return emptyStreak;
   }
 
   await ensureDB();
   const cleanEmail = String(userEmail).trim().toLowerCase();
   
-  // Use client's local YYYY-MM-DD or default to Asia/Jakarta timezone
+  // Use the user's local YYYY-MM-DD; WITA is the server-side fallback.
   let todayStr = (clientLocalDate && /^\d{4}-\d{2}-\d{2}$/.test(String(clientLocalDate).trim()))
     ? String(clientLocalDate).trim()
     : "";
   if (!todayStr) {
     try {
-      todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     } catch (e) {
       todayStr = new Date().toLocaleDateString('en-CA');
     }
@@ -344,7 +376,7 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
   });
 
   if (userRes.rows.length === 0) {
-    return { current_streak: 0, streakCount: 0, last_active_date: "", lost_streak: 0, restore_count: 0, last_restore_month: "", streakActive: false, streakIncreasedToday: false };
+    return emptyStreak;
   }
 
   const user = userRes.rows[0];
@@ -353,6 +385,30 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
   let lost_streak = Number(user.lost_streak || 0);
   let restore_count = Number(user.restore_count || 0);
   let last_restore_month = String(user.last_restore_month || "");
+  let streak_started_date = String(user.streak_started_date || "").split('T')[0];
+  let streak_last_evaluated_date = String(user.streak_last_evaluated_date || "").split('T')[0];
+  let streak_missed_dates: string[] = [];
+
+  try {
+    const parsedMissedDates = JSON.parse(String(user.streak_missed_dates || "[]"));
+    if (Array.isArray(parsedMissedDates)) {
+      streak_missed_dates = parsedMissedDates
+        .map((dateValue: any) => String(dateValue).split('T')[0])
+        .filter((dateValue: string) => /^\d{4}-\d{2}-\d{2}$/.test(dateValue));
+    }
+  } catch (err) {
+    streak_missed_dates = [];
+  }
+
+  // Record the day the user actually logged a transaction. This is deliberately
+  // separate from a transaction's editable/backdated accounting date.
+  if (isTransactionWrite) {
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO streak_activity_log (user_email, activity_date)
+            VALUES (?, ?)`,
+      args: [cleanEmail, todayStr]
+    });
+  }
 
   // Reset restore_count if month changed
   if (last_restore_month !== currentMonthStr) {
@@ -360,67 +416,108 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     last_restore_month = currentMonthStr;
   }
 
-  const parseLocalDate = (dStr: string) => {
-    const [y, m, d] = dStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
+  const parseLocalDate = (dateValue: string) => {
+    const [year, month, day] = dateValue.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
   };
+  const formatLocalDate = (dateValue: Date) => dateValue.toISOString().slice(0, 10);
+  const addDays = (dateValue: Date, amount: number) => {
+    const nextDate = new Date(dateValue.getTime());
+    nextDate.setUTCDate(nextDate.getUTCDate() + amount);
+    return nextDate;
+  };
+  const differenceInDays = (newerDate: Date, olderDate: Date) =>
+    Math.round((newerDate.getTime() - olderDate.getTime()) / 86400000);
+
+  const todayDate = parseLocalDate(todayStr);
+  const evaluationEndDate = addDays(todayDate, -1);
+
+  // Existing users start the new weekly-grace rule from their latest known activity,
+  // so migration never removes an old streak unfairly.
+  if (current_streak > 0 && !streak_started_date) {
+    streak_started_date = last_active_date || todayStr;
+  }
+  if (!streak_last_evaluated_date) {
+    streak_last_evaluated_date = last_active_date || formatLocalDate(evaluationEndDate);
+  }
+
+  // Evaluate only completed days. Today is not considered missed until it has ended.
+  const firstDateToEvaluate = addDays(parseLocalDate(streak_last_evaluated_date), 1);
+  if (firstDateToEvaluate.getTime() <= evaluationEndDate.getTime()) {
+    const evaluationStartStr = formatLocalDate(firstDateToEvaluate);
+    const evaluationEndStr = formatLocalDate(evaluationEndDate);
+    const activityResult = await db.execute({
+      sql: `SELECT activity_date
+            FROM streak_activity_log
+            WHERE LOWER(user_email) = ?
+              AND activity_date >= ?
+              AND activity_date <= ?`,
+      args: [cleanEmail, evaluationStartStr, evaluationEndStr]
+    });
+    const activityDates = new Set(
+      activityResult.rows
+        .map((row: any) => String(row.activity_date || ""))
+        .filter((dateValue: string) => /^\d{4}-\d{2}-\d{2}$/.test(dateValue))
+    );
+
+    for (
+      let cursor = firstDateToEvaluate;
+      cursor.getTime() <= evaluationEndDate.getTime();
+      cursor = addDays(cursor, 1)
+    ) {
+      const cursorStr = formatLocalDate(cursor);
+      const isInsideCurrentStreak = !streak_started_date || cursor.getTime() >= parseLocalDate(streak_started_date).getTime();
+
+      if (current_streak > 0 && isInsideCurrentStreak && !activityDates.has(cursorStr)) {
+        // Keep only missed days that share a rolling 7-day window with this date.
+        streak_missed_dates = streak_missed_dates.filter((missedDate) => {
+          const age = differenceInDays(cursor, parseLocalDate(missedDate));
+          return age >= 0 && age <= 6;
+        });
+        if (!streak_missed_dates.includes(cursorStr)) {
+          streak_missed_dates.push(cursorStr);
+        }
+
+        if (streak_missed_dates.length >= 2) {
+          lost_streak = current_streak;
+          current_streak = 0;
+          streak_started_date = "";
+          streak_missed_dates = [];
+        }
+      }
+    }
+
+    streak_last_evaluated_date = evaluationEndStr;
+  }
 
   let streakActive = false;
   let streakIncreasedToday = false;
 
-  if (!last_active_date) {
-    if (isTransactionWrite) {
-      current_streak = 1;
-      last_active_date = todayStr;
-      streakActive = true;
-      streakIncreasedToday = true;
-    } else {
-      current_streak = 0;
-      streakActive = false;
-      streakIncreasedToday = false;
-    }
-  } else if (last_active_date === todayStr) {
-    // Hari ini SAMA DENGAN last_active_date (sudah ada transaksi hari ini)
-    if (isTransactionWrite && current_streak === 0) {
-      current_streak = 1;
-    }
-    streakActive = current_streak > 0;
-    streakIncreasedToday = isTransactionWrite;
-  } else {
-    const todayDate = parseLocalDate(todayStr);
-    const lastDate = parseLocalDate(last_active_date);
-    const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (isTransactionWrite) {
+    const alreadyActiveToday = last_active_date === todayStr;
 
-    if (diffDays === 1) {
-      // Selisih 1 hari (transaksi terakhir kemarin):
-      if (isTransactionWrite) {
-        // HANYA saat user mencatat transaksi baru hari ini: Tambah streak + 1 & update last_active_date
-        current_streak = current_streak + 1;
-        last_active_date = todayStr;
-        streakActive = true;
-        streakIncreasedToday = true;
-      } else {
-        // Saat baru load/login: Streak TIDAK bertambah, api REDUP (streakActive = false), angka streak TETAP
-        streakActive = false;
-        streakIncreasedToday = false;
-      }
-    } else if (diffDays > 1) {
-      // Selisih LEBIH DARI 1 HARI (melewati 00:00 dan kemarin bolong):
-      if (current_streak > 0) {
-        lost_streak = current_streak;
-      }
-      if (isTransactionWrite) {
-        current_streak = 1;
-        last_active_date = todayStr;
-        streakActive = true;
-        streakIncreasedToday = true;
-      } else {
-        current_streak = 0;
-        streakActive = false;
-        streakIncreasedToday = false;
-      }
+    if (current_streak <= 0) {
+      current_streak = 1;
+      streak_started_date = todayStr;
+      streak_missed_dates = [];
+    } else if (!alreadyActiveToday) {
+      current_streak += 1;
     }
+
+    last_active_date = todayStr;
+    streak_last_evaluated_date = todayStr;
+    streakActive = true;
+    streakIncreasedToday = !alreadyActiveToday;
+  } else {
+    // No transaction today: flame off, number retained unless two weekly misses reset it.
+    streakActive = current_streak > 0 && last_active_date === todayStr;
+    streakIncreasedToday = false;
   }
+
+  const missedDaysThisWeek = streak_missed_dates.filter((missedDate) => {
+    const age = differenceInDays(todayDate, parseLocalDate(missedDate));
+    return age >= 1 && age <= 7;
+  }).length;
 
   // PERSIST updated values to DB
   await db.execute({
@@ -431,7 +528,10 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
             lastActiveDate = ?, 
             lost_streak = ?, 
             restore_count = ?, 
-            last_restore_month = ? 
+            last_restore_month = ?,
+            streak_started_date = ?,
+            streak_last_evaluated_date = ?,
+            streak_missed_dates = ?
           WHERE LOWER(email) = ?`,
     args: [
       current_streak,
@@ -441,6 +541,9 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
       lost_streak,
       restore_count,
       last_restore_month,
+      streak_started_date,
+      streak_last_evaluated_date,
+      JSON.stringify(streak_missed_dates),
       cleanEmail
     ]
   });
@@ -453,7 +556,8 @@ async function syncUserStreakInDB(db: any, userEmail: string, isTransactionWrite
     restore_count,
     last_restore_month,
     streakActive,
-    streakIncreasedToday
+    streakIncreasedToday,
+    missedDaysThisWeek
   };
 }
 
@@ -515,7 +619,7 @@ app.post(["/api/streak/restore", "/api/users/streak/restore"], async (req: any, 
       : "";
     if (!todayStr) {
       try {
-        todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       } catch (e) {
         todayStr = new Date().toLocaleDateString('en-CA');
       }
@@ -561,7 +665,10 @@ app.post(["/api/streak/restore", "/api/users/streak/restore"], async (req: any, 
               lastActiveDate = ?, 
               lost_streak = ?, 
               restore_count = ?, 
-              last_restore_month = ? 
+              last_restore_month = ?,
+              streak_started_date = ?,
+              streak_last_evaluated_date = ?,
+              streak_missed_dates = ?
             WHERE LOWER(email) = ?`,
       args: [
         current_streak,
@@ -571,6 +678,9 @@ app.post(["/api/streak/restore", "/api/users/streak/restore"], async (req: any, 
         lost_streak,
         restore_count,
         last_restore_month,
+        todayStr,
+        todayStr,
+        "[]",
         cleanEmail
       ]
     });
