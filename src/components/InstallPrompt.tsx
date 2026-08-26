@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X, Sparkles, Smartphone } from 'lucide-react';
+import { useThemeLanguage } from '../context/ThemeLanguageContext';
 
 export default function InstallPrompt() {
+  const { language } = useThemeLanguage();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -59,60 +61,79 @@ export default function InstallPrompt() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.95 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 dark:bg-slate-900/95 text-white shadow-2xl backdrop-blur-md border border-slate-700/60"
+          className="fixed bottom-3 left-3 right-3 z-50 overflow-hidden rounded-[22px] border border-slate-200 bg-white text-[#112F58] shadow-[0_24px_70px_-20px_rgba(15,23,42,0.45)] sm:bottom-5 sm:left-auto sm:right-5 sm:w-[390px]"
         >
-          <div className="flex items-start gap-3.5">
-            <div className="relative flex-shrink-0">
+          <div className="h-1 w-full bg-gradient-to-r from-[#112F58] via-[#315B8F] to-[#B9AB8C]" />
+
+          <button
+            onClick={handleDismiss}
+            className="absolute right-3 top-3.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-[#112F58]"
+            aria-label={language === 'id' ? 'Tutup' : 'Close'}
+            type="button"
+          >
+            <X size={17} />
+          </button>
+
+          <div className="p-4 sm:p-5">
+            <div className="flex items-center gap-3 pr-10">
+              <div className="relative flex-shrink-0">
               <img
                 src="/logo-pwa-bg.png"
                 alt="MOODUIT"
-                className="w-12 h-12 rounded-xl object-cover shadow-md border border-slate-700/50"
+                  className="h-14 w-14 rounded-2xl border border-slate-200 object-cover shadow-sm"
                 onError={(e) => {
                   // Fallback icon if image fails
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
-              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-0.5 rounded-full shadow">
+                <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-white bg-amber-400 p-1 text-[#112F58] shadow-sm">
                 <Sparkles size={12} className="fill-amber-950 stroke-amber-950" />
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  Instal Aplikasi MOODUIT
-                  <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    Aplikasi Cerdas
-                  </span>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#B29C6D]">
+                  MOODUIT • PWA
+                </p>
+                <h4 className="m-0 mt-0.5 text-lg font-extrabold leading-tight text-[#112F58] sm:text-xl">
+                  {language === 'id' ? 'Instal MOODUIT' : 'Install MOODUIT'}
                 </h4>
-                <button
-                  onClick={handleDismiss}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-                  aria-label="Tutup"
-                >
-                  <X size={16} />
-                </button>
               </div>
+            </div>
 
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Instal MOODUIT di layar utama kamu untuk akses lebih cepat, responsif, dan hemat kuota!
+            <p className="mb-0 mt-3 text-sm leading-relaxed text-slate-600">
+              {language === 'id'
+                ? 'Tambahkan ke layar utama untuk membuka MOODUIT lebih cepat dan nyaman.'
+                : 'Add MOODUIT to your home screen for faster and more convenient access.'}
               </p>
 
-              <div className="flex items-center gap-2 mt-3">
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-600">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1.5">
+                <Smartphone size={13} className="text-[#112F58]" />
+                {language === 'id' ? 'Akses cepat' : 'Quick access'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1.5 text-emerald-700">
+                <Sparkles size={13} />
+                {language === 'id' ? 'Lebih hemat' : 'Data friendly'}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
                 <button
                   onClick={handleInstallClick}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md active:scale-95 transition-all"
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#112F58] px-4 py-2.5 text-sm font-extrabold text-white shadow-md transition-all hover:bg-[#1D4777] active:scale-[0.98]"
+                type="button"
                 >
-                  <Download size={14} />
-                  Instal Sekarang
+                <Download size={16} />
+                {language === 'id' ? 'Instal Sekarang' : 'Install Now'}
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="min-h-11 cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#112F58]"
+                type="button"
                 >
-                  Nanti
+                {language === 'id' ? 'Nanti' : 'Later'}
                 </button>
-              </div>
             </div>
           </div>
         </motion.div>

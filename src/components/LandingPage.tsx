@@ -419,15 +419,18 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <div className="max-w-6xl w-full">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#112f58] dark:text-white mb-4">
-              Lebih dari Sekadar Pencatat Keuangan
+              {t('Lebih dari Sekadar Pencatat Keuangan', 'More Than Just a Finance Tracker')}
             </h2>
             <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-lg">
-              MOODUIT dirancang untuk mengubah cara kamu melihat uang, membantumu mengambil kendali penuh tanpa perlu pusing memikirkan rumus rumit.
+              {t(
+                'MOODUIT dirancang untuk mengubah cara kamu melihat uang, membantumu mengambil kendali penuh tanpa perlu pusing memikirkan rumus rumit.',
+                'MOODUIT is designed to transform the way you see money, helping you take full control without worrying about complicated formulas.'
+              )}
             </p>
           </div>
 
           <div className="landing-swipe-hint md:hidden w-full mb-3 text-slate-500 dark:text-slate-400">
-            <span>Geser untuk melihat manfaat lainnya</span>
+            <span>{t('Geser untuk melihat manfaat lainnya', 'Swipe to see more benefits')}</span>
             <span aria-hidden="true">→</span>
           </div>
 
@@ -437,9 +440,14 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🧘‍♂️
               </div>
-              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">Bebas Stres Finansial</h3>
+              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">
+                {t('Bebas Stres Finansial', 'Freedom from Financial Stress')}
+              </h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Tidak perlu lagi cemas memikirkan sisa uang. AI Advisor siap memberikan saran kontekstual agar kondisi dompetmu tetap sehat setiap hari.
+                {t(
+                  'Tidak perlu lagi cemas memikirkan sisa uang. AI Advisor siap memberikan saran kontekstual agar kondisi dompetmu tetap sehat setiap hari.',
+                  'No more worrying about how much money is left. AI Advisor provides contextual guidance to keep your finances healthy every day.'
+                )}
               </p>
             </div>
 
@@ -448,9 +456,14 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 🚀
               </div>
-              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">Impian Cepat Terwujud</h3>
+              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">
+                {t('Impian Cepat Terwujud', 'Reach Your Dreams Faster')}
+              </h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Pisahkan uangmu ke Kantong Masa Depan. Lacak target impianmu dan nikmati sensasi menabung yang menyenangkan dan terarah.
+                {t(
+                  'Pisahkan uangmu ke Kantong Masa Depan. Lacak target impianmu dan nikmati sensasi menabung yang menyenangkan dan terarah.',
+                  'Set money aside in your Future Pocket, track your goals, and enjoy a saving journey that feels rewarding and purposeful.'
+                )}
               </p>
             </div>
 
@@ -459,9 +472,14 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
                 ⚖️
               </div>
-              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">Disiplin Tanpa Ribet</h3>
+              <h3 className="text-xl font-bold text-[#112f58] dark:text-white mb-3">
+                {t('Disiplin Tanpa Ribet', 'Effortless Financial Discipline')}
+              </h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Metode 50/30/20 otomatis memilah uangmu. Kamu tetap bisa nongkrong dan belanja tanpa rasa bersalah, karena jatah tabungan sudah aman.
+                {t(
+                  'Metode 50/30/20 otomatis memilah uangmu. Kamu tetap bisa nongkrong dan belanja tanpa rasa bersalah, karena jatah tabungan sudah aman.',
+                  'The 50/30/20 method automatically organizes your money, so you can enjoy spending while keeping your savings securely on track.'
+                )}
               </p>
             </div>
           </div>
